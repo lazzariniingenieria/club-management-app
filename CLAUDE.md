@@ -4,48 +4,56 @@
 Act as a senior Flutter/Dart developer with equivalent 20 years of experience. Always favor the most professional, production-grade approach over the simplest one to write.
 
 ## Stack
-- Flutter (canal stable), Dart (versión estable acorde al SDK del proyecto). Versiones fijadas en `pubspec.yaml`/`pubspec.lock`; los bumps de versión son una decisión deliberada, no automática (ver "Gestión de dependencias").
-- Consumo de API: backend Spring Boot desplegado en un entorno remoto (nunca localhost como base URL de trabajo diario).
-- Gestión de estado: enfoque estructurado y escalable (Riverpod o Bloc — elegir uno al inicio del proyecto y mantener consistencia, sin mezclar patrones).
-- Inyección de dependencias explícita (constructor injection / providers), evitando singletons globales y `Locator` patterns implícitos.
-- Navegación: usar un router declarativo (go_router u otro equivalente) en vez de `Navigator` imperativo disperso por la app.
+- Flutter (stable channel), Dart (stable version matching the project SDK constraint). Versions pinned in `pubspec.yaml`/`pubspec.lock`; version bumps are a deliberate decision, not automatic (see "Dependency management").
+- API consumption: Spring Boot backend deployed to a remote environment (never localhost as the day-to-day working base URL).
+- State management: a structured, scalable approach (Riverpod or Bloc — pick one at project start and stay consistent, no mixing patterns).
+- Explicit dependency injection (constructor injection / providers), avoiding global singletons and implicit service-locator patterns.
+- Navigation: a declarative router (go_router or equivalent) instead of imperative `Navigator` calls scattered across the app.
 
-## Arquitectura
-- Separación clara de capas: **data** (repositories, clientes HTTP/DTOs), **domain** (models, use cases/entidades), **presentation** (widgets, providers/blocs). Nunca llamadas HTTP directas desde un widget.
-- Los widgets no conocen DTOs de red: mapear DTO → modelo de dominio en la capa data antes de exponerlo a presentación.
-- Los use cases/repositorios se exponen mediante interfaces (abstract class) en domain, con su implementación concreta en data — facilita el mockeo en tests y el desacoplamiento del cliente HTTP concreto.
-- Manejo de estado inmutable (freezed o equivalente) para evitar mutaciones accidentales y bugs de referencia compartida.
+## Architecture
+- Feature-first folder structure (`lib/features/<feature>/{data,domain,presentation}`) over a purely layer-first one, so each feature stays cohesive and easy to locate as the app grows.
+- Clear separation of layers within each feature: **data** (repositories, HTTP clients/DTOs), **domain** (models, use cases/entities), **presentation** (widgets, providers/blocs). Never call HTTP directly from a widget.
+- Widgets never see network DTOs: map DTO → domain model in the data layer before exposing it to presentation.
+- Repositories/use cases are exposed as interfaces (abstract class) in domain, with the concrete implementation in data — this keeps them mockable in tests and decoupled from the concrete HTTP client.
+- Immutable state (freezed or equivalent) to avoid accidental mutation and shared-reference bugs.
+- A small, shared `core`/`common` module for cross-cutting concerns (theming, routing, network client, error types) — not a dumping ground for unrelated utilities.
 
-## Código
-- Todo en inglés: nombres de variables, clases, widgets, archivos y carpetas.
-- Funciones/métodos de propósito único, ≤20 líneas, ≤3 parámetros. Excepciones solo si están justificadas.
-- Sin comentarios salvo excepciones justificadas. Nombres descriptivos que hagan innecesaria la explicación.
-- Widgets pequeños y composables. Si un `build()` supera ~30-40 líneas, extraer sub-widgets con nombre propio.
-- `const` siempre que sea posible en widgets e instancias, para minimizar rebuilds innecesarios.
-- Manejo explícito de errores en cada llamada a la API: nunca un `try/catch` vacío. Loguear errores relevantes con contexto (endpoint, status code, payload cuando sea seguro loguearlo).
-- Modelar los resultados de operaciones de red/dominio con un tipo explícito de éxito/error (`Result`/`Either` o sealed classes), evitando que las excepciones sean el único mecanismo de control de flujo hacia la UI.
+## Code
+- Everything in English: variable, class, widget, file, and folder names.
+- Single-purpose functions/methods, ≤20 lines, ≤3 parameters. Exceptions only when justified.
+- No comments except justified exceptions. Descriptive names that make explanation unnecessary.
+- Small, composable widgets. If a `build()` method exceeds ~30-40 lines, extract named sub-widgets.
+- Use `const` constructors and instances wherever possible to minimize unnecessary rebuilds.
+- Explicit error handling on every API call: never an empty `try/catch`. Log relevant errors with context (endpoint, status code, payload when safe to log) through a single logging abstraction, never `print`.
+- Model network/domain operation outcomes with an explicit success/error type (`Result`/`Either` or sealed classes) instead of relying on exceptions as the only control-flow mechanism reaching the UI.
+- Enforce a strict lint set (e.g. `flutter_lints`/`very_good_analysis`) via `analysis_options.yaml`, tightened rather than loosened over time — don't suppress warnings with blanket ignores.
+- User-facing strings centralized (even for a single locale today), not hardcoded inline in widgets — keeps a future localization pass low-risk and copy changes centralized.
 
-## Gestión de dependencias
-- Las versiones de dependencias en `pubspec.yaml` se actualizan de forma deliberada y revisada (changelog, breaking changes, impacto en la app), nunca de forma automática ni "siempre a la última".
-- Antes de subir una versión mayor de una dependencia clave (state management, router, HTTP client), evaluar el changelog y correr la suite de tests completa.
+## Dependency management
+- Dependency versions in `pubspec.yaml` are updated deliberately and reviewed (changelog, breaking changes, impact on the app), never automatically or "always to latest".
+- Before bumping a major version of a key dependency (state management, router, HTTP client), review the changelog and run the full test suite.
 
 ## Testing
-- Tests de widgets para componentes de UI con lógica no trivial.
-- Tests unitarios para lógica de dominio y mapeo de datos (parsing de DTOs, validación de formularios).
-- Mockear la capa de red en los tests — nunca golpear la API real desde un test automatizado (usar fakes/mocks sobre la interfaz de repositorio, no sobre el cliente HTTP concreto).
-- Tests de integración (opcional pero recomendado) para flujos críticos: reserva de cancha, pago de cuota.
+- Widget tests for UI components with non-trivial logic.
+- Unit tests for domain logic and data mapping (DTO parsing, form validation).
+- Mock the network layer in tests — never hit the real API from an automated test (fake/mock the repository interface, not the concrete HTTP client).
+- Integration tests (optional but recommended) for critical flows: booking a court, paying a fee.
+- CI runs `flutter analyze` and the full test suite on every pull request; a PR cannot merge with a red pipeline or analyzer warnings.
 
-## Flujo de trabajo
-- Configuración de entornos vía variables/flavors (`--dart-define` o flavors de Flutter) para alternar entre el backend remoto y un backend local, sin hardcodear URLs en el código.
-- El entorno remoto es la base de trabajo diaria por defecto; lo local se usa solo para correr la suite de tests y para desarrollo de UI con datos mockeados cuando se necesita iteración rápida sin depender de la red.
-- Antes de cada entrega: correr `flutter analyze` y la suite de tests completa. Cero warnings de analyzer antes de dar por cerrada una tarea.
-- Manejar secretos (API keys, tokens) fuera del control de versiones (`--dart-define`, `.env` ignorado en git), nunca hardcodeados en el repositorio.
+## Workflow
+- Environment configuration via variables/flavors (`--dart-define` or Flutter flavors) to switch between the remote backend and a local one, without hardcoding URLs in the code.
+- The remote environment is the default day-to-day working base; local is used only to run the test suite and for UI development with mocked data when fast iteration is needed without depending on the network.
+- Before each delivery: run `flutter analyze` and the full test suite locally. Zero analyzer warnings before considering a task done.
+- Keep secrets (API keys, tokens) out of version control (`--dart-define`, a git-ignored `.env`), never hardcoded in the repository.
+- Small, focused branches and pull requests (one feature/fix per PR); descriptive commit messages that explain *why*, not just *what*.
+- Bump the app version/build number (`pubspec.yaml`) deliberately as part of the release process, not on every merge.
 
 ## UI/UX
-- Diseño simple y funcional pensado para socios de un club de barrio (rango etario amplio, no asumir usuarios expertos en apps).
-- Priorizar claridad y pocos pasos por flujo (reservar una cancha, revisar estado de cuota, etc.) por sobre la sofisticación visual.
-- Accesibilidad básica: tamaños de texto legibles, contraste adecuado, soporte de `Semantics` en elementos interactivos clave.
-- Manejar explícitamente los estados de carga, vacío y error en cada pantalla que consuma datos remotos (no solo el "happy path").
+- Simple, functional design built for real neighborhood club members (wide age range, don't assume app-savvy users).
+- Prioritize clarity and few steps per flow (booking a court, checking fee status, etc.) over visual sophistication.
+- Basic accessibility: legible text sizes, adequate contrast, `Semantics` support on key interactive elements.
+- Explicitly handle loading, empty, and error states on every screen that consumes remote data — not just the happy path.
+- Long or dynamic lists use `ListView.builder`/slivers instead of building the full list eagerly; images are cached and sized appropriately for the target device.
 
-## Contexto de dominio
-App móvil para socios y administradores de un club de barrio: reserva de canchas, turnos recurrentes y actividades, seguimiento de cuotas/pagos, grupos familiares. El backend es Spring Boot consumido vía REST. Ver el `CLAUDE.md` del repo de backend para el modelo de datos completo (nueve tablas: club, family_group, member, user_account, payment, court, court_block, recurring_slot, reservation).
+## Domain context
+Mobile app for members and administrators of a neighborhood club: court booking, recurring slots and activities, fee/payment tracking, family groups. Backend is Spring Boot consumed over REST. See the backend repo's `CLAUDE.md` for the full data model (nine tables: club, family_group, member, user_account, payment, court, court_block, recurring_slot, reservation).
