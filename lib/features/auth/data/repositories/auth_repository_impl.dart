@@ -1,3 +1,4 @@
+import '../../../../core/constants/storage_keys.dart';
 import 'package:fpdart/fpdart.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
@@ -23,8 +24,8 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final response = await remoteDataSource.login(email, password);
       
-      await secureStorage.saveToken('access_token', response.token.accessToken);
-      await secureStorage.saveToken('refresh_token', response.token.refreshToken);
+      await secureStorage.saveToken(StorageKeys.accessToken, response.token.accessToken);
+      await secureStorage.saveToken(StorageKeys.refreshToken, response.token.refreshToken);
       
       return Right(response.user);
     } on UnauthorizedException catch (e) {

@@ -13,7 +13,7 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => LoginCubit(sl()), // sl() injects LoginWithCredentialsUseCase
+      create: (_) => sl<LoginCubit>(), // sl() injects LoginWithCredentialsUseCase
       child: BlocListener<LoginCubit, LoginState>(
         listener: (context, state) {
           if (state is LoginFailure) {

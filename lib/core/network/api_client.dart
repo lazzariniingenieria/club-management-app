@@ -1,3 +1,4 @@
+import '../constants/storage_keys.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../storage/secure_storage_service.dart';
@@ -22,7 +23,7 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final accessToken = await secureStorage.getToken('access_token');
+          final accessToken = await secureStorage.getToken(StorageKeys.accessToken);
           if (accessToken != null) {
             options.headers['Authorization'] = 'Bearer $accessToken';
           }
