@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_form_field.dart';
@@ -35,6 +36,18 @@ class _LoginFormState extends State<LoginForm> {
     }
   }
 
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) return AppStrings.loginEmailRequired;
+    if (!value.contains('@')) return AppStrings.loginEmailInvalidFormat;
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.trim().isEmpty) return AppStrings.loginPasswordRequired;
+    if (value.length < 6) return AppStrings.loginPasswordTooShort;
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Form(
@@ -44,23 +57,15 @@ class _LoginFormState extends State<LoginForm> {
         children: [
           AppTextFormField(
             controller: _emailController,
-            hintText: 'Correo electrónico',
+            hintText: AppStrings.loginEmailHint,
             prefixIcon: Icons.mail_outline_rounded,
             keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'El correo es requerido';
-              }
-              if (!value.contains('@')) {
-                return 'Formato de correo inválido';
-              }
-              return null;
-            },
+            validator: _validateEmail,
           ),
           const SizedBox(height: 16),
           AppTextFormField(
             controller: _passwordController,
-            hintText: 'Contraseña',
+            hintText: AppStrings.loginPasswordHint,
             prefixIcon: Icons.lock_outline_rounded,
             isPassword: true,
             obscureText: _obscurePassword,
@@ -69,15 +74,7 @@ class _LoginFormState extends State<LoginForm> {
                 _obscurePassword = !_obscurePassword;
               });
             },
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'La contraseña es requerida';
-              }
-              if (value.length < 6) {
-                return 'La contraseña debe tener al menos 6 caracteres';
-              }
-              return null;
-            },
+            validator: _validatePassword,
           ),
           const SizedBox(height: 12),
           Align(
@@ -92,14 +89,14 @@ class _LoginFormState extends State<LoginForm> {
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text('¿Olvidaste tu contraseña?'),
+              child: const Text(AppStrings.loginForgotPassword),
             ),
           ),
           const SizedBox(height: 32),
           BlocBuilder<LoginCubit, LoginState>(
             builder: (context, state) {
               return AppButton(
-                text: 'Ingresar',
+                text: AppStrings.loginSubmitButton,
                 isLoading: state is LoginLoading,
                 onPressed: _submitForm,
               );
@@ -114,7 +111,7 @@ class _LoginFormState extends State<LoginForm> {
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.textSecondaryLight,
               ),
-              child: const Text('Es mi primera vez aquí'),
+              child: const Text(AppStrings.loginFirstTimeUser),
             ),
           ),
         ],

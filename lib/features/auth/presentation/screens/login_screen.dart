@@ -13,7 +13,7 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<LoginCubit>(), // sl() injects LoginWithCredentialsUseCase
+      create: (_) => sl<LoginCubit>(),
       child: BlocListener<LoginCubit, LoginState>(
         listener: (context, state) {
           if (state is LoginFailure) {
@@ -25,7 +25,6 @@ class LoginScreen extends StatelessWidget {
               ),
             );
           } else if (state is LoginSuccess) {
-            // Navigate to Dashboard
             context.go('/home');
           }
         },

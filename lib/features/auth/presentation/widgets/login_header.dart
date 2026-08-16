@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class LoginHeader extends StatelessWidget {
@@ -13,12 +14,12 @@ class LoginHeader extends StatelessWidget {
       children: [
         const SizedBox(height: 24),
         Text(
-          'Bienvenido de nuevo',
+          AppStrings.loginWelcomeTitle,
           style: textTheme.displayLarge,
         ),
         const SizedBox(height: 8),
         Text(
-          'Accede a tus reservas y gestión de socios',
+          AppStrings.loginWelcomeSubtitle,
           style: textTheme.bodyLarge?.copyWith(
             color: AppColors.textSecondaryLight,
           ),

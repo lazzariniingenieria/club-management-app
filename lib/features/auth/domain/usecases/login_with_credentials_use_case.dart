@@ -12,7 +12,6 @@ class LoginWithCredentialsUseCase {
     required String email,
     required String password,
   }) async {
-    // Basic validation before calling repository
     if (email.trim().isEmpty || password.trim().isEmpty) {
       return const Left(AuthFailure('Email and password cannot be empty'));
     }
