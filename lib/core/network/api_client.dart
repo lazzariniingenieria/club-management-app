@@ -35,9 +35,6 @@ class ApiClient {
           }
           return handler.next(options);
         },
-        onError: (DioException e, handler) async {
-          return handler.next(e);
-        },
       ),
     );
 

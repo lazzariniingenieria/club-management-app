@@ -14,29 +14,23 @@ import '../../features/auth/presentation/cubit/login_cubit.dart';
 final sl = GetIt.instance;
 
 Future<void> init() async {
-  // Core
   sl.registerLazySingleton<FlutterSecureStorage>(() => const FlutterSecureStorage());
   sl.registerLazySingleton<SecureStorageService>(() => SecureStorageServiceImpl(sl()));
-  
+
   sl.registerLazySingleton<Dio>(() => Dio());
   sl.registerLazySingleton<ApiClient>(() => ApiClient(
         dio: sl(),
         secureStorage: sl(),
       ));
 
-  // Features - Auth
-  // Cubit
   sl.registerFactory(() => LoginCubit(sl()));
 
-  // Use cases
   sl.registerLazySingleton(() => LoginWithCredentialsUseCase(sl()));
 
-  // Repository
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(remoteDataSource: sl(), secureStorage: sl()),
   );
 
-  // Data sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(sl()),
   );

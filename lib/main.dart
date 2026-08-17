@@ -5,8 +5,7 @@ import 'core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize dependency injection
+
   await di.init();
   
   runApp(const ClubManagementApp());

@@ -11,7 +11,6 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/home',
-      // Placeholder for Home Dashboard
       builder: (context, state) => const Placeholder(),
     ),
   ],
