@@ -1,44 +1,39 @@
-# Mapa de Flujos e Inventario de Pantallas (`club-management-app`)
+# Mapa de Flujos, Pantallas y Entregas (`club-management-app`)
 
-Este documento define **qué pantallas existen, cómo se navega entre ellas, qué ve cada rol y qué estados debe manejar cada una**. Es el artefacto de referencia previo a escribir UI: de acá sale el orden de los PRs y el contrato que le pedimos al backend.
+Documento de referencia del frontend: **qué pantallas existen, cómo se navega, qué ve cada rol, y en qué orden se entrega**. De acá salen los PRs (§8) y los pedidos al equipo de backend (§9).
 
-No define píxeles. Define estructura, flujos y estados.
+No define píxeles. Define estructura, flujos, estados y alcance por entrega.
 
-> **Base de este documento (2026-08-21)**: la **superficie del administrador es el camino crítico** — se construye completa antes de empezar la del socio. La paleta de la §7 y la estructura de navegación del admin de la §3.2 derivan de dos capturas de referencia aportadas por el cliente (*Inicio - Administrador* y *Gestión de Socios - Administrador*), no son propuestas especulativas. Los hexadecimales están estimados visualmente de esas capturas y hay que confirmarlos contra el diseño original.
+> **Revisión 2026-08-27.** La superficie del **administrador es el camino crítico**: se construye completa antes de la del socio. La paleta de §7 y la navegación del admin de §3.2 derivan de dos capturas de referencia (*Inicio - Administrador*, *Gestión de Socios - Administrador*); los hexadecimales están estimados visualmente y hay que confirmarlos. Backend: [club-management-api](https://github.com/lazzariniingenieria/club-management-api).
 
 ---
 
-## 1. Principios de diseño para este producto
-
-El público del lado socio son miembros de un club de barrio con rango de edad amplio, no usuarios expertos en apps. El público del lado admin es distinto: poca gente, uso diario, interfaz aprendida. Los principios se aplican con ese matiz.
+## 1. Principios de diseño
 
 | Principio | Implicancia concreta |
 | :--- | :--- |
-| **Pocos pasos por flujo** | Reservar una cancha: máximo 3 toques desde el Inicio hasta la confirmación (más el paso de selección de socio en el flujo del admin). |
-| **Íconos con etiqueta, según superficie** | **Socio**: nunca un ícono solo — uso esporádico y rango de edad amplio. **Admin**: se permiten acciones ícono-only en filas de listado densas, con tres requisitos no negociables: `Semantics(label:)`, `tooltip` en press largo, y área táctil de 48×48 aunque el ícono se dibuje más chico. |
-| **Estado siempre explícito** | El usuario nunca debe preguntarse "¿se guardó o no?". Confirmaciones textuales, no solo cambios de color. |
-| **Selección visible** | Toda acción que acumula estado (agregar un socio al reporte) cambia el aspecto del ítem seleccionado y permite quitarlo desde el mismo lugar. Un contador en el FAB no alcanza si la fila no cambia. |
-| **Texto legible por defecto** | Base de 16sp para cuerpo, mínimo 14sp para secundarios. Respetar el `textScaleFactor` del sistema sin romper layouts. |
+| **Pocos pasos** | Máximo 3 toques desde el Inicio hasta confirmar cualquier flujo principal. |
+| **Íconos con etiqueta, según superficie** | **Socio**: nunca un ícono solo (uso esporádico, rango de edad amplio). **Admin**: se permite ícono-only en filas densas, con `Semantics(label:)`, `tooltip` y área táctil de 48×48. |
+| **Estado siempre explícito** | Nadie debe preguntarse "¿se guardó o no?". Confirmación textual, no solo cambio de color. |
+| **El color nunca solo** | Todo estado va acompañado de texto o ícono. Daltonismo y pantallas al sol en el predio. |
+| **Tolerancia al error** | Toda acción irreversible (baja de socio, registrar pago, cancelar reserva) pide confirmación. |
 | **Sin jerga técnica** | "Turno fijo", no "recurring slot". "Cuota al día", no "payment status: OK". |
-| **Tolerancia al error** | Toda acción irreversible (cancelar reserva, registrar pago, dar de baja un socio) pide confirmación explícita. |
-| **El color nunca solo** | Ningún estado se comunica únicamente por color: siempre acompañado de texto o ícono. Requisito para daltonismo y para pantallas al sol en el predio. |
 
 ---
 
 ## 2. Roles y superficies
 
-Hay dos superficies de aplicación distintas, no una con condicionales dispersos:
+| Rol | `UserRole` | Alcance |
+| :--- | :--- | :--- |
+| **Socio** | `member` | Consume el club: reserva, paga, consulta. |
+| **Administrador** | `admin` | Opera el club: socios, pagos, reservas y canchas. **Superficie de las primeras entregas.** |
+| **Super administrador** | `superAdmin` | Todo lo del admin **+ ABM de administradores**. |
 
-- **Administrador (`UserRole.admin`)**: opera el club. Gestiona socios, pagos, reservas y canchas. **Es la superficie de la primera entrega.**
-- **Socio (`UserRole.member`)**: consume el club. Reserva, paga, consulta.
+**Dos shells de navegación, no tres.** Socio y admin tienen árboles separados elegidos por rol en el `redirect` del router, para evitar pantallas llenas de `if (isAdmin)`.
 
-**Decisión**: dos *shells* de navegación separados, elegidos por `UserRole` en el redirect del router. Un admin no ve tabs de socio deshabilitados; ve su propio conjunto. Esto evita el antipatrón de una sola pantalla llena de `if (isAdmin)`.
+El **superAdmin comparte el shell del admin**: su único delta es la gestión de administradores. Un tercer shell duplicaría cuatro tabs por una sola pantalla extra. La diferencia se resuelve con un único punto de control — un getter `canManageAdmins` sobre el rol — que habilita el acceso en el Perfil. Una sola condición, en un solo lugar.
 
-### El admin que reserva para sí mismo
-
-Cuando un admin es además socio y quiere reservar para sí mismo, **no hay modo especial ni cambio de superficie**: usa el flujo de reserva del admin y selecciona su propia cuenta de socio en el paso de selección de socio. La reserva resultante es indistinguible de cualquier otra — mismo registro, misma visualización, sin distintivo.
-
-Consecuencia a respetar al construir: el flujo de reserva del admin **siempre** incluye el paso de selección de socio, incluso cuando reserva para sí mismo. No se atajan casos ni se preselecciona su cuenta. Esto elimina la pregunta de "¿en qué modo estoy?" y ahorra un segundo árbol de navegación.
+**El admin que reserva para sí mismo** no tiene modo especial: usa el flujo de reserva del admin y selecciona su propia cuenta de socio. La reserva es indistinguible de cualquier otra. Consecuencia a respetar: el paso de selección de socio está **siempre**, sin preseleccionar ni atajar casos.
 
 ---
 
@@ -46,123 +41,73 @@ Consecuencia a respetar al construir: el flujo de reserva del admin **siempre** 
 
 ### 3.1 Autenticación (fuera de los shells)
 
-| Pantalla | Ruta | Estado | Propósito |
-| :--- | :--- | :--- | :--- |
-| Splash / Bootstrap | `/` | A construir | Resuelve sesión persistida y redirige. Evita el flash de login al abrir la app ya logueado. |
-| Login | `/login` | ✅ Implementada | Ingreso con email + contraseña. |
-| Primer ingreso | `/login/activate` | A construir | El socio ya existe en el club pero no tiene `user_account`. Activa su cuenta. Ya hay CTA en `AppStrings.loginFirstTimeUser`. |
-| Recuperar contraseña | `/login/forgot` | A construir | Envío de instrucciones por email. Ya hay CTA en `AppStrings.loginForgotPassword`. |
+| Pantalla | Ruta | Estado |
+| :--- | :--- | :--- |
+| Splash / Bootstrap | `/` | A construir — resuelve sesión persistida y redirige |
+| Login | `/login` | ✅ Implementada |
+| Primer ingreso | `/login/activate` | A construir — CTA ya existe en `AppStrings.loginFirstTimeUser` |
+| Recuperar contraseña | `/login/forgot` | A construir — CTA ya existe en `AppStrings.loginForgotPassword` |
 
-### 3.2 Shell del Administrador — 4 tabs
+### 3.2 Shell del Administrador
 
-Bottom navigation de fondo navy oscuro, 4 items con ícono **y** etiqueta: **Inicio / Reservas / Pagos / Perfil**.
-
-Toda pantalla del shell lleva en el header el badge **"ADMINISTRADOR"** en verde claro. Es la señal permanente de superficie y se implementa como componente compartido (`RoleBadge`), no repetido por pantalla.
+Bottom navigation navy, 4 items con ícono **y** etiqueta. Badge `RoleBadge` ("ADMINISTRADOR" / "SUPER ADMIN") en el header de toda pantalla del shell.
 
 | Tab | Ruta | Contenido |
 | :--- | :--- | :--- |
-| **Inicio** | `/admin` | Resumen General + Accesos Rápidos (detalle en §3.2.1) |
-| **Reservas** | `/admin/reservations` | Agenda del día por cancha, detalle de reserva, bloqueos, alta a nombre de un socio. **En la primera entrega: estado "Próximamente"** |
-| **Pagos** | `/admin/payments` | Listado de cuotas con filtro por estado, registrar pago, detalle |
-| **Perfil** | `/admin/profile` | Datos del admin, cambiar contraseña, cerrar sesión |
+| **Inicio** | `/admin` | Resumen General + Accesos Rápidos (§3.2.1) |
+| **Reservas** | `/admin/reservations` | Agenda por cancha, bloqueos, alta a nombre de un socio. **Estado "Próximamente" hasta E9** |
+| **Pagos** | `/admin/payments` | Cuotas con filtro por estado, registrar pago, detalle |
+| **Perfil** | `/admin/profile` | Datos, cambiar contraseña, logout, y acceso a Administradores si `canManageAdmins` |
 
-Rutas alcanzadas por navegación push, fuera de los tabs:
+Rutas push, fuera de los tabs:
 
-| Pantalla | Ruta |
-| :--- | :--- |
-| Gestión de socios | `/admin/members` |
-| Alta de socio | `/admin/members/new` |
-| Edición de socio | `/admin/members/:memberId/edit` |
-| Reporte de pagos | `/admin/members/report` |
-| Gestión de canchas | `/admin/courts` |
+| Pantalla | Ruta | Rol |
+| :--- | :--- | :--- |
+| Gestión de socios | `/admin/members` | admin |
+| Alta / edición de socio | `/admin/members/new`, `/admin/members/:memberId/edit` | admin |
+| Reporte de pagos | `/admin/members/report` | admin |
+| Gestión de canchas | `/admin/courts` | admin |
+| Gestión de administradores | `/admin/admins` (+ `/new`, `/:adminId/edit`) | **superAdmin** |
 
-**Socios y Canchas no son tabs.** Se alcanzan desde el Inicio. El criterio: son tareas de sesión (entrás, resolvés, volvés), no destinos de consulta permanente como la agenda o los pagos. La barra inferior queda reservada para lo que el admin mira varias veces por día.
-
-**El tab Reservas se muestra desde la primera entrega con un estado "Próximamente"** explícito, en lugar de arrancar con 3 tabs y agregar el cuarto después. La forma de la barra no cambia entre releases.
+**Socios y Canchas no son tabs.** Son tareas de sesión (entrás, resolvés, volvés); la barra inferior queda para lo que el admin mira varias veces por día. El tab Reservas se muestra desde la primera entrega con estado "Próximamente" para que la barra no cambie de forma entre releases.
 
 #### 3.2.1 Inicio del Administrador
 
-Primera pantalla después del login del admin. De arriba a abajo:
+**Resumen General**
 
-**Sección "Resumen General"**
-
-| Bloque | Contenido | Tratamiento visual | Al tocar |
+| Bloque | Contenido | Visual | Al tocar |
 | :--- | :--- | :--- | :--- |
-| `ActiveMembersCard` | "SOCIOS ACTIVOS" + contador | Card navy sólida, texto blanco, ancho completo | → `/admin/members` |
+| `ActiveMembersCard` | "SOCIOS ACTIVOS" + contador | Card navy sólida, texto blanco | → `/admin/members` |
 | `OverdueMembersCard` | "SOCIOS EN MORA" + contador | Card azul claro, contador en rojo | → `/admin/members` |
-| `UpcomingSlotsCard` | "PRÓXIMOS TURNOS" + filas cancha / horario | Card azul claro, horario en azul alineado a la derecha | → agenda. En la primera entrega no navegable |
+| `UpcomingSlotsCard` | "PRÓXIMOS TURNOS" + cancha / horario | Card azul claro, horario en azul a la derecha | → agenda (no navegable hasta E9) |
 
-**Sección "Accesos Rápidos"** — dos cards lado a lado, mismo alto:
+**Accesos Rápidos** — dos cards lado a lado: *Gestión de Socios* (navy) → `/admin/members`, *Gestión de Canchas* (verde) → `/admin/courts`.
 
-| Card | Color | Destino |
-| :--- | :--- | :--- |
-| Gestión de Socios (ícono personas) | navy sólido | `/admin/members` |
-| Gestión de Canchas (ícono calendario) | verde sólido | `/admin/courts` |
-
-Los **tres** puntos de entrada a socios (las dos cards del resumen y el acceso rápido) van a la **misma** pantalla `/admin/members`, sin pre-filtro. Mejora posterior anotada: que "Socios en mora" abra el listado con el filtro de mora ya aplicado.
-
-**Hallazgo de las capturas a resolver**: los contadores no cierran entre pantallas — el Inicio muestra 450 socios activos y el listado muestra 245 totales / 230 activos. Son datos mock, pero hay que definir la fuente de verdad de cada contador para no terminar con dos números distintos del mismo concepto en producción. Ver §8.3.
+Los tres puntos de entrada a socios van a la **misma** pantalla sin pre-filtro. Mejora posterior: que "Socios en mora" abra el listado con el filtro de mora aplicado.
 
 #### 3.2.2 Gestión de Socios
 
-De arriba a abajo:
+1. **Header**: "Socios" + `RoleBadge`.
+2. **Buscador**: placeholder "Buscar socio por nombre o DNI". Debounce ~300 ms, la consulta la resuelve el backend.
+3. **Filtros**: chips con contador — "Todos (n)", "Activos (n)", "Inactivos (n)". Seleccionado en navy sólido. *La captura dice "Inactivas"; va "Inactivos".*
+4. **Listado**: `ListView.builder` paginado de `MemberListTile`. Cada fila: barra de acento izquierda por estado de cuota, nombre, pill de estado, acción **lápiz** → edición, acción **documento** → agrega o quita del reporte (con estado visual propio).
+5. **FAB verde, abajo izquierda**: ver reporte de pagos, con badge de cantidad. Deshabilitado en cero.
+6. **FAB azul, abajo derecha**: crear socio → `/admin/members/new`.
 
-1. **Header**: título "Socios" + `RoleBadge`.
-2. **Buscador**: campo de ancho completo, placeholder "Buscar socio por nombre o DNI". Debounce de ~300 ms, no una consulta por pulsación.
-3. **Filtros**: chips con contador — "Todos (n)", "Activos (n)", "Inactivos (n)". El seleccionado en navy sólido, los demás en superficie clara. *Corrección de copy respecto de la captura: dice "Inactivas", va "Inactivos".*
-4. **Listado**: `ListView.builder` de `MemberListTile`. Cada fila:
-   - Barra de acento en el borde izquierdo, coloreada por estado de cuota (verde = al día, rojo = en mora).
-   - Nombre del socio.
-   - Pill de estado: "ACTIVO" sobre verde claro / "EN MORA" sobre rojo claro.
-   - Acción **lápiz** → `/admin/members/:memberId/edit`.
-   - Acción **documento** → agrega o quita el socio del reporte en curso. Con estado visual distinto cuando ya está agregado.
-5. **FAB verde, abajo a la izquierda**: ver el reporte de pagos, con badge de cantidad de socios agregados. Deshabilitado cuando el contador está en cero.
-6. **FAB azul, abajo a la derecha**: crear socio → `/admin/members/new`.
+**Los dos ejes de estado son independientes** (§9): `activo/inactivo` dice si sigue siendo socio; `al día/en mora` dice si la cuota está paga. Los chips filtran por el primero y el pill muestra el segundo, así que un socio puede estar **activo y en mora a la vez**. La fila debe poder mostrar ambos cuando difieren — un solo distintivo por fila no alcanza.
 
-Dos observaciones registradas, sin cambiar la decisión de diseño:
+**Dos FABs no es patrón estándar de Material.** Funciona porque son acciones de peso distinto y están separadas, pero el verde necesita etiqueta: conviene **FAB extendido "Ver reporte"** en lugar de circular.
 
-- **Dos FABs no es un patrón estándar de Material.** Acá funciona porque son acciones de peso distinto (crear vs. consultar lo acumulado) y están separadas espacialmente, pero exige que el verde comunique su función sin depender solo del ícono: conviene **FAB extendido con etiqueta "Ver reporte"** en lugar de circular.
-- **La barra de acento y el pill codifican lo mismo** (estado de cuota), mientras que los chips de arriba segmentan por otro eje (activo / inactivo). Dos ejes en el mismo espacio visual se vuelven ambiguos con 245 socios. Ver §8.2.
+### 3.3 Shell del Socio
 
-### 3.3 Shell del Socio — 4 tabs
+Se construye recién con el admin terminado (E12+). Cuatro tabs con ícono y etiqueta:
 
-Se construye recién con la superficie del admin terminada. Bottom navigation de 4 items con ícono y etiqueta.
-
-**Tab 1 — Inicio** (`/home`)
-
-El tablero. Responde de un vistazo las preguntas que el socio trae al abrir la app:
-
-1. `NextReservationCard` — ¿cuándo juego? Cancha, día, hora, con acción "Cancelar".
-2. `MembershipStatusCard` — ¿estoy al día? Semáforo textual: al día / vence pronto / vencida, con monto y vencimiento.
-3. `QuickActionsRow` — atajos a Reservar y a Mis turnos fijos.
-4. `ClubNoticesSection` — avisos del club (opcional, depende de si el backend los expone).
-
-**Tab 2 — Reservas** (`/reservations`)
-
-| Pantalla | Ruta | Propósito |
+| Tab | Ruta | Pantallas |
 | :--- | :--- | :--- |
-| Mis reservas | `/reservations` | Dos secciones: próximas (con cancelar) e historial. Turnos fijos marcados con distintivo. |
-| Elegir cancha | `/reservations/new` | Listado de canchas por deporte y superficie. |
-| Elegir horario | `/reservations/new/:courtId` | Selector de fecha (7 días hacia adelante) + grilla de franjas. |
-| Confirmar reserva | `/reservations/new/:courtId/confirm` | Resumen y confirmación explícita. |
-| Detalle de reserva | `/reservations/:reservationId` | Datos completos, cancelación con confirmación. |
-
-**Tab 3 — Cuotas** (`/payments`)
-
-| Pantalla | Ruta | Propósito |
-| :--- | :--- | :--- |
-| Estado de cuota | `/payments` | Estado actual destacado + historial de pagos descendente. |
-| Detalle de pago | `/payments/:paymentId` | Período, monto, fecha, medio, comprobante. |
-
-**Tab 4 — Perfil** (`/profile`)
-
-| Pantalla | Ruta | Propósito |
-| :--- | :--- | :--- |
-| Mi perfil | `/profile` | Datos del socio, número de socio, antigüedad. |
-| Mi grupo familiar | `/profile/family` | Integrantes y estado de cuota de cada uno. Solo lectura. |
-| Mis turnos fijos | `/profile/recurring` | Turnos fijos asignados (día, hora, cancha, vigencia). |
-| Cambiar contraseña | `/profile/password` | — |
-| Cerrar sesión | acción | Confirmación explícita y limpieza de `secure_storage`. |
+| Inicio | `/home` | Próxima reserva, estado de cuota, atajos, avisos |
+| Reservas | `/reservations` | Mis reservas · elegir cancha → horario → confirmar · detalle |
+| Cuotas | `/payments` | Estado de cuota + historial · detalle de pago |
+| Perfil | `/profile` | Mi perfil · grupo familiar · turnos fijos · cambiar contraseña · logout |
 
 ---
 
@@ -170,105 +115,77 @@ El tablero. Responde de un vistazo las preguntas que el socio trae al abrir la a
 
 Ordenados por entrega: primero los del admin.
 
-### 4.1 Entrar a gestión de socios, dar de alta y editar
+### 4.1 Gestión de socios — listado, alta y edición
 
 ```
 Inicio ──[Socios activos | Socios en mora | Gestión de Socios]──► Gestión de Socios
-                                                                       │
-                                    ┌──────────────────┬───────────────┴──────┐
-                                    ▼                  ▼                      ▼
-                              [FAB azul +]        [lápiz fila]          [buscar / filtrar]
-                                    │                  │
-                              Alta de socio      Edición de socio
-                                    └────────┬─────────┘
-                                             ▼
-                                     Confirmar ──► Listado actualizado
+                                         │
+                    ┌────────────────────┼────────────────────┐
+                    ▼                    ▼                    ▼
+              [FAB azul +]         [lápiz fila]        [buscar / filtrar]
+                    │                    │
+              Alta de socio       Edición de socio
+                    └──────────┬─────────┘
+                               ▼
+                        Confirmar ──► Listado actualizado
 ```
 
-**Reglas del flujo:**
-- El alta valida DNI duplicado contra el backend antes de enviar, no después del error 409.
-- Al volver de un alta exitosa, el listado refresca y hace scroll hasta el socio creado. Sin eso el admin no tiene confirmación de que quedó.
-- Abandonar un formulario con cambios sin guardar pide confirmación.
-- La búsqueda y el filtro sobreviven a la ida y vuelta al formulario: el admin que estaba filtrando por mora no pierde el contexto.
+- La búsqueda y el filtro los resuelve el backend; el listado es paginado con "cargando más" al pie.
+- El DNI duplicado lo valida el backend: la app mapea el error a un mensaje en el campo, no a un snackbar genérico.
+- Al volver de un alta exitosa el listado refresca y hace scroll al socio creado.
+- Abandonar un formulario con cambios pide confirmación. La búsqueda y el filtro sobreviven a la ida y vuelta.
 
-### 4.2 Armar y ver el reporte de pagos
+### 4.2 Registrar un pago
 
-```
-Gestión de Socios ──[ícono documento en n filas]──► contador del FAB verde = n
-                                                              │
-                                                    [FAB verde]▼
-                                                    Reporte de pagos
-                                                    (lo genera el backend)
-```
+`Pagos → filtro "vencidas" → socio → Registrar pago → Confirmar → Listado actualizado`
 
-**Reglas del flujo:**
-- La selección vive en el estado del listado, no en el backend. Se envía recién al pedir el reporte.
-- La fila seleccionada cambia de aspecto; volver a tocar el ícono la quita.
-- Salir de la pantalla con ítems acumulados pide confirmación, porque la selección se pierde.
-- La generación puede tardar: estado de carga propio, y error con reintento **sin perder la selección**. Si un error borra 20 socios seleccionados a mano, el admin no vuelve a usar la función.
+Impacta en dinero: confirmación con resumen (socio, período, monto, medio) antes de escribir.
 
-### 4.3 Registrar un pago (admin)
+### 4.3 ABM de administradores (solo superAdmin)
 
-```
-Pagos ──[filtro: vencidas]──► Socio ──► Registrar pago ──► Confirmar ──► Listado actualizado
-```
+`Perfil → Administradores → [+ | lápiz | baja] → Confirmar`
 
-Acción con impacto en dinero: requiere confirmación con resumen (socio, período, monto, medio) antes de escribir.
+- La baja de un admin pide confirmación con el nombre escrito, no un "¿Está seguro?" genérico.
+- El superAdmin no puede darse de baja a sí mismo: la acción viene deshabilitada con el motivo visible.
 
 ### 4.4 Reservar una cancha (admin)
 
-```
-Reservas ──[Nueva]──► Seleccionar socio ──► Elegir cancha ──► Elegir horario ──► Confirmar ──► Éxito
-```
+`Reservas → Nueva → Seleccionar socio → Cancha → Horario → Confirmar → Éxito`
 
-**Reglas del flujo:**
-- El paso de selección de socio está **siempre**, también cuando el admin reserva para sí mismo (§2).
-- La fecha arranca en **hoy**, no en un selector vacío. El caso más común es hoy o mañana.
-- Las franjas ocupadas se muestran **deshabilitadas con motivo** ("Ocupado", "Mantenimiento", "Turno fijo"), no ocultas. Ocultarlas hace creer que la app está rota.
-- La confirmación es una pantalla, no un diálogo: cancha, día, hora, socio y costo si aplica.
-- El éxito reemplaza el stack y lleva a la agenda.
+- El paso de selección de socio está siempre, también cuando el admin reserva para sí mismo (§2).
+- La fecha arranca en **hoy**. Las franjas ocupadas se muestran **deshabilitadas con motivo** ("Ocupado", "Mantenimiento", "Turno fijo"), no ocultas: ocultarlas hace creer que la app está rota.
+- La confirmación es una pantalla, no un diálogo.
 
 ### 4.5 Bloquear una cancha (admin)
 
-```
-Reservas ──[Bloquear]──► Rango + motivo ──► Confirmar ──► Agenda actualizada
-```
+`Reservas → Bloquear → Rango + motivo → Confirmar → Agenda actualizada`
 
-Si el bloqueo pisa reservas existentes, la confirmación **debe listar las reservas afectadas** y decir explícitamente qué pasa con ellas. Es el flujo con mayor potencial de daño de la app.
+Si el bloqueo pisa reservas existentes, la confirmación **debe listar las reservas afectadas** y decir qué pasa con ellas. Es el flujo con mayor potencial de daño de la app.
 
-### 4.6 Reservar y consultar cuota (socio)
+### 4.6 Reporte de pagos
 
-```
-Inicio ──[Reservar]──► Elegir cancha ──► Elegir horario ──► Confirmar ──► Mis reservas
-Inicio ──[MembershipStatusCard]──► Cuotas ──► Detalle de pago
-```
+`Gestión de Socios → [ícono documento en n filas] → FAB verde → Reporte`
 
-Mismas reglas que 4.4, sin el paso de selección de socio. Para la cuota: un solo toque desde el Inicio, y la tarjeta del Inicio ya trae el dato resuelto (al día / vencida + monto), no un "Ver estado" ciego.
-
-**Caso borde a definir con el backend**: si el socio tiene la cuota vencida, ¿puede reservar? Si no, hay que interceptar **antes** de que elija horario, con un mensaje claro y un atajo a Cuotas. Interceptar en la confirmación es frustrante. Ver §8.8.
+La selección vive en el estado del listado y se envía recién al pedir el reporte, que lo genera el backend. Un error de generación **no** borra la selección: si un error pierde 20 socios elegidos a mano, el admin no vuelve a usar la función.
 
 ---
 
 ## 5. Estados por pantalla
 
-Toda pantalla que consuma datos remotos maneja estos casos. No es opcional y no se agrega "después".
+Toda pantalla con datos remotos maneja estos casos. No se agregan "después".
 
 | Estado | Tratamiento |
 | :--- | :--- |
-| **Loading** | Skeleton con la forma del contenido real (no un spinner centrado) en cargas iniciales. Spinner solo en acciones puntuales dentro de un botón. |
-| **Empty** | Mensaje explicativo + acción sugerida. Nunca una lista vacía muda. |
-| **Error** | Mensaje en lenguaje del usuario + botón "Reintentar". Distinguir sin conexión de error del servidor: son dos acciones distintas del usuario. |
-| **Success** | Confirmación textual explícita. Para escrituras, refresco del estado afectado. |
-| **Sin conexión** | Detectable y con mensaje propio. En un club, la conectividad dentro del predio es un caso real, no un borde teórico. |
-| **Cargando más** | En listados paginados, distinto del loading inicial: indicador al pie, sin tapar lo ya cargado. |
+| **Loading** | Skeleton con la forma del contenido real. Spinner solo dentro de un botón, en acciones puntuales. |
+| **Empty** | Mensaje + acción sugerida. Nunca una lista vacía muda. |
+| **Error** | Mensaje en lenguaje del usuario + "Reintentar". Distinguir sin conexión de error del servidor. |
+| **Success** | Confirmación textual + refresco del estado afectado. |
+| **Sin conexión** | Mensaje propio. La conectividad dentro del predio es un caso real. |
+| **Cargando más** | En listados paginados: indicador al pie, sin tapar lo ya cargado. |
 
-**Dos vacíos distintos en el listado de socios.** Es un error clásico tratarlos igual:
-- El club no tiene socios cargados → CTA "Crear el primer socio".
-- La búsqueda no arrojó resultados → CTA "Limpiar búsqueda".
+**Dos vacíos distintos en el listado de socios**, error clásico tratarlos igual: sin socios cargados → "Crear el primer socio"; búsqueda sin resultados → "Limpiar búsqueda".
 
-**Paginación**: con 245 socios el listado necesita paginado o scroll infinito. Ver §8.5.
-
-**Consecuencia técnica**: conviene un `AsyncStateBuilder` compartido en `shared/widgets/` que reciba el estado del Cubit y los builders de cada caso, para no reimplementar el árbol de estados en cada pantalla.
+**Consecuencia técnica**: un `AsyncStateBuilder` compartido en `shared/widgets/` que reciba el estado del Cubit y los builders de cada caso, para no reimplementar el árbol de estados por pantalla.
 
 ---
 
@@ -279,114 +196,165 @@ Estructura objetivo de [app_router.dart](lib/core/router/app_router.dart), hoy c
 ```
 GoRouter
 ├── /                              → SplashScreen (resuelve sesión)
-├── /login                         → LoginScreen
-│   ├── /login/activate            → ActivateAccountScreen
-│   └── /login/forgot              → ForgotPasswordScreen
-├── StatefulShellRoute (admin)
-│   ├── branch: /admin             → Inicio
-│   ├── branch: /admin/reservations→ Agenda ("Próximamente" en la 1ª entrega)
-│   ├── branch: /admin/payments    → Pagos
-│   └── branch: /admin/profile     → Perfil
-├── rutas push del admin (fuera de los tabs)
-│   ├── /admin/members             → Gestión de socios
-│   │   ├── /admin/members/new     → Alta
-│   │   ├── /admin/members/:id/edit→ Edición
-│   │   └── /admin/members/report  → Reporte de pagos
-│   └── /admin/courts              → Gestión de canchas
-└── StatefulShellRoute (socio)     → entregas posteriores
+├── /login  (+ /activate, /forgot)
+├── StatefulShellRoute (admin + superAdmin)
+│   ├── branch: /admin              → Inicio
+│   ├── branch: /admin/reservations  → Agenda ("Próximamente" hasta E9)
+│   ├── branch: /admin/payments      → Pagos
+│   └── branch: /admin/profile       → Perfil
+├── rutas push del admin
+│   ├── /admin/members  (+ /new, /:memberId/edit, /report)
+│   ├── /admin/courts
+│   └── /admin/admins   (+ /new, /:adminId/edit)      ← solo superAdmin
+└── StatefulShellRoute (socio)      → E12+
     ├── branch: /home
-    ├── branch: /reservations       (+ rutas hijas de reserva)
+    ├── branch: /reservations
     ├── branch: /payments
     └── branch: /profile
 ```
 
-`StatefulShellRoute.indexedStack` es la opción correcta: preserva el estado de cada tab al cambiar, que es lo que el admin espera al volver de Pagos a un listado a medio filtrar.
+`StatefulShellRoute.indexedStack`: preserva el estado de cada tab, que es lo que el admin espera al volver de Pagos a un listado a medio filtrar. `initialLocation` es `/`; el destino post-login del admin es `/admin`.
 
-`initialLocation` sigue siendo `/` (splash). El destino post-login del admin es `/admin`.
-
-**Guards necesarios** en el `redirect`:
+**Guards** en el `redirect`:
 
 1. Sin sesión + ruta protegida → `/login`.
 2. Con sesión + ruta de auth → shell según rol.
-3. `UserRole.member` en la primera entrega → **pantalla explícita de "la app para socios está en preparación"**, no un redirect a rutas que todavía no existen. Cuando el shell del socio exista, este guard pasa a ser el redirect normal por rol.
-4. `UserRole.member` intentando `/admin/*` → fuera de la superficie admin.
-5. Sesión expirada durante el uso (401 no recuperable del interceptor) → `/login` con mensaje de sesión vencida.
+3. `member` mientras su shell no exista → pantalla explícita de "la app para socios está en preparación", no un redirect a rutas inexistentes.
+4. `member` intentando `/admin/*` → fuera de la superficie admin.
+5. `admin` intentando `/admin/admins` → fuera; solo `superAdmin`.
+6. Sesión expirada (401 no recuperable del interceptor) → `/login` con mensaje de sesión vencida.
 
-El guard depende del estado global de autenticación. Eso requiere un `AuthBloc` de sesión, separado del `LoginCubit` de formulario que ya existe.
+Esto requiere un `AuthBloc` de sesión, separado del `LoginCubit` de formulario que ya existe.
 
 ---
 
 ## 7. Dirección visual
 
-Paleta derivada de las capturas de referencia. **Valores estimados visualmente, a confirmar contra el diseño original.**
+Paleta derivada de las capturas. **Valores estimados visualmente, a confirmar.**
 
-| Token | Hex | Uso en las capturas |
+| Token | Hex | Uso |
 | :--- | :--- | :--- |
-| `brandNavy` | `#0C2340` | Bottom nav, cards destacadas, card "Gestión de Socios", chip de filtro activo, texto primario |
+| `brandNavy` | `#0C2340` | Bottom nav, cards destacadas, chip activo, texto primario |
 | `brandGreen` | `#12784A` | Card "Gestión de Canchas", FAB de reporte |
 | `accentBlue` | `#2563EB` | FAB de crear socio, horarios, enlaces |
 | `infoSurface` | `#DDE7F7` | Fondo de cards informativas (mora, próximos turnos) |
-| `successSurface` / `successText` | `#C8EFD9` / `#0F6B41` | Pill "ACTIVO", badge "ADMINISTRADOR" |
+| `successSurface` / `successText` | `#C8EFD9` / `#0F6B41` | Pill "ACTIVO", `RoleBadge` |
 | `dangerSurface` / `dangerText` | `#FADBDB` / `#D32F2F` | Pill "EN MORA", contador de mora |
-| `background` | `#F4F6F9` | Fondo de pantalla |
-| `surface` | `#FFFFFF` | Cards, campo de búsqueda |
+| `background` / `surface` | `#F4F6F9` / `#FFFFFF` | Fondo de pantalla / cards y campos |
 | `textSecondary` | `#6B7280` | Placeholders y labels |
 
-**Regla de tokens — separar la rampa de marca de la rampa semántica aunque hoy compartan tono.** El verde del FAB de reporte es `brandGreen`; el verde del pill "ACTIVO" es `successText`. Si mañana el estado "al día" cambia de color, no se arrastra el FAB. Lo mismo con `accentBlue` (acción) frente a `infoSurface` (información). Es el punto que se degrada solo si no se explicita ahora.
+**Separar la rampa de marca de la semántica aunque hoy compartan tono.** El verde del FAB de reporte es `brandGreen`; el del pill "ACTIVO" es `successText`. Si mañana "al día" cambia de color, no se arrastra el FAB. Igual con `accentBlue` (acción) frente a `infoSurface` (información). Es lo que se degrada solo si no se explicita ahora.
 
-**Tipografía**: mantener Inter (ya está vía `google_fonts`) y subir la escala base — cuerpo en 16sp, no 14sp.
+**Tipografía**: Inter (ya está vía `google_fonts`), cuerpo en 16sp.
 
-**Modo oscuro fuera de alcance.** Las capturas son un diseño *light*, con superficies navy sobre fondo claro. Un `darkTheme` inventado sobre una identidad ajena es deuda, no feature: queda pendiente hasta tener las capturas equivalentes.
-
-**Deuda técnica de theming a resolver antes de sumar pantallas** (detectada en el código actual):
-
-1. La paleta de [app_colors.dart](lib/core/theme/app_colors.dart) es Tailwind sky/slate por defecto: hay que reemplazarla entera por la tabla de arriba.
-2. [app_theme.dart](lib/core/theme/app_theme.dart) no activa `useMaterial3: true` → se están usando defaults de Material 2.
-3. El `darkTheme` no está cableado en `MaterialApp` aunque los colores dark existen en `AppColors` — se remueven o se dejan explícitamente sin usar, no a medio camino.
-4. No hay tokens de spacing ni de radios: el valor `12` está repetido en cinco lugares de `app_theme.dart`.
-5. Falta `app_text_styles.dart`, que el plan de login contemplaba.
+**Modo oscuro fuera de alcance.** Las capturas son un diseño *light*. Un `darkTheme` inventado sobre una identidad ajena es deuda, no feature.
 
 ---
 
-## 8. Preguntas abiertas para el backend
+## 8. Entregas
 
-### Bloqueantes de la primera entrega (admin)
+Vertical slices: cada PR entrega una feature de punta a punta (`domain` → `data` → `presentation`) con sus estados y sus tests. Antes de cerrar cada una: `flutter analyze` sin warnings y suite verde.
 
-1. **Reporte de pagos** — decidido que lo genera el backend. Falta el contrato: endpoint, formato (PDF / Excel), si recibe lista de IDs de socios y rango de fechas, y si devuelve binario o URL descargable.
-2. **Ejes de estado del socio** — ¿`activo/inactivo` y `al día/en mora` son dos campos independientes? Las capturas los mezclan: los chips filtran por uno y los pills muestran el otro. Define el modelo y el filtrado. ¿Puede existir un socio inactivo en mora?
-3. **Contadores del Inicio** — ¿hay un endpoint de resumen que devuelva activos / en mora / próximos turnos en una sola llamada, o son tres pedidos? Define si el Inicio es un Cubit o tres. Y cuál es la fuente de verdad de cada número (ver §3.2.1).
-4. **Búsqueda de socios** — ¿la filtra el backend por nombre y DNI, o se trae todo y se filtra en cliente? Con 245 socios el cliente aún es viable, pero no escala y define el diseño del Cubit.
-5. **Paginación del listado de socios** — tamaño de página, y si el filtro por estado se aplica server-side.
-6. **Alta de socio** — campos obligatorios, unicidad de DNI, y si el alta crea también `user_account` o solo `member`.
-7. **Refresh token** — ¿existe el endpoint de refresco? El interceptor de [api_client.dart](lib/core/network/api_client.dart) hoy solo inyecta el `accessToken`, no lo refresca. Bloqueante desde la primera entrega: el admin usa la app todos los días.
+| # | Entrega | Depende de backend | Estado |
+| :--- | :--- | :--- | :--- |
+| **E1** | **Migración de paleta y theming de lo ya construido** | — | Próxima |
+| **E2** | **Base de conexión + shell del admin** | — (contra fakes) | — |
+| E3 | Inicio del Administrador | §9.4 | — |
+| E4 | Gestión de socios: listado, búsqueda, filtros, paginación | §9.1 | — |
+| E5 | Alta y edición de socio | §9.2 | — |
+| E6 | Pagos del admin: listado, registrar pago, detalle | §9.5 | — |
+| E7 | Perfil del admin + cambiar contraseña + logout | §9.3 | — |
+| E8 | ABM de administradores (superAdmin) | §9.6 | — |
+| E9 | Agenda / Reservas + canchas + bloqueos | §9.8 | — |
+| E10 | Reporte de pagos | §9.7 | — |
+| E11 | Recuperar contraseña + primer ingreso | §9.3 | — |
+| E12+ | Superficie del socio completa | §9.8 | — |
 
-### Bloqueantes de las entregas de reservas y del socio
+### E1 — Migración de paleta y theming
 
-8. **Cuota vencida y reservas** — ¿bloquea la reserva? Define dónde interceptamos en 4.4 y 4.6.
-9. **Disponibilidad** — ¿hay un endpoint que devuelva franjas libres de una cancha para una fecha, o el cliente debe cruzar `reservation` + `court_block` + `recurring_slot`? Debe resolverlo el backend: la lógica de solapamiento en el cliente es una fuente garantizada de bugs.
-10. **Turnos fijos** — ¿generan `reservation` materializadas o son una regla evaluada al consultar disponibilidad? Cambia cómo se listan.
-11. **Cancelación** — ¿hay ventana mínima de antelación? Define si el botón se deshabilita y con qué mensaje.
-12. **Grupo familiar** — ¿el titular puede reservar a nombre de un integrante? Si sí, el flujo del socio necesita también un paso de selección de jugador.
-13. **Paginación de historiales** — ¿vienen paginados? Define si el scroll es infinito o completo.
+Primera entrega: llevar lo que ya existe a la identidad de las capturas. **Sin cambios funcionales y sin tocar backend.**
+
+- Reemplazar [app_colors.dart](lib/core/theme/app_colors.dart) — hoy Tailwind sky/slate — por los tokens de §7.
+- Activar `useMaterial3: true` en [app_theme.dart](lib/core/theme/app_theme.dart); hoy corre con defaults de Material 2.
+- Extraer `AppSpacing` y `AppRadius`: el valor `12` está repetido en cinco lugares del theme.
+- Crear `app_text_styles.dart` con la escala tipográfica; hoy los estilos están inline en el `ThemeData`.
+- Quitar los colores dark que no se usan, en lugar de dejar el `darkTheme` a medio cablear.
+- Aplicar la paleta a lo existente: `login_screen`, `login_form`, `login_header`, `app_button`, `app_text_form_field`.
+- Ruta `/dev/gallery`, solo en debug, con cada componente en cada estado. Reemplaza a Figma como catálogo y no se desincroniza porque *es* el código.
+
+**Terminado cuando**: el login se ve con la paleta nueva, `/dev/gallery` muestra el catálogo completo, `flutter analyze` limpio y los tests existentes en verde.
+
+### E2 — Base de conexión + shell del admin
+
+Dejar la conexión al backend **armada y lista**, sin depender de que la API esté disponible.
+
+- `--dart-define=API_BASE_URL` con el **remoto por defecto**: hoy [api_client.dart](lib/core/network/api_client.dart) tiene `localhost` hardcodeado como default, contra lo que fija el `CLAUDE.md`.
+- Centralizar endpoints en `core/constants/api_constants.dart` en lugar de strings dispersos por los data sources.
+- Sumar `superAdmin` al enum `UserRole` de [user.dart](lib/features/auth/domain/entities/user.dart) y al mapeo del `UserModel`.
+- Interceptor de refresco de token en el `ApiClient`, detrás del contrato de §9.3. Queda escrito y testeado contra un mock aunque el endpoint todavía no exista.
+- **Fake data sources por flavor**: cada repositorio con implementación remota y una fake seleccionada por `--dart-define`. Es lo que permite construir E3–E8 sin backend, y lo que el `CLAUDE.md` ya pide ("UI development con datos mockeados"). Los fakes viven junto a la implementación remota, detrás de la misma interfaz de `domain`.
+- `AuthBloc` de sesión + Splash + guards de §6.
+- Shell del admin con los 4 tabs, Reservas en "Próximamente".
+
+**Terminado cuando**: se puede navegar el shell completo del admin contra fakes, cambiar a remoto solo con un `--dart-define`, y los guards se testean por rol (`member`, `admin`, `superAdmin`).
+
+El orden E4 → E5 → E10 es intencional: listado antes de escrituras, y el reporte al final porque depende del listado y de un contrato todavía abierto.
 
 ---
 
-## 9. Orden de construcción
+## 9. Necesidades del backend
 
-Vertical slices: cada PR entrega una feature de punta a punta (`domain` → `data` → `presentation`) con sus estados y sus tests.
+Lista para enviar al equipo de [club-management-api](https://github.com/lazzariniingenieria/club-management-api). Ordenada por la entrega que bloquea.
 
-| # | Entrega | Por qué acá |
-| :--- | :--- | :--- |
-| 0 | Design system con la paleta de la §7 + tokens + `/dev/gallery` + flavors | Base de todo lo visual, y las capturas ya definen los valores. Incluye invertir el default `localhost` → remoto de [api_client.dart](lib/core/network/api_client.dart) |
-| 1 | `AuthBloc` de sesión + Splash + shell del admin (4 tabs, Reservas en "Próximamente") + guards | Sin esto no hay navegación; hoy `/home` es un `Placeholder` |
-| 2 | Inicio del Administrador | Primera pantalla con datos remotos: valida el patrón de estados completo |
-| 3 | Gestión de Socios: listado, búsqueda, filtros, paginación | Núcleo de la primera entrega |
-| 4 | Alta y edición de socio | Primeras escrituras de la app: valida formularios y manejo de error de escritura |
-| 5 | Reporte de pagos: selección + generación | Depende de 3 y de un contrato de backend todavía abierto (§8.1) |
-| 6 | Cuotas y pagos del admin: listado, registrar pago, detalle | Completa "socios y cuotas" |
-| 7 | Perfil del admin + cambiar contraseña + logout | Cierra el shell del admin |
-| 8 | Agenda / Reservas del admin + gestión de canchas + bloqueos | Reemplaza el "Próximamente"; cierra la superficie admin completa |
-| 9 | Recuperar contraseña + primer ingreso | Los CTAs ya existen en el login sin destino |
-| 10+ | Superficie del socio: shell, Inicio, reservar, mis reservas, cuotas, perfil, grupo familiar | Arranca recién con la superficie del admin terminada |
+**Ya definido, a reflejar en la API:**
+- `activo/inactivo` (sigue siendo socio) y `al día/en mora` (estado de cuota) son **dos campos independientes**: la API los expone por separado y ambos son filtrables.
+- El **filtrado y la búsqueda los resuelve el backend**, no el cliente.
+- El listado de socios es **paginado**.
+- El alta de socio crea **solo `member`**, no `user_account`.
 
-El orden 3 → 4 → 5 es intencional: listado antes de escrituras, y el reporte al final porque depende del listado y de una definición de backend que todavía no está cerrada.
+### 9.1 Listado de socios — bloquea E4
+
+`GET /members` con paginación, búsqueda por nombre y DNI, y filtro por estado. Necesitamos:
+- Nombres exactos de los parámetros de paginación, búsqueda y filtro.
+- Shape de la respuesta con metadata de paginación (total de elementos, total de páginas, página actual).
+- Cada socio con **ambos** campos de estado, más `id`, nombre completo y DNI.
+- Contadores por estado para los chips ("Todos / Activos / Inactivos"), idealmente en la misma respuesta para no pedir tres veces.
+
+### 9.2 Alta y edición de socio — bloquea E5
+
+`POST /members` y `PUT /members/{id}`. Necesitamos:
+- Campos obligatorios y opcionales, con sus validaciones (formato de DNI, largo de nombre).
+- **Código de error específico para DNI duplicado**, distinguible de un 400 genérico, para poder mostrarlo en el campo y no en un snackbar.
+- Qué devuelve el 201: idealmente el socio creado completo.
+
+### 9.3 Autenticación — bloquea E2, E7 y E11
+
+- `POST /auth/refresh`: contrato del refresco de token. Lo necesitamos — el admin usa la app todos los días y hoy el interceptor solo inyecta el `accessToken`.
+- El `role` del login debe poder devolver **`SUPER_ADMIN`** además de `ADMIN` y `MEMBER`.
+- Cambio de contraseña y flujo de recuperación por email.
+
+### 9.4 Resumen del Inicio — bloquea E3
+
+Pedimos un endpoint de resumen que devuelva en **una sola llamada**: cantidad de socios activos, cantidad en mora, y los próximos turnos del día. Si no es viable, son tres endpoints y el Inicio pasa a ser tres Cubits en vez de uno.
+
+Definir además la **fuente de verdad de cada contador**: en las capturas el Inicio muestra 450 socios activos y el listado 245 totales. Son datos mock, pero no pueden quedar dos números distintos del mismo concepto en producción.
+
+### 9.5 Pagos — bloquea E6
+
+`GET /payments` con filtro por estado de cuota y por socio, y `POST /payments` para registrar un pago. Necesitamos los campos del pago (período, monto, medio, fecha) y qué se considera "cuota vencida".
+
+### 9.6 ABM de administradores — bloquea E8
+
+`GET / POST / PUT / DELETE` de administradores, restringido a `SUPER_ADMIN`. Necesitamos saber si la baja es física o lógica, y qué responde la API si un superAdmin intenta darse de baja a sí mismo.
+
+### 9.7 Reporte de pagos — bloquea E10
+
+Postergado por decisión de producto: no es necesario para las primeras entregas. Cuando se retome, definir endpoint, formato (PDF / Excel), si recibe lista de IDs de socios y rango de fechas, y si devuelve binario o URL descargable.
+
+### 9.8 Reservas y superficie del socio — bloquea E9 y E12+
+
+- **Disponibilidad**: un endpoint que devuelva las franjas libres de una cancha para una fecha. Debe resolverlo el backend — cruzar `reservation` + `court_block` + `recurring_slot` en el cliente es una fuente garantizada de bugs.
+- **Cuota vencida y reservas**: ¿bloquea la reserva? Define si interceptamos antes de elegir horario.
+- **Turnos fijos**: ¿generan `reservation` materializadas o son una regla evaluada al consultar disponibilidad?
+- **Cancelación**: ¿hay ventana mínima de antelación?
+- **Grupo familiar**: ¿el titular puede reservar a nombre de un integrante?
