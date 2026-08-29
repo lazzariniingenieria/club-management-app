@@ -26,7 +26,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (response.statusCode == 200) {
         return AuthResponseModel.fromJson(response.data);
       } else {
-        throw ServerException('Failed to login. Status code: ${response.statusCode}');
+        throw ServerException(
+            'Failed to login. Status code: ${response.statusCode}');
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
