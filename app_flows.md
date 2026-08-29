@@ -257,8 +257,8 @@ Vertical slices: cada PR entrega una feature de punta a punta (`domain` → `dat
 
 | # | Entrega | Depende de backend | Estado |
 | :--- | :--- | :--- | :--- |
-| **E1** | **Migración de paleta y theming de lo ya construido** | — | Próxima |
-| **E2** | **Base de conexión + shell del admin** | — (contra fakes) | — |
+| **E1** | **Migración de paleta y theming de lo ya construido** | — | ✅ Entregada |
+| **E2** | **Base de conexión + shell del admin** | — (contra fakes) | Próxima |
 | E3 | Inicio del Administrador | §9.4 | — |
 | E4 | Gestión de socios: listado, búsqueda, filtros, paginación | §9.1 | — |
 | E5 | Alta y edición de socio | §9.2 | — |
@@ -305,6 +305,8 @@ El orden E4 → E5 → E10 es intencional: listado antes de escrituras, y el rep
 ## 9. Necesidades del backend
 
 Lista para enviar al equipo de [club-management-api](https://github.com/lazzariniingenieria/club-management-api). Ordenada por la entrega que bloquea.
+
+**Pedidos ya redactados**: [backend_request_e2_e3.md](backend_request_e2_e3.md) cubre E2 y E3 (§9.3 y §9.4), sin el bloque de próximos turnos. Al 2026-08-27 la API todavía no tiene código — solo `README` con el diseño previsto — así que estos pedidos son acuerdos de contrato previos a la implementación, no consultas sobre lo existente.
 
 **Ya definido, a reflejar en la API:**
 - `activo/inactivo` (sigue siendo socio) y `al día/en mora` (estado de cuota) son **dos campos independientes**: la API los expone por separado y ambos son filtrables.

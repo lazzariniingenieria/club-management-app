@@ -69,3 +69,19 @@ flutter run
 
 Environment configuration (API base URL, etc.) via `--dart-define` or a
 `.env` file excluded from version control.
+
+## Design system
+
+Design tokens live in `lib/core/theme/`: `app_colors.dart` (palette),
+`app_spacing.dart`, `app_radius.dart` and `app_text_styles.dart`. They are
+wired into a single `ThemeData` in `app_theme.dart` — widgets read the theme
+instead of hardcoding values.
+
+The component gallery is the living catalog of every shared component in every
+state. It replaces a static design file, so it cannot drift from the code.
+It is registered only in debug builds:
+
+```bash
+flutter run
+# then navigate to /dev/gallery
+```
