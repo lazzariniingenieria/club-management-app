@@ -43,7 +43,7 @@ El **superAdmin comparte el shell del admin**: su único delta es la gestión de
 
 | Pantalla | Ruta | Estado |
 | :--- | :--- | :--- |
-| Splash / Bootstrap | `/` | A construir — resuelve sesión persistida y redirige |
+| Splash / Bootstrap | `/` | ✅ Implementada — resuelve sesión persistida y redirige |
 | Login | `/login` | ✅ Implementada |
 | Primer ingreso | `/login/activate` | A construir — CTA ya existe en `AppStrings.loginFirstTimeUser` |
 | Recuperar contraseña | `/login/forgot` | A construir — CTA ya existe en `AppStrings.loginForgotPassword` |
@@ -191,7 +191,7 @@ Toda pantalla con datos remotos maneja estos casos. No se agregan "después".
 
 ## 6. Router y guards
 
-Estructura objetivo de [app_router.dart](lib/core/router/app_router.dart), hoy con dos rutas planas:
+Estructura de [app_router.dart](lib/core/router/app_router.dart), construida en E2 salvo el shell del socio:
 
 ```
 GoRouter
@@ -224,7 +224,7 @@ GoRouter
 5. `admin` intentando `/admin/admins` → fuera; solo `superAdmin`.
 6. Sesión expirada (401 no recuperable del interceptor) → `/login` con mensaje de sesión vencida.
 
-Esto requiere un `AuthBloc` de sesión, separado del `LoginCubit` de formulario que ya existe.
+Esto requiere un `AuthBloc` de sesión, separado del `LoginCubit` de formulario que ya existe. Ambos existen desde E2; los seis guards se testean por rol.
 
 ---
 
@@ -258,8 +258,8 @@ Vertical slices: cada PR entrega una feature de punta a punta (`domain` → `dat
 | # | Entrega | Depende de backend | Estado |
 | :--- | :--- | :--- | :--- |
 | **E1** | **Migración de paleta y theming de lo ya construido** | — | ✅ Entregada |
-| **E2** | **Base de conexión + shell del admin** | — (contra fakes) | Próxima |
-| E3 | Inicio del Administrador | §9.4 | — |
+| **E2** | **Base de conexión + shell del admin** | — (contra fakes) | ✅ Entregada |
+| E3 | Inicio del Administrador | §9.4 | Próxima |
 | E4 | Gestión de socios: listado, búsqueda, filtros, paginación | §9.1 | — |
 | E5 | Alta y edición de socio | §9.2 | — |
 | E6 | Pagos del admin: listado, registrar pago, detalle | §9.5 | — |

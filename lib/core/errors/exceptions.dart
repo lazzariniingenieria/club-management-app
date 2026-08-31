@@ -14,6 +14,14 @@ class CacheException implements Exception {
   String toString() => message ?? 'CacheException';
 }
 
+class NetworkException implements Exception {
+  final String? message;
+  NetworkException([this.message]);
+
+  @override
+  String toString() => message ?? 'NetworkException';
+}
+
 class UnauthorizedException implements Exception {
   final String? message;
   UnauthorizedException([this.message]);

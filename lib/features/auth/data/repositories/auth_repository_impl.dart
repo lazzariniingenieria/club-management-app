@@ -1,20 +1,25 @@
-import '../../../../core/constants/storage_keys.dart';
 import 'package:fpdart/fpdart.dart';
+
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../../core/storage/secure_storage_service.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../datasources/auth_local_data_source.dart';
 import '../datasources/auth_remote_data_source.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
-  final SecureStorageService secureStorage;
+  final AuthLocalDataSource localDataSource;
+  final AppLogger logger;
 
   AuthRepositoryImpl({
     required this.remoteDataSource,
-    required this.secureStorage,
+    required this.localDataSource,
+    required this.logger,
   });
+
+  static const String _logContext = 'AuthRepository';
 
   @override
   Future<Either<Failure, User>> loginWithCredentials({
@@ -23,35 +28,53 @@ class AuthRepositoryImpl implements AuthRepository {
   }) async {
     try {
       final response = await remoteDataSource.login(email, password);
-
-      await secureStorage.saveToken(
-          StorageKeys.accessToken, response.token.accessToken);
-      await secureStorage.saveToken(
-          StorageKeys.refreshToken, response.token.refreshToken);
-
+      await localDataSource.saveSession(
+        token: response.token,
+        user: response.user,
+      );
       return Right(response.user);
-    } on UnauthorizedException catch (e) {
-      return Left(AuthFailure(e.message ?? 'Invalid credentials'));
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message ?? 'Server error'));
-    } catch (e) {
-      return const Left(ServerFailure('An unexpected error occurred'));
+    } catch (error) {
+      return Left(_mapToFailure(error, 'loginWithCredentials'));
     }
   }
 
   @override
-  Future<Either<Failure, User>> getCurrentUser() async {
-    // To be implemented when we have the Get User endpoint
-    return const Left(ServerFailure('Not implemented yet'));
+  Future<Either<Failure, User?>> restoreSession() async {
+    try {
+      if (!await localDataSource.hasSession()) return const Right(null);
+      return Right(await localDataSource.readUser());
+    } catch (error) {
+      logger.error(
+        'Could not restore session, clearing it',
+        context: _logContext,
+        cause: error,
+      );
+      await localDataSource.clearSession();
+      return const Right(null);
+    }
   }
 
   @override
   Future<Either<Failure, void>> logout() async {
     try {
-      await secureStorage.deleteAll();
+      await localDataSource.clearSession();
       return const Right(null);
-    } catch (e) {
-      return const Left(CacheFailure('Failed to clear local data'));
+    } catch (error) {
+      return Left(_mapToFailure(error, 'logout'));
     }
+  }
+
+  Failure _mapToFailure(Object error, String operation) {
+    logger.error('$operation failed', context: _logContext, cause: error);
+
+    return switch (error) {
+      UnauthorizedException() =>
+        AuthFailure(error.message ?? 'Invalid credentials'),
+      NetworkException() =>
+        NetworkFailure(error.message ?? 'No internet connection'),
+      ServerException() => ServerFailure(error.message ?? 'Server error'),
+      CacheException() => CacheFailure(error.message ?? 'Local storage error'),
+      _ => const ServerFailure('An unexpected error occurred'),
+    };
   }
 }
