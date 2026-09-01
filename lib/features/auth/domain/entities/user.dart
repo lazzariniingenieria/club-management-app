@@ -1,6 +1,13 @@
 import 'package:equatable/equatable.dart';
 
-enum UserRole { member, admin }
+enum UserRole { member, admin, superAdmin }
+
+extension UserRolePermissions on UserRole {
+  bool get canManageAdmins => this == UserRole.superAdmin;
+
+  bool get usesAdminSurface =>
+      this == UserRole.admin || this == UserRole.superAdmin;
+}
 
 class User extends Equatable {
   final String id;

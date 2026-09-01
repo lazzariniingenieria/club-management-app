@@ -1,52 +1,46 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import '../constants/storage_keys.dart';
-import '../storage/secure_storage_service.dart';
 
-const String _defaultBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://localhost:8080/api/v1',
-);
+import '../config/app_environment.dart';
+import '../constants/api_constants.dart';
+import '../logging/app_logger.dart';
+import '../session/session_expiry_notifier.dart';
+import '../storage/secure_storage_service.dart';
+import 'interceptors/auth_header_interceptor.dart';
+import 'interceptors/token_refresh_interceptor.dart';
 
 class ApiClient {
   final Dio dio;
-  final SecureStorageService secureStorage;
 
   ApiClient({
     required this.dio,
-    required this.secureStorage,
-    String baseUrl = _defaultBaseUrl,
+    required Dio refreshClient,
+    required SecureStorageService secureStorage,
+    required SessionExpiryNotifier sessionExpiryNotifier,
+    required AppLogger logger,
+    String baseUrl = AppEnvironment.apiBaseUrl,
   }) {
-    dio.options.baseUrl = baseUrl;
-    dio.options.connectTimeout = const Duration(seconds: 15);
-    dio.options.receiveTimeout = const Duration(seconds: 15);
-    dio.options.headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
+    _applyOptions(dio, baseUrl);
+    _applyOptions(refreshClient, baseUrl);
 
+    dio.interceptors.add(AuthHeaderInterceptor(secureStorage));
     dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          final accessToken =
-              await secureStorage.getToken(StorageKeys.accessToken);
-          if (accessToken != null) {
-            options.headers['Authorization'] = 'Bearer $accessToken';
-          }
-          return handler.next(options);
-        },
+      TokenRefreshInterceptor(
+        refreshClient: refreshClient,
+        secureStorage: secureStorage,
+        sessionExpiryNotifier: sessionExpiryNotifier,
+        logger: logger,
       ),
     );
 
-    if (kDebugMode) {
-      dio.interceptors.add(LogInterceptor(
-        request: true,
-        requestHeader: true,
-        requestBody: true,
-        responseHeader: true,
-        responseBody: true,
-        error: true,
-      ));
-    }
+    if (kDebugMode) dio.interceptors.add(LogInterceptor(responseBody: true));
+  }
+
+  static void _applyOptions(Dio client, String baseUrl) {
+    client.options
+      ..baseUrl = baseUrl
+      ..connectTimeout = ApiConstants.connectTimeout
+      ..receiveTimeout = ApiConstants.receiveTimeout
+      ..headers = Map<String, String>.from(ApiConstants.defaultHeaders);
   }
 }

@@ -1,17 +1,31 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:club_management_app/main.dart';
+import 'package:club_management_app/core/constants/app_strings.dart';
+import 'package:club_management_app/core/router/app_routes.dart';
 import 'package:club_management_app/core/di/injection_container.dart' as di;
+import 'package:club_management_app/core/router/app_router.dart';
+import 'package:club_management_app/features/auth/domain/entities/user.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'helpers/app_test_harness.dart';
 
 void main() {
-  setUpAll(() async {
-    await di.init();
+  String currentLocation() =>
+      di.sl<AppRouter>().router.routerDelegate.currentConfiguration.uri.path;
+
+  testWidgets('boots into the login screen when there is no session', (
+    tester,
+  ) async {
+    await bootApp(tester);
+
+    expect(currentLocation(), AppRoutes.login);
+    expect(find.text(AppStrings.loginWelcomeTitle), findsOneWidget);
   });
 
-  testWidgets('App renders LoginScreen without crashing',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(const ClubManagementApp());
-    await tester.pumpAndSettle();
+  testWidgets('boots straight into the admin shell with a stored session', (
+    tester,
+  ) async {
+    await bootApp(tester, signedInAs: UserRole.admin);
 
-    expect(find.text('Bienvenido de nuevo'), findsOneWidget);
+    expect(currentLocation(), AppRoutes.adminHome);
+    expect(find.text(AppStrings.roleBadgeAdmin), findsOneWidget);
   });
 }

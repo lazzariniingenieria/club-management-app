@@ -46,7 +46,7 @@ El **superAdmin comparte el shell del admin**: su único delta es la gestión de
 
 | Pantalla | Ruta | Estado |
 | :--- | :--- | :--- |
-| Splash / Bootstrap | `/` | A construir — resuelve sesión persistida y redirige (§3.1.1) |
+| Splash / Bootstrap | `/` | ✅ Implementada — resuelve sesión persistida y redirige (§3.1.1) |
 | Login | `/login` | ✅ Implementada |
 | Primer ingreso | `/login/activate` | A construir — CTA ya existe en `AppStrings.loginFirstTimeUser` |
 | Recuperar contraseña | `/login/forgot` | A construir — **pantalla informativa**, no formulario (§3.1.2) |
@@ -231,7 +231,7 @@ Toda pantalla con datos remotos maneja estos casos. No se agregan "después".
 
 ## 6. Router y guards
 
-Estructura objetivo de [app_router.dart](lib/core/router/app_router.dart), hoy con dos rutas planas:
+Estructura de [app_router.dart](lib/core/router/app_router.dart), construida en E2 salvo el shell del socio:
 
 ```
 GoRouter
@@ -264,7 +264,7 @@ GoRouter
 5. `admin` intentando `/admin/admins` → fuera; solo `superAdmin`.
 6. Sesión expirada (401 no recuperable del interceptor) → `/login` con mensaje de sesión vencida.
 
-Esto requiere un `AuthBloc` de sesión, separado del `LoginCubit` de formulario que ya existe.
+Esto requiere un `AuthBloc` de sesión, separado del `LoginCubit` de formulario que ya existe. Ambos existen desde E2; los seis guards se testean por rol.
 
 ---
 
@@ -316,8 +316,8 @@ Vertical slices: cada PR entrega una feature de punta a punta (`domain` → `dat
 | # | Entrega | Depende de backend | Estado |
 | :--- | :--- | :--- | :--- |
 | **E1** | **Migración de paleta y theming de lo ya construido** | — | ✅ Entregada |
-| **E2** | **Base de conexión + shell del admin** | — (contra fakes) | Próxima |
-| E3 | Inicio del Administrador | §9.4 | — |
+| **E2** | **Base de conexión + shell del admin** | — (contra fakes) | ✅ Entregada |
+| E3 | Inicio del Administrador | §9.4 | Próxima |
 | E4 | Gestión de socios: listado, búsqueda, filtros, paginación | §9.1 | — |
 | E5 | Alta y edición de socio | §9.2 | — |
 | E6 | Pagos del admin: listado, registrar pago, detalle | §9.5 | — |
@@ -384,7 +384,7 @@ El orden E4 → E5 → E10 es intencional: listado antes de escrituras, y el rep
 
 Lista para enviar al equipo de [club-management-api](https://github.com/lazzariniingenieria/club-management-api). Ordenada por la entrega que bloquea.
 
-**Pedidos ya redactados**: [backend_request_e2_e3.md](backend_request_e2_e3.md) cubre E2 y E3 (§9.3 y §9.4), sin el bloque de próximos turnos. Al 2026-08-27 la API todavía no tiene código — solo `README` con el diseño previsto — así que estos pedidos son acuerdos de contrato previos a la implementación, no consultas sobre lo existente.
+**Pedidos ya redactados**: [backend_request_e2_e3.md](backend_request_e2_e3.md) cubre E2 y E3 (§9.3 y §9.4), sin el bloque de próximos turnos. Se escribió cuando la API todavía no tenía código; hoy `develop` de `club-management-api` ya tiene implementación, así que el documento distingue lo que quedó resuelto de lo que sigue siendo un acuerdo de contrato pendiente.
 
 **Ya definido, a reflejar en la API:**
 - `activo/inactivo` (sigue siendo socio) y `al día/en mora` (estado de cuota) son **dos campos independientes**: la API los expone por separado y ambos son filtrables.

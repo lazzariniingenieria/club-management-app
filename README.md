@@ -67,8 +67,31 @@ flutter pub get
 flutter run
 ```
 
-Environment configuration (API base URL, etc.) via `--dart-define` or a
-`.env` file excluded from version control.
+## Running against fakes or against the API
+
+Every repository has a remote implementation and a fake one behind the same
+interface, selected by `--dart-define`. Until the API is deployed the fakes are
+the default, so a bare `flutter run` opens a navigable app:
+
+```bash
+flutter run                                      # fake data sources
+flutter run --dart-define=DATA_SOURCE=remote     # real API
+flutter run --dart-define=API_BASE_URL=https://staging.example.com/api/v1             --dart-define=DATA_SOURCE=remote
+```
+
+`DATA_SOURCE` and `API_BASE_URL` are read in `lib/core/config/app_environment.dart`.
+Flip the default there once the remote environment is live.
+
+Fake accounts, one per role, all with password `123456`:
+
+| Email | Role |
+| :--- | :--- |
+| `admin@club.com` | `ADMIN` |
+| `super@club.com` | `SUPER_ADMIN` |
+| `socio@club.com` | `MEMBER` |
+
+Secrets never live in the repository: pass them with `--dart-define` or a
+git-ignored `.env`.
 
 ## Design system
 
