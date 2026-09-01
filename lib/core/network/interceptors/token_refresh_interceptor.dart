@@ -29,6 +29,12 @@ class TokenRefreshInterceptor extends QueuedInterceptor {
   ) async {
     if (!_isRecoverable(err)) return handler.next(err);
 
+    final storedAccessToken =
+        await secureStorage.getToken(StorageKeys.accessToken);
+    if (_refreshedWhileQueued(err, storedAccessToken)) {
+      return _replay(err, handler, storedAccessToken!);
+    }
+
     final refreshToken = await secureStorage.getToken(StorageKeys.refreshToken);
     if (refreshToken == null) {
       return _expireSession(err, handler, 'no refresh token stored');
@@ -46,17 +52,35 @@ class TokenRefreshInterceptor extends QueuedInterceptor {
           err, handler, 'refresh response had no access token');
     }
 
-    try {
-      handler.resolve(await _retry(err.requestOptions, accessToken));
-    } on DioException catch (error) {
-      handler.next(error);
-    }
+    return _replay(err, handler, accessToken);
   }
 
   bool _isRecoverable(DioException err) {
     if (err.response?.statusCode != 401) return false;
     if (err.requestOptions.path == ApiConstants.refresh) return false;
     return err.requestOptions.extra[_retriedFlag] != true;
+  }
+
+  bool _refreshedWhileQueued(DioException err, String? storedAccessToken) {
+    if (storedAccessToken == null) return false;
+
+    final sentAuthorization =
+        err.requestOptions.headers[ApiConstants.authorizationHeader];
+    if (sentAuthorization == null) return false;
+
+    return sentAuthorization != _authorization(storedAccessToken);
+  }
+
+  Future<void> _replay(
+    DioException err,
+    ErrorInterceptorHandler handler,
+    String accessToken,
+  ) async {
+    try {
+      handler.resolve(await _retry(err.requestOptions, accessToken));
+    } on DioException catch (error) {
+      handler.next(error);
+    }
   }
 
   Future<String?> _refreshTokens(String refreshToken) async {
@@ -89,12 +113,14 @@ class TokenRefreshInterceptor extends QueuedInterceptor {
         extra: {...options.extra, _retriedFlag: true},
         headers: {
           ...options.headers,
-          ApiConstants.authorizationHeader:
-              '${ApiConstants.bearerPrefix} $accessToken',
+          ApiConstants.authorizationHeader: _authorization(accessToken),
         },
       ),
     );
   }
+
+  String _authorization(String accessToken) =>
+      '${ApiConstants.bearerPrefix} $accessToken';
 
   Future<void> _expireSession(
     DioException err,

@@ -11,4 +11,20 @@ void main() {
     expect(AppEnvironment.apiBaseUrl, isNot(contains('localhost')));
     expect(AppEnvironment.apiBaseUrl, startsWith('https://'));
   });
+
+  group('guardAgainstFakesInRelease', () {
+    test('refuses to boot a release build wired to the fakes', () {
+      expect(
+        () => AppEnvironment.guardAgainstFakesInRelease(isReleaseBuild: true),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('lets debug builds run against the fakes', () {
+      expect(
+        () => AppEnvironment.guardAgainstFakesInRelease(isReleaseBuild: false),
+        returnsNormally,
+      );
+    });
+  });
 }

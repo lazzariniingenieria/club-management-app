@@ -11,6 +11,7 @@ import 'auth_state.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RestoreSessionUseCase _restoreSession;
   final LogoutUseCase _logout;
+  final Duration _restoreTimeout;
 
   late final StreamSubscription<void> _expirySubscription;
 
@@ -18,8 +19,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required RestoreSessionUseCase restoreSession,
     required LogoutUseCase logout,
     required SessionExpiryNotifier sessionExpiryNotifier,
+    Duration restoreTimeout = defaultRestoreTimeout,
   })  : _restoreSession = restoreSession,
         _logout = logout,
+        _restoreTimeout = restoreTimeout,
         super(const AuthSessionUnknown()) {
     on<AuthSessionRequested>(_onSessionRequested);
     on<AuthLoggedIn>(_onLoggedIn);
@@ -31,20 +34,30 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
+  static const Duration defaultRestoreTimeout = Duration(seconds: 5);
+
+  static const AuthState _sessionUnverified =
+      AuthUnauthenticated(reason: SignedOutReason.sessionUnverified);
+
   Future<void> _onSessionRequested(
     AuthSessionRequested event,
     Emitter<AuthState> emit,
   ) async {
-    final result = await _restoreSession();
+    emit(await _resolvePersistedSession());
+  }
 
-    emit(
-      result.fold(
-        (_) => const AuthUnauthenticated(),
-        (user) => user == null
-            ? const AuthUnauthenticated()
-            : AuthAuthenticated(user),
-      ),
-    );
+  Future<AuthState> _resolvePersistedSession() async {
+    try {
+      final result = await _restoreSession().timeout(_restoreTimeout);
+
+      return result.fold(
+        (_) => _sessionUnverified,
+        (user) =>
+            user == null ? const AuthUnauthenticated() : AuthAuthenticated(user),
+      );
+    } on TimeoutException {
+      return _sessionUnverified;
+    }
   }
 
   void _onLoggedIn(AuthLoggedIn event, Emitter<AuthState> emit) {
@@ -66,7 +79,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     if (state is! AuthAuthenticated) return;
 
     await _logout();
-    emit(const AuthUnauthenticated(sessionExpired: true));
+    emit(const AuthUnauthenticated(reason: SignedOutReason.sessionExpired));
   }
 
   @override

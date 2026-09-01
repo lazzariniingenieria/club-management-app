@@ -22,11 +22,17 @@ class AuthAuthenticated extends AuthState {
   List<Object?> get props => [user];
 }
 
-class AuthUnauthenticated extends AuthState {
-  final bool sessionExpired;
+enum SignedOutReason { signedOut, sessionExpired, sessionUnverified }
 
-  const AuthUnauthenticated({this.sessionExpired = false});
+class AuthUnauthenticated extends AuthState {
+  final SignedOutReason reason;
+
+  const AuthUnauthenticated({this.reason = SignedOutReason.signedOut});
+
+  bool get sessionExpired => reason == SignedOutReason.sessionExpired;
+
+  bool get sessionUnverified => reason == SignedOutReason.sessionUnverified;
 
   @override
-  List<Object?> get props => [sessionExpired];
+  List<Object?> get props => [reason];
 }

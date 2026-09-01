@@ -20,6 +20,10 @@ class AppStrings {
   static const String loginSessionExpiredTitle = 'Tu sesión venció';
   static const String loginSessionExpiredMessage =
       'Por seguridad cerramos la sesión. Ingresá de nuevo para continuar.';
+  static const String loginSessionUnverifiedTitle =
+      'No pudimos verificar tu sesión';
+  static const String loginSessionUnverifiedMessage =
+      'Revisá tu conexión e ingresá de nuevo.';
 
   static const String passwordShowAction = 'Mostrar contraseña';
   static const String passwordHideAction = 'Ocultar contraseña';
@@ -30,7 +34,6 @@ class AppStrings {
   static const String roleBadgeSuperAdmin = 'SUPER ADMIN';
 
   static const String adminTabHome = 'Inicio';
-  static const String adminTabReservations = 'Reservas';
   static const String adminTabPayments = 'Pagos';
   static const String adminTabProfile = 'Perfil';
 
@@ -39,10 +42,6 @@ class AppStrings {
   static const String adminHomeTitle = 'Inicio';
   static const String adminHomePending =
       'El resumen del club con socios activos, socios en mora y próximos turnos se habilita en la próxima entrega.';
-
-  static const String adminReservationsTitle = 'Reservas';
-  static const String adminReservationsPending =
-      'La agenda por cancha, los bloqueos y las reservas a nombre de un socio llegan más adelante.';
 
   static const String adminPaymentsTitle = 'Pagos';
   static const String adminPaymentsPending =

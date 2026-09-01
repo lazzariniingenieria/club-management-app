@@ -16,20 +16,36 @@ class SessionExpiredNotice extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        final expired = state is AuthUnauthenticated && state.sessionExpired;
-        if (!expired) return const SizedBox.shrink();
+        final reason = state is AuthUnauthenticated ? state.reason : null;
+        if (reason == null || reason == SignedOutReason.signedOut) {
+          return const SizedBox.shrink();
+        }
 
-        return const Padding(
-          padding: EdgeInsets.only(top: AppSpacing.xl),
-          child: _ExpiredBanner(),
+        return Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.xl),
+          child: _SignedOutBanner(reason: reason),
         );
       },
     );
   }
 }
 
-class _ExpiredBanner extends StatelessWidget {
-  const _ExpiredBanner();
+class _SignedOutBanner extends StatelessWidget {
+  final SignedOutReason reason;
+
+  const _SignedOutBanner({required this.reason});
+
+  String get _title => switch (reason) {
+        SignedOutReason.sessionUnverified =>
+          AppStrings.loginSessionUnverifiedTitle,
+        _ => AppStrings.loginSessionExpiredTitle,
+      };
+
+  String get _message => switch (reason) {
+        SignedOutReason.sessionUnverified =>
+          AppStrings.loginSessionUnverifiedMessage,
+        _ => AppStrings.loginSessionExpiredMessage,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -49,15 +65,12 @@ class _ExpiredBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppStrings.loginSessionExpiredTitle,
+                  _title,
                   style: AppTextStyles.labelLarge
                       .copyWith(color: AppColors.dangerText),
                 ),
                 const SizedBox(height: AppSpacing.xs),
-                Text(
-                  AppStrings.loginSessionExpiredMessage,
-                  style: AppTextStyles.bodyMedium,
-                ),
+                Text(_message, style: AppTextStyles.bodyMedium),
               ],
             ),
           ),

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 enum DataSourceMode { fake, remote }
 
 abstract final class AppEnvironment {
@@ -20,4 +22,13 @@ abstract final class AppEnvironment {
       };
 
   static bool get usesFakeDataSources => dataSourceMode == DataSourceMode.fake;
+
+  static void guardAgainstFakesInRelease({bool isReleaseBuild = kReleaseMode}) {
+    if (!isReleaseBuild || !usesFakeDataSources) return;
+
+    throw StateError(
+      'This release build is wired to the fake data sources, which accept '
+      'seeded test credentials. Rebuild with --dart-define=DATA_SOURCE=remote.',
+    );
+  }
 }

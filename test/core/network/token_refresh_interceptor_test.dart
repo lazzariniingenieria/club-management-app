@@ -126,6 +126,58 @@ void main() {
     });
   });
 
+  group('when several requests are rejected at the same time', () {
+    setUp(() {
+      storage.values[StorageKeys.accessToken] = 'stale-access-token';
+      storage.values[StorageKeys.refreshToken] = 'valid-refresh-token';
+    });
+
+    ResponseBody rejectStaleTokens(RequestOptions options, int callCount) {
+      if (options.path == ApiConstants.refresh) {
+        return jsonResponse(200, {'accessToken': 'fresh-access-token'});
+      }
+      final authorization =
+          options.headers[ApiConstants.authorizationHeader] as String?;
+      return authorization == 'Bearer fresh-access-token'
+          ? jsonResponse(200, {'ok': true})
+          : jsonResponse(401, {'message': 'expired'});
+    }
+
+    test('refreshes once for the whole burst', () async {
+      final adapter = buildClient(rejectStaleTokens);
+
+      final responses = await Future.wait([
+        dio.get<Map<String, dynamic>>(protectedPath),
+        dio.get<Map<String, dynamic>>('/payments'),
+        dio.get<Map<String, dynamic>>('/courts'),
+      ]);
+
+      expect(responses.map((response) => response.statusCode), everyElement(200));
+      expect(adapter.callsTo(ApiConstants.refresh), 1);
+    });
+
+    test('replays every queued request with the token the first one obtained',
+        () async {
+      final adapter = buildClient(rejectStaleTokens);
+
+      await Future.wait([
+        dio.get<Map<String, dynamic>>(protectedPath),
+        dio.get<Map<String, dynamic>>('/payments'),
+        dio.get<Map<String, dynamic>>('/courts'),
+      ]);
+
+      final replays = adapter.requests
+          .where((request) => request.extra['token_refresh_retried'] == true);
+
+      expect(replays, hasLength(3));
+      expect(
+        replays.map(
+            (request) => request.headers[ApiConstants.authorizationHeader]),
+        everyElement('Bearer fresh-access-token'),
+      );
+    });
+  });
+
   group('when the refresh token is also rejected', () {
     setUp(() {
       storage.values[StorageKeys.accessToken] = 'stale-access-token';

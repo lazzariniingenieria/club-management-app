@@ -55,7 +55,7 @@ void main() {
   });
 
   group('admin', () {
-    testWidgets('lands on the admin home and keeps the four tabs', (
+    testWidgets('lands on the admin home and shows only the working tabs', (
       tester,
     ) async {
       await bootApp(tester, signedInAs: UserRole.admin);
@@ -64,7 +64,6 @@ void main() {
 
       for (final tab in const [
         AppStrings.adminTabHome,
-        AppStrings.adminTabReservations,
         AppStrings.adminTabPayments,
         AppStrings.adminTabProfile,
       ]) {
@@ -76,6 +75,24 @@ void main() {
           findsOneWidget,
         );
       }
+    });
+
+    testWidgets('has no placeholder tab for the agenda until E9', (
+      tester,
+    ) async {
+      await bootApp(tester, signedInAs: UserRole.admin);
+
+      final navigationBar =
+          tester.widget<NavigationBar>(find.byType(NavigationBar));
+
+      expect(navigationBar.destinations, hasLength(3));
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Reservas'),
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets('reaches the admin push routes', (tester) async {

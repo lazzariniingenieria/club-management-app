@@ -88,14 +88,6 @@ class AppRouter {
         ),
       ),
       _branch(
-        AppRoutes.adminReservations,
-        const AdminPendingScreen(
-          title: AppStrings.adminReservationsTitle,
-          message: AppStrings.adminReservationsPending,
-          icon: Icons.event_rounded,
-        ),
-      ),
-      _branch(
         AppRoutes.adminPayments,
         const AdminPendingScreen(
           title: AppStrings.adminPaymentsTitle,

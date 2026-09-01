@@ -69,14 +69,41 @@ void main() {
     await expectLater(bloc.stream, emits(const AuthUnauthenticated()));
   });
 
-  test('falls back to unauthenticated when restoring fails', () async {
+  test('reports the session as unverified when restoring fails', () async {
     when(() => restoreSession())
         .thenAnswer((_) async => const Left(CacheFailure()));
     final bloc = buildBloc();
 
     bloc.add(const AuthSessionRequested());
 
-    await expectLater(bloc.stream, emits(const AuthUnauthenticated()));
+    await expectLater(
+      bloc.stream,
+      emits(const AuthUnauthenticated(
+          reason: SignedOutReason.sessionUnverified)),
+    );
+  });
+
+  test('stops waiting for a session that never resolves', () async {
+    when(() => restoreSession()).thenAnswer(
+      (_) => Future.delayed(
+        const Duration(milliseconds: 200),
+        () => const Right(storedAdmin),
+      ),
+    );
+    final bloc = AuthBloc(
+      restoreSession: restoreSession,
+      logout: logout,
+      sessionExpiryNotifier: expiryNotifier,
+      restoreTimeout: const Duration(milliseconds: 20),
+    );
+
+    bloc.add(const AuthSessionRequested());
+
+    await expectLater(
+      bloc.stream,
+      emits(const AuthUnauthenticated(
+          reason: SignedOutReason.sessionUnverified)),
+    );
   });
 
   test('authenticates on login', () async {
@@ -114,7 +141,7 @@ void main() {
 
     await expectLater(
       bloc.stream,
-      emits(const AuthUnauthenticated(sessionExpired: true)),
+      emits(const AuthUnauthenticated(reason: SignedOutReason.sessionExpired)),
     );
   });
 

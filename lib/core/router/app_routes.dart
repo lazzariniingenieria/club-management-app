@@ -3,7 +3,6 @@ abstract final class AppRoutes {
   static const String login = '/login';
 
   static const String adminHome = '/admin';
-  static const String adminReservations = '/admin/reservations';
   static const String adminPayments = '/admin/payments';
   static const String adminProfile = '/admin/profile';
   static const String adminMembers = '/admin/members';
