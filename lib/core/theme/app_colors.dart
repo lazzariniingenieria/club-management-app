@@ -13,13 +13,13 @@ class AppColors {
   static const Color successText = Color(0xFF0F6B41);
 
   static const Color dangerSurface = Color(0xFFFADBDB);
-  static const Color dangerText = Color(0xFFD32F2F);
+  static const Color dangerText = Color(0xFFB3261E);
 
   static const Color background = Color(0xFFF4F6F9);
   static const Color surface = Color(0xFFFFFFFF);
 
   static const Color textPrimary = Color(0xFF0C2340);
-  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color textSecondary = Color(0xFF5B6472);
   static const Color textOnDark = Color(0xFFFFFFFF);
 
   static const Color border = Color(0xFFD9E1EC);
