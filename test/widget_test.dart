@@ -7,7 +7,8 @@ void main() {
     await di.init();
   });
 
-  testWidgets('App renders LoginScreen without crashing', (WidgetTester tester) async {
+  testWidgets('App renders LoginScreen without crashing',
+      (WidgetTester tester) async {
     await tester.pumpWidget(const ClubManagementApp());
     await tester.pumpAndSettle();
 

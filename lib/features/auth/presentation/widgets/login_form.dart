@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_form_field.dart';
 import '../cubit/login_cubit.dart';
@@ -36,14 +38,22 @@ class _LoginFormState extends State<LoginForm> {
     }
   }
 
+  void _togglePasswordVisibility() {
+    setState(() => _obscurePassword = !_obscurePassword);
+  }
+
   String? _validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) return AppStrings.loginEmailRequired;
+    if (value == null || value.trim().isEmpty) {
+      return AppStrings.loginEmailRequired;
+    }
     if (!value.contains('@')) return AppStrings.loginEmailInvalidFormat;
     return null;
   }
 
   String? _validatePassword(String? value) {
-    if (value == null || value.trim().isEmpty) return AppStrings.loginPasswordRequired;
+    if (value == null || value.trim().isEmpty) {
+      return AppStrings.loginPasswordRequired;
+    }
     if (value.length < 6) return AppStrings.loginPasswordTooShort;
     return null;
   }
@@ -62,59 +72,61 @@ class _LoginFormState extends State<LoginForm> {
             keyboardType: TextInputType.emailAddress,
             validator: _validateEmail,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           AppTextFormField(
             controller: _passwordController,
             hintText: AppStrings.loginPasswordHint,
             prefixIcon: Icons.lock_outline_rounded,
             isPassword: true,
             obscureText: _obscurePassword,
-            onToggleVisibility: () {
-              setState(() {
-                _obscurePassword = !_obscurePassword;
-              });
-            },
+            onToggleVisibility: _togglePasswordVisibility,
             validator: _validatePassword,
           ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () {
-                // TODO: Implement forgot password
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: const Text(AppStrings.loginForgotPassword),
-            ),
-          ),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppSpacing.md),
+          const _ForgotPasswordLink(),
+          const SizedBox(height: AppSpacing.xl),
           BlocBuilder<LoginCubit, LoginState>(
-            builder: (context, state) {
-              return AppButton(
-                text: AppStrings.loginSubmitButton,
-                isLoading: state is LoginLoading,
-                onPressed: _submitForm,
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: TextButton(
-              onPressed: () {
-                // TODO: Implement navigation to first time / registration screen
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.textSecondaryLight,
-              ),
-              child: const Text(AppStrings.loginFirstTimeUser),
+            builder: (context, state) => AppButton(
+              text: AppStrings.loginSubmitButton,
+              isLoading: state is LoginLoading,
+              onPressed: _submitForm,
             ),
           ),
+          const SizedBox(height: AppSpacing.sm),
+          const _FirstTimeUserLink(),
         ],
+      ),
+    );
+  }
+}
+
+class _ForgotPasswordLink extends StatelessWidget {
+  const _ForgotPasswordLink();
+
+  @override
+  Widget build(BuildContext context) {
+    // TODO(E11): navigate to /login/forgot once the flow exists.
+    return const Align(
+      alignment: Alignment.centerRight,
+      child: TextButton(
+        onPressed: null,
+        child: Text(AppStrings.loginForgotPassword),
+      ),
+    );
+  }
+}
+
+class _FirstTimeUserLink extends StatelessWidget {
+  const _FirstTimeUserLink();
+
+  @override
+  Widget build(BuildContext context) {
+    // TODO(E11): navigate to /login/activate once the flow exists.
+    return Center(
+      child: TextButton(
+        onPressed: null,
+        style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+        child: const Text(AppStrings.loginFirstTimeUser),
       ),
     );
   }
