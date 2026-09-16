@@ -31,12 +31,18 @@ class ScriptedHttpAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+Map<String, List<String>> _jsonHeaders() => {
+      Headers.contentTypeHeader: [Headers.jsonContentType],
+    };
+
 ResponseBody jsonResponse(int statusCode, [Map<String, dynamic>? body]) {
   return ResponseBody.fromString(
     jsonEncode(body ?? const <String, dynamic>{}),
     statusCode,
-    headers: {
-      Headers.contentTypeHeader: [Headers.jsonContentType],
-    },
+    headers: _jsonHeaders(),
   );
+}
+
+ResponseBody emptyResponse(int statusCode) {
+  return ResponseBody.fromString('', statusCode, headers: _jsonHeaders());
 }

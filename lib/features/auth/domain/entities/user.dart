@@ -10,18 +10,16 @@ extension UserRolePermissions on UserRole {
 }
 
 class User extends Equatable {
-  final String id;
-  final String email;
-  final String fullName;
+  final int id;
+  final int? memberId;
   final UserRole role;
 
   const User({
     required this.id,
-    required this.email,
-    required this.fullName,
+    required this.memberId,
     required this.role,
   });
 
   @override
-  List<Object?> get props => [id, email, fullName, role];
+  List<Object?> get props => [id, memberId, role];
 }

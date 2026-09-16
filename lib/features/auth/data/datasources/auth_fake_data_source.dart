@@ -1,15 +1,14 @@
 import '../../../../core/errors/exceptions.dart';
-import '../../domain/entities/auth_token.dart';
 import '../../domain/entities/user.dart';
 import '../models/auth_response_model.dart';
 import '../models/user_model.dart';
 import 'auth_remote_data_source.dart';
 
 class FakeAccount {
-  final String email;
+  final String dni;
   final UserModel user;
 
-  const FakeAccount({required this.email, required this.user});
+  const FakeAccount({required this.dni, required this.user});
 }
 
 class AuthFakeDataSource implements AuthRemoteDataSource {
@@ -21,60 +20,39 @@ class AuthFakeDataSource implements AuthRemoteDataSource {
 
   static const List<FakeAccount> accounts = [
     FakeAccount(
-      email: 'admin@club.com',
-      user: UserModel(
-        id: 'fake-admin',
-        email: 'admin@club.com',
-        fullName: 'Ana Gómez',
-        role: UserRole.admin,
-      ),
+      dni: '11111111',
+      user: UserModel(id: 1, memberId: null, role: UserRole.admin),
     ),
     FakeAccount(
-      email: 'super@club.com',
-      user: UserModel(
-        id: 'fake-super-admin',
-        email: 'super@club.com',
-        fullName: 'Sofía Duarte',
-        role: UserRole.superAdmin,
-      ),
+      dni: '22222222',
+      user: UserModel(id: 2, memberId: null, role: UserRole.superAdmin),
     ),
     FakeAccount(
-      email: 'socio@club.com',
-      user: UserModel(
-        id: 'fake-member',
-        email: 'socio@club.com',
-        fullName: 'Marcos Ledesma',
-        role: UserRole.member,
-      ),
+      dni: '33333333',
+      user: UserModel(id: 3, memberId: 3001, role: UserRole.member),
     ),
   ];
 
   @override
-  Future<AuthResponseModel> login(String email, String password) async {
+  Future<AuthResponseModel> login(String dni, String password) async {
     await Future<void>.delayed(latency);
 
-    final account = _findAccount(email);
+    final account = _findAccount(dni);
     if (account == null || password != sharedPassword) {
-      throw UnauthorizedException('Invalid email or password');
+      throw UnauthorizedException('Invalid dni or password');
     }
 
-    return AuthResponseModel(token: _tokenFor(account), user: account.user);
+    return AuthResponseModel(
+      accessToken: 'fake-access-token-${account.user.id}',
+      user: account.user,
+    );
   }
 
-  FakeAccount? _findAccount(String email) {
-    final normalized = email.trim().toLowerCase();
+  FakeAccount? _findAccount(String dni) {
+    final normalized = dni.trim();
     for (final account in accounts) {
-      if (account.email == normalized) return account;
+      if (account.dni == normalized) return account;
     }
     return null;
-  }
-
-  AuthToken _tokenFor(FakeAccount account) {
-    return AuthToken(
-      accessToken: 'fake-access-token-${account.user.id}',
-      refreshToken: 'fake-refresh-token-${account.user.id}',
-      tokenType: 'Bearer',
-      expiresIn: 86400,
-    );
   }
 }

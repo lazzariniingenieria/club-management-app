@@ -3,11 +3,13 @@ import 'dart:convert';
 import '../../../../core/constants/storage_keys.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/storage/secure_storage_service.dart';
-import '../../domain/entities/auth_token.dart';
 import '../models/user_model.dart';
 
 abstract class AuthLocalDataSource {
-  Future<void> saveSession({required AuthToken token, required UserModel user});
+  Future<void> saveSession({
+    required String accessToken,
+    required UserModel user,
+  });
   Future<UserModel?> readUser();
   Future<bool> hasSession();
   Future<void> clearSession();
@@ -20,14 +22,17 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   Future<void> saveSession({
-    required AuthToken token,
+    required String accessToken,
     required UserModel user,
   }) async {
-    await secureStorage.saveToken(StorageKeys.accessToken, token.accessToken);
-    await secureStorage.saveToken(StorageKeys.refreshToken, token.refreshToken);
+    await secureStorage.saveToken(StorageKeys.accessToken, accessToken);
     await secureStorage.saveToken(
       StorageKeys.currentUser,
       jsonEncode(user.toJson()),
+    );
+    await secureStorage.saveToken(
+      StorageKeys.sessionSchemaVersion,
+      StorageKeys.currentSessionSchemaVersion,
     );
   }
 
@@ -39,16 +44,29 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     try {
       return UserModel.fromJson(jsonDecode(rawUser) as Map<String, dynamic>);
     } on FormatException catch (error) {
-      throw CacheException('Stored session is corrupted: ${error.message}');
+      throw CacheException('Stored session could not be read: $error');
+    } on TypeError catch (error) {
+      throw CacheException('Stored session could not be read: $error');
     }
   }
 
   @override
   Future<bool> hasSession() async {
     final accessToken = await secureStorage.getToken(StorageKeys.accessToken);
-    return accessToken != null;
+    if (accessToken == null) return false;
+
+    if (await _storedSchemaIsCurrent()) return true;
+
+    await clearSession();
+    return false;
   }
 
   @override
   Future<void> clearSession() => secureStorage.deleteAll();
+
+  Future<bool> _storedSchemaIsCurrent() async {
+    final version =
+        await secureStorage.getToken(StorageKeys.sessionSchemaVersion);
+    return version == StorageKeys.currentSessionSchemaVersion;
+  }
 }

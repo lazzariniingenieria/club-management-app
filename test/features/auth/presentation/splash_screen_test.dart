@@ -16,12 +16,7 @@ class MockRestoreSessionUseCase extends Mock implements RestoreSessionUseCase {}
 class MockLogoutUseCase extends Mock implements LogoutUseCase {}
 
 void main() {
-  const storedAdmin = User(
-    id: '1',
-    email: 'admin@club.com',
-    fullName: 'Ana Gómez',
-    role: UserRole.admin,
-  );
+  const storedAdmin = User(id: 1, memberId: null, role: UserRole.admin);
 
   late MockRestoreSessionUseCase restoreSession;
   late MockLogoutUseCase logout;
