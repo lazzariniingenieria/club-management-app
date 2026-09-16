@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_strings.dart';
@@ -18,13 +19,15 @@ class LoginForm extends StatefulWidget {
 
 class _LoginFormState extends State<LoginForm> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _dniController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
+  static const int _maxDniLength = 20;
+
   @override
   void dispose() {
-    _emailController.dispose();
+    _dniController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -32,7 +35,7 @@ class _LoginFormState extends State<LoginForm> {
   void _submitForm() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<LoginCubit>().login(
-            _emailController.text,
+            _dniController.text,
             _passwordController.text,
           );
     }
@@ -42,11 +45,10 @@ class _LoginFormState extends State<LoginForm> {
     setState(() => _obscurePassword = !_obscurePassword);
   }
 
-  String? _validateEmail(String? value) {
+  String? _validateDni(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return AppStrings.loginEmailRequired;
+      return AppStrings.loginDniRequired;
     }
-    if (!value.contains('@')) return AppStrings.loginEmailInvalidFormat;
     return null;
   }
 
@@ -54,7 +56,6 @@ class _LoginFormState extends State<LoginForm> {
     if (value == null || value.trim().isEmpty) {
       return AppStrings.loginPasswordRequired;
     }
-    if (value.length < 6) return AppStrings.loginPasswordTooShort;
     return null;
   }
 
@@ -62,39 +63,49 @@ class _LoginFormState extends State<LoginForm> {
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppTextFormField(
-            controller: _emailController,
-            hintText: AppStrings.loginEmailHint,
-            prefixIcon: Icons.mail_outline_rounded,
-            keyboardType: TextInputType.emailAddress,
-            validator: _validateEmail,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppTextFormField(
-            controller: _passwordController,
-            hintText: AppStrings.loginPasswordHint,
-            prefixIcon: Icons.lock_outline_rounded,
-            isPassword: true,
-            obscureText: _obscurePassword,
-            onToggleVisibility: _togglePasswordVisibility,
-            validator: _validatePassword,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          const _ForgotPasswordLink(),
-          const SizedBox(height: AppSpacing.xl),
-          BlocBuilder<LoginCubit, LoginState>(
-            builder: (context, state) => AppButton(
-              text: AppStrings.loginSubmitButton,
-              isLoading: state is LoginLoading,
-              onPressed: _submitForm,
+      child: AutofillGroup(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppTextFormField(
+              controller: _dniController,
+              hintText: AppStrings.loginDniHint,
+              prefixIcon: Icons.badge_outlined,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                LengthLimitingTextInputFormatter(_maxDniLength),
+              ],
+              autofillHints: const [AutofillHints.username],
+              textInputAction: TextInputAction.next,
+              validator: _validateDni,
             ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          const _FirstTimeUserLink(),
-        ],
+            const SizedBox(height: AppSpacing.lg),
+            AppTextFormField(
+              controller: _passwordController,
+              hintText: AppStrings.loginPasswordHint,
+              prefixIcon: Icons.lock_outline_rounded,
+              isPassword: true,
+              obscureText: _obscurePassword,
+              onToggleVisibility: _togglePasswordVisibility,
+              autofillHints: const [AutofillHints.password],
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _submitForm(),
+              validator: _validatePassword,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            const _ForgotPasswordLink(),
+            const SizedBox(height: AppSpacing.xl),
+            BlocBuilder<LoginCubit, LoginState>(
+              builder: (context, state) => AppButton(
+                text: AppStrings.loginSubmitButton,
+                isLoading: state is LoginLoading,
+                onPressed: _submitForm,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            const _FirstTimeUserLink(),
+          ],
+        ),
       ),
     );
   }

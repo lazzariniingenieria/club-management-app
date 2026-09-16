@@ -17,10 +17,10 @@ void main() {
 
   Future<void> signIn(
     WidgetTester tester, {
-    required String email,
+    required String dni,
     required String password,
   }) async {
-    await tester.enterText(find.byType(TextFormField).first, email);
+    await tester.enterText(find.byType(TextFormField).first, dni);
     await tester.enterText(find.byType(TextFormField).last, password);
     await tester.tap(find.text(AppStrings.loginSubmitButton));
     await settleSession(tester);
@@ -33,7 +33,7 @@ void main() {
 
     await signIn(
       tester,
-      email: 'admin@club.com',
+      dni: '11111111',
       password: AuthFakeDataSource.sharedPassword,
     );
 
@@ -49,7 +49,7 @@ void main() {
 
     await signIn(
       tester,
-      email: 'super@club.com',
+      dni: '22222222',
       password: AuthFakeDataSource.sharedPassword,
     );
 
@@ -64,7 +64,7 @@ void main() {
 
     await signIn(
       tester,
-      email: 'socio@club.com',
+      dni: '33333333',
       password: AuthFakeDataSource.sharedPassword,
     );
 
@@ -79,12 +79,31 @@ void main() {
 
     await signIn(
       tester,
-      email: 'admin@club.com',
+      dni: '11111111',
       password: 'not-the-password',
     );
 
     expect(currentLocation(), AppRoutes.login);
     expect(storage.values[StorageKeys.accessToken], isNull);
+  });
+
+  testWidgets('an unknown DNI is reported in Spanish, never in English', (
+    tester,
+  ) async {
+    await bootApp(tester);
+
+    await signIn(
+      tester,
+      dni: '00000000',
+      password: AuthFakeDataSource.sharedPassword,
+    );
+
+    expect(
+      find.text(AppStrings.loginInvalidCredentials),
+      findsAtLeastNWidgets(1),
+    );
+    expect(find.textContaining('Invalid'), findsNothing);
+    expect(currentLocation(), AppRoutes.login);
   });
 
   testWidgets('logging out returns to the login screen and clears the session',

@@ -222,8 +222,8 @@ class _TextFieldsSection extends StatefulWidget {
 
 class _TextFieldsSectionState extends State<_TextFieldsSection> {
   final _emptyController = TextEditingController();
-  final _filledController = TextEditingController(text: 'member@club.com');
-  final _errorController = TextEditingController(text: 'not-an-email');
+  final _filledController = TextEditingController(text: '30111222');
+  final _errorController = TextEditingController();
   final _passwordController = TextEditingController(text: 'super-secret');
   bool _obscurePassword = true;
 
@@ -249,16 +249,16 @@ class _TextFieldsSectionState extends State<_TextFieldsSection> {
           label: 'Empty',
           child: AppTextFormField(
             controller: _emptyController,
-            hintText: AppStrings.loginEmailHint,
-            prefixIcon: Icons.mail_outline_rounded,
+            hintText: AppStrings.loginDniHint,
+            prefixIcon: Icons.badge_outlined,
           ),
         ),
         GalleryItem(
           label: 'Filled',
           child: AppTextFormField(
             controller: _filledController,
-            hintText: AppStrings.loginEmailHint,
-            prefixIcon: Icons.mail_outline_rounded,
+            hintText: AppStrings.loginDniHint,
+            prefixIcon: Icons.badge_outlined,
           ),
         ),
         GalleryItem(
@@ -267,9 +267,9 @@ class _TextFieldsSectionState extends State<_TextFieldsSection> {
             autovalidateMode: AutovalidateMode.always,
             child: AppTextFormField(
               controller: _errorController,
-              hintText: AppStrings.loginEmailHint,
-              prefixIcon: Icons.mail_outline_rounded,
-              validator: (_) => AppStrings.loginEmailInvalidFormat,
+              hintText: AppStrings.loginDniHint,
+              prefixIcon: Icons.badge_outlined,
+              validator: (_) => AppStrings.loginDniRequired,
             ),
           ),
         ),
