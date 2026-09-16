@@ -28,7 +28,8 @@ void main() {
     test('returns AuthFailure when email is empty', () async {
       final result = await useCase(email: '', password: 'password123');
 
-      expect(result, const Left(AuthFailure('Email and password cannot be empty')));
+      expect(result,
+          const Left(AuthFailure('Email and password cannot be empty')));
       verifyNever(() => mockRepository.loginWithCredentials(
             email: any(named: 'email'),
             password: any(named: 'password'),
@@ -38,7 +39,8 @@ void main() {
     test('returns AuthFailure when password is empty', () async {
       final result = await useCase(email: 'test@club.com', password: '');
 
-      expect(result, const Left(AuthFailure('Email and password cannot be empty')));
+      expect(result,
+          const Left(AuthFailure('Email and password cannot be empty')));
       verifyNever(() => mockRepository.loginWithCredentials(
             email: any(named: 'email'),
             password: any(named: 'password'),
@@ -48,7 +50,8 @@ void main() {
     test('returns AuthFailure when both fields are blank spaces', () async {
       final result = await useCase(email: '   ', password: '   ');
 
-      expect(result, const Left(AuthFailure('Email and password cannot be empty')));
+      expect(result,
+          const Left(AuthFailure('Email and password cannot be empty')));
     });
 
     test('delegates to repository and returns User on success', () async {
@@ -57,7 +60,8 @@ void main() {
             password: 'password123',
           )).thenAnswer((_) async => const Right(testUser));
 
-      final result = await useCase(email: 'test@club.com', password: 'password123');
+      final result =
+          await useCase(email: 'test@club.com', password: 'password123');
 
       expect(result, const Right(testUser));
       verify(() => mockRepository.loginWithCredentials(
@@ -68,11 +72,14 @@ void main() {
 
     test('propagates repository Failure on invalid credentials', () async {
       when(() => mockRepository.loginWithCredentials(
-            email: any(named: 'email'),
-            password: any(named: 'password'),
-          )).thenAnswer((_) async => const Left(AuthFailure('Invalid credentials')));
+                email: any(named: 'email'),
+                password: any(named: 'password'),
+              ))
+          .thenAnswer(
+              (_) async => const Left(AuthFailure('Invalid credentials')));
 
-      final result = await useCase(email: 'test@club.com', password: 'wrongpass');
+      final result =
+          await useCase(email: 'test@club.com', password: 'wrongpass');
 
       expect(result, const Left(AuthFailure('Invalid credentials')));
     });
@@ -83,7 +90,8 @@ void main() {
             password: any(named: 'password'),
           )).thenAnswer((_) async => const Left(ServerFailure('Server error')));
 
-      final result = await useCase(email: 'test@club.com', password: 'password123');
+      final result =
+          await useCase(email: 'test@club.com', password: 'password123');
 
       expect(result, const Left(ServerFailure('Server error')));
     });

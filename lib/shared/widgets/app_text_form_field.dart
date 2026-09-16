@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_strings.dart';
+import '../../core/theme/app_colors.dart';
+
 class AppTextFormField extends StatelessWidget {
   final String hintText;
   final TextEditingController controller;
@@ -29,18 +32,39 @@ class AppTextFormField extends StatelessWidget {
       validator: validator,
       keyboardType: keyboardType,
       obscureText: obscureText,
+      style: Theme.of(context).textTheme.bodyLarge,
       decoration: InputDecoration(
         hintText: hintText,
-        prefixIcon: Icon(prefixIcon, color: const Color(0xFF64748B)),
+        prefixIcon: Icon(prefixIcon, color: AppColors.textSecondary),
         suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: const Color(0xFF64748B),
-                ),
+            ? _VisibilityToggle(
+                obscureText: obscureText,
                 onPressed: onToggleVisibility,
               )
             : null,
+      ),
+    );
+  }
+}
+
+class _VisibilityToggle extends StatelessWidget {
+  final bool obscureText;
+  final VoidCallback? onPressed;
+
+  const _VisibilityToggle({required this.obscureText, this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = obscureText
+        ? AppStrings.passwordShowAction
+        : AppStrings.passwordHideAction;
+
+    return IconButton(
+      onPressed: onPressed,
+      tooltip: label,
+      icon: Icon(
+        obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+        color: AppColors.textSecondary,
       ),
     );
   }

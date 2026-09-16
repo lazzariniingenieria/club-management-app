@@ -15,7 +15,7 @@ class LoginWithCredentialsUseCase {
     if (email.trim().isEmpty || password.trim().isEmpty) {
       return const Left(AuthFailure('Email and password cannot be empty'));
     }
-    
+
     return await repository.loginWithCredentials(
       email: email,
       password: password,

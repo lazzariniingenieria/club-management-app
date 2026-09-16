@@ -14,8 +14,10 @@ import '../../features/auth/presentation/cubit/login_cubit.dart';
 final sl = GetIt.instance;
 
 Future<void> init() async {
-  sl.registerLazySingleton<FlutterSecureStorage>(() => const FlutterSecureStorage());
-  sl.registerLazySingleton<SecureStorageService>(() => SecureStorageServiceImpl(sl()));
+  sl.registerLazySingleton<FlutterSecureStorage>(
+      () => const FlutterSecureStorage());
+  sl.registerLazySingleton<SecureStorageService>(
+      () => SecureStorageServiceImpl(sl()));
 
   sl.registerLazySingleton<Dio>(() => Dio());
   sl.registerLazySingleton<ApiClient>(() => ApiClient(

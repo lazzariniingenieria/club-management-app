@@ -13,8 +13,8 @@ class UserModel extends User {
       id: json['id'] as String,
       email: json['email'] as String,
       fullName: json['fullName'] as String,
-      role: (json['role'] as String).toUpperCase() == 'ADMIN' 
-          ? UserRole.admin 
+      role: (json['role'] as String).toUpperCase() == 'ADMIN'
+          ? UserRole.admin
           : UserRole.member,
     );
   }

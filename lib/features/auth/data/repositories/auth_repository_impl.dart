@@ -23,10 +23,12 @@ class AuthRepositoryImpl implements AuthRepository {
   }) async {
     try {
       final response = await remoteDataSource.login(email, password);
-      
-      await secureStorage.saveToken(StorageKeys.accessToken, response.token.accessToken);
-      await secureStorage.saveToken(StorageKeys.refreshToken, response.token.refreshToken);
-      
+
+      await secureStorage.saveToken(
+          StorageKeys.accessToken, response.token.accessToken);
+      await secureStorage.saveToken(
+          StorageKeys.refreshToken, response.token.refreshToken);
+
       return Right(response.user);
     } on UnauthorizedException catch (e) {
       return Left(AuthFailure(e.message ?? 'Invalid credentials'));
