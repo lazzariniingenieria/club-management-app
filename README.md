@@ -75,20 +75,31 @@ the default, so a bare `flutter run` opens a navigable app:
 
 ```bash
 flutter run                                      # fake data sources
-flutter run --dart-define=DATA_SOURCE=remote     # real API
-flutter run --dart-define=API_BASE_URL=https://staging.example.com/api/v1             --dart-define=DATA_SOURCE=remote
+
+flutter run \
+  --dart-define=DATA_SOURCE=remote \
+  --dart-define=API_BASE_URL=https://<railway-host>/api \
+  --dart-define=CLUB_ID=<seeded-club-id>
 ```
 
-`DATA_SOURCE` and `API_BASE_URL` are read in `lib/core/config/app_environment.dart`.
-Flip the default there once the remote environment is live.
+| Define | Default | Notes |
+| :--- | :--- | :--- |
+| `DATA_SOURCE` | `fake` | `remote` targets the API. A release build wired to the fakes refuses to boot. |
+| `API_BASE_URL` | *(empty)* | Includes the `/api` prefix, no trailing slash, no version segment. |
+| `CLUB_ID` | *(unset)* | The club the login authenticates against, until `GET /api/clubs` exists. |
+
+All three are read in `lib/core/config/app_environment.dart`. A `remote` build
+missing `API_BASE_URL` or `CLUB_ID` throws at startup rather than failing later:
+the API answers one indistinguishable `401` for every credential problem, so a
+wrong `CLUB_ID` would look exactly like a wrong password.
 
 Fake accounts, one per role, all with password `123456`:
 
-| Email | Role |
+| DNI | Role |
 | :--- | :--- |
-| `admin@club.com` | `ADMIN` |
-| `super@club.com` | `SUPER_ADMIN` |
-| `socio@club.com` | `MEMBER` |
+| `11111111` | `ADMIN` |
+| `22222222` | `SUPER_ADMIN` |
+| `33333333` | `MEMBER` |
 
 Secrets never live in the repository: pass them with `--dart-define` or a
 git-ignored `.env`.

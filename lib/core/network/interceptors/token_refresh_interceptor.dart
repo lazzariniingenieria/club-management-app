@@ -22,6 +22,11 @@ class TokenRefreshInterceptor extends QueuedInterceptor {
   static const String _retriedFlag = 'token_refresh_retried';
   static const String _logContext = 'TokenRefreshInterceptor';
 
+  static const Set<String> _publicPaths = {
+    ApiConstants.login,
+    ApiConstants.refresh,
+  };
+
   @override
   Future<void> onError(
     DioException err,
@@ -57,7 +62,7 @@ class TokenRefreshInterceptor extends QueuedInterceptor {
 
   bool _isRecoverable(DioException err) {
     if (err.response?.statusCode != 401) return false;
-    if (err.requestOptions.path == ApiConstants.refresh) return false;
+    if (_publicPaths.contains(err.requestOptions.path)) return false;
     return err.requestOptions.extra[_retriedFlag] != true;
   }
 

@@ -246,4 +246,21 @@ void main() {
       expect(expiryEvents, isEmpty);
     });
   });
+
+  group('for the public login endpoint', () {
+    test('a rejected login never refreshes nor expires the session', () async {
+      storage.values[StorageKeys.refreshToken] = 'valid-refresh-token';
+      final adapter = buildClient((options, callCount) => emptyResponse(401));
+
+      await expectLater(
+        dio.post<Map<String, dynamic>>(ApiConstants.login),
+        throwsA(isA<DioException>()),
+      );
+      await flushExpiryEvents();
+
+      expect(adapter.callsTo(ApiConstants.refresh), 0);
+      expect(expiryEvents, isEmpty);
+      expect(storage.values[StorageKeys.refreshToken], 'valid-refresh-token');
+    });
+  });
 }

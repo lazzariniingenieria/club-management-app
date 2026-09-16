@@ -62,59 +62,59 @@ El `README` menciona Render como hosting. Necesitamos:
 
 ## 2. Autenticación — E2
 
-### 2.1 Login — confirmar contrato
+### 2.1 Login — resuelto, la app se alineó al contrato real
 
-Este es el contrato que la app ya implementa:
+**Cerrado.** El contrato que esta sección asumía (`email` + `password`, prefijo `/api/v1`, respuesta con objeto
+`user` anidado más `refreshToken` / `tokenType` / `expiresIn`) **no era el de la API**. El backend lo corrigió en
+[respuesta_backend.md](../club-management-api/Contexto/respuesta_backend.md) §2.1 y la app ya se adaptó.
+
+Contrato vigente, verificado contra `develop`:
 
 ```
-POST /api/v1/auth/login
-{ "email": "admin@club.com", "password": "..." }
+POST /api/auth/login
+{ "clubId": 1, "dni": "30111222", "password": "..." }
 ```
 
 ```json
 200 OK
-{
-  "accessToken": "eyJ...",
-  "refreshToken": "eyJ...",
-  "tokenType": "Bearer",
-  "expiresIn": 86400,
-  "user": {
-    "id": "...",
-    "email": "admin@club.com",
-    "fullName": "Nombre Apellido",
-    "role": "ADMIN"
-  }
-}
+{ "accessToken": "eyJ...", "userAccountId": 12, "role": "ADMIN", "memberId": 34 }
 ```
 
-Necesitamos confirmar los nombres de campo y agregar dos: `clubId` y `memberId` (§2.3, §2.4).
+Lo que cambió del lado de la app: el formulario pide **DNI**, no correo; el `clubId` viaja por
+`--dart-define=CLUB_ID` hasta que exista `GET /api/clubs` (§2.4); `tokenType` se fija en `Bearer` en el cliente;
+y la entidad de usuario ya no tiene `email` ni `fullName`, porque `user_account` no tiene columna de nombre.
 
-Y definir el comportamiento de error: hoy la app mapea **401** a "credenciales inválidas". Si existen otros casos que el usuario deba distinguir — cuenta deshabilitada, socio sin cuenta activada — necesitamos un código propio para cada uno (§2.5), no un 401 genérico para todo.
+**Errores**: el 401 único para DNI inexistente, contraseña incorrecta y cuenta desactivada es deliberado — hacerlo
+distinguible permitiría enumerar qué DNI existen en el club. La app lo acepta y muestra un solo mensaje. El
+`message` en inglés del envelope nunca se muestra al usuario; se decide por status code.
 
-### 2.2 Refresh de token
+### 2.2 Refresh de token — acordado, pendiente de implementación
 
-**Confirmado que hoy no existe ningún concepto de refresh en el backend, ni parcial**: es una feature nueva de cero, no la formalización de algo a medias. Del lado de la app ya está construido y testeado contra un mock, así que lo único que falta es el acuerdo de contrato.
-
-Nos hace falta desde E2: el admin usa la app todos los días y no puede quedar deslogueado cada vez que expira el `accessToken`.
-
-Propuesta:
+**Contrato cerrado, código todavía no existe.** El backend lo tomó para E2 con rotación, detección de reuso y
+revocación, y contestó todas las preguntas de abajo en `respuesta_backend.md` §2.2. Queda como **el pedido de
+mayor prioridad de la app**.
 
 ```
-POST /api/v1/auth/refresh
+POST /api/auth/refresh
 { "refreshToken": "eyJ..." }
 ```
 
 ```json
 200 OK
-{ "accessToken": "eyJ...", "refreshToken": "eyJ...", "tokenType": "Bearer", "expiresIn": 86400 }
+{ "accessToken": "eyJ...", "refreshToken": "eyJ...", "expiresIn": 3600 }
 ```
 
-Preguntas concretas:
+Acordado: el refresco **rota** y revoca el anterior; TTL de 1 hora para el `accessToken` y 30 días para el
+`refreshToken`; los dos 401 se distinguen **por endpoint** (un 401 en `/api/auth/refresh` es cerrar sesión, en
+cualquier otro es refrescar y reintentar una vez); y sí hay `POST /api/auth/logout` con revocación.
 
-- ¿El refresco **rota** el `refreshToken` o devuelve el mismo? Cambia si tenemos que reescribir el storage seguro en cada refresco.
-- **TTL** del `accessToken` y del `refreshToken`.
-- **Qué status devuelve un `refreshToken` vencido o revocado**, y que sea distinguible del 401 del `accessToken`. Es la diferencia entre "refrescar y reintentar en silencio" y "cerrar sesión y mandar al login": si ambos son 401 sin código, entramos en un bucle de refresco.
-- ¿Existe **logout con revocación** del lado servidor, o el logout es solo borrar tokens en el cliente?
+**Por qué urge**: hasta que exista, el `accessToken` vence a la hora y la sesión se muere. Un admin cargando
+socios una tarde entera vuelve al login cada hora.
+
+**Estado del lado de la app**: el `TokenRefreshInterceptor` ya está construido y cubierto por tests, incluido el
+caso de hoy — sin `refreshToken` guardado, un 401 limpia el storage y manda al login. Cuando el endpoint exista,
+lo que falta es chico: volver a agregar `refreshToken` y `expiresIn` al modelo, persistir la clave y subir
+`StorageKeys.currentSessionSchemaVersion`.
 
 ### 2.3 Roles y vínculo con socio
 
