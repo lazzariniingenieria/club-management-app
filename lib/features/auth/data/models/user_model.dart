@@ -8,15 +8,42 @@ class UserModel extends User {
     required super.role,
   });
 
+  static const String _memberRole = 'MEMBER';
+  static const String _adminRole = 'ADMIN';
+  static const String _superAdminRole = 'SUPER_ADMIN';
+
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] as String,
+      id: json['id'].toString(),
       email: json['email'] as String,
       fullName: json['fullName'] as String,
-      role: (json['role'] as String).toUpperCase() == 'ADMIN'
-          ? UserRole.admin
-          : UserRole.member,
+      role: _roleFromJson(json['role'] as String?),
     );
+  }
+
+  factory UserModel.fromEntity(User user) {
+    return UserModel(
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+    );
+  }
+
+  static UserRole _roleFromJson(String? role) {
+    return switch (role?.toUpperCase()) {
+      _superAdminRole => UserRole.superAdmin,
+      _adminRole => UserRole.admin,
+      _ => UserRole.member,
+    };
+  }
+
+  static String _roleToJson(UserRole role) {
+    return switch (role) {
+      UserRole.superAdmin => _superAdminRole,
+      UserRole.admin => _adminRole,
+      UserRole.member => _memberRole,
+    };
   }
 
   Map<String, dynamic> toJson() {
@@ -24,7 +51,7 @@ class UserModel extends User {
       'id': id,
       'email': email,
       'fullName': fullName,
-      'role': role == UserRole.admin ? 'ADMIN' : 'MEMBER',
+      'role': _roleToJson(role),
     };
   }
 }

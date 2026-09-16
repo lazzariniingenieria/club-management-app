@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/injection_container.dart';
-import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../bloc/auth_bloc.dart';
+import '../bloc/auth_event.dart';
 import '../cubit/login_cubit.dart';
 import '../cubit/login_state.dart';
 import '../widgets/login_form.dart';
 import '../widgets/login_header.dart';
+import '../widgets/session_expired_notice.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
-  void _onStateChanged(BuildContext context, LoginState state) {
+  void _onLoginStateChanged(BuildContext context, LoginState state) {
     if (state is LoginFailure) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -22,7 +23,7 @@ class LoginScreen extends StatelessWidget {
         ),
       );
     } else if (state is LoginSuccess) {
-      context.go(AppRoutes.home);
+      context.read<AuthBloc>().add(AuthLoggedIn(state.user));
     }
   }
 
@@ -31,7 +32,7 @@ class LoginScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) => sl<LoginCubit>(),
       child: BlocListener<LoginCubit, LoginState>(
-        listener: _onStateChanged,
+        listener: _onLoginStateChanged,
         child: const Scaffold(
           body: SafeArea(
             child: Center(
@@ -45,6 +46,7 @@ class LoginScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     LoginHeader(),
+                    SessionExpiredNotice(),
                     SizedBox(height: AppSpacing.xxxl),
                     LoginForm(),
                   ],

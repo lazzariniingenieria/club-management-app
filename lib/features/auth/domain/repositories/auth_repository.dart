@@ -1,4 +1,5 @@
 import 'package:fpdart/fpdart.dart';
+
 import '../../../../core/errors/failures.dart';
 import '../entities/user.dart';
 
@@ -8,7 +9,7 @@ abstract class AuthRepository {
     required String password,
   });
 
-  Future<Either<Failure, User>> getCurrentUser();
+  Future<Either<Failure, User?>> restoreSession();
 
   Future<Either<Failure, void>> logout();
 }
