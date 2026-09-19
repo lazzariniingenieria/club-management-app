@@ -9,15 +9,15 @@ class LoginWithCredentialsUseCase {
   LoginWithCredentialsUseCase(this.repository);
 
   Future<Either<Failure, User>> call({
-    required String email,
+    required String dni,
     required String password,
   }) async {
-    if (email.trim().isEmpty || password.trim().isEmpty) {
-      return const Left(AuthFailure('Email and password cannot be empty'));
+    if (dni.trim().isEmpty || password.trim().isEmpty) {
+      return const Left(ValidationFailure('DNI and password cannot be empty'));
     }
 
     return await repository.loginWithCredentials(
-      email: email,
+      dni: dni.trim(),
       password: password,
     );
   }

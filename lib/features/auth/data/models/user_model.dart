@@ -3,8 +3,7 @@ import '../../domain/entities/user.dart';
 class UserModel extends User {
   const UserModel({
     required super.id,
-    required super.email,
-    required super.fullName,
+    required super.memberId,
     required super.role,
   });
 
@@ -12,22 +11,20 @@ class UserModel extends User {
   static const String _adminRole = 'ADMIN';
   static const String _superAdminRole = 'SUPER_ADMIN';
 
+  static const String _idKey = 'userAccountId';
+  static const String _memberIdKey = 'memberId';
+  static const String _roleKey = 'role';
+
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'].toString(),
-      email: json['email'] as String,
-      fullName: json['fullName'] as String,
-      role: _roleFromJson(json['role'] as String?),
+      id: (json[_idKey] as num).toInt(),
+      memberId: (json[_memberIdKey] as num?)?.toInt(),
+      role: _roleFromJson(json[_roleKey] as String?),
     );
   }
 
   factory UserModel.fromEntity(User user) {
-    return UserModel(
-      id: user.id,
-      email: user.email,
-      fullName: user.fullName,
-      role: user.role,
-    );
+    return UserModel(id: user.id, memberId: user.memberId, role: user.role);
   }
 
   static UserRole _roleFromJson(String? role) {
@@ -48,10 +45,9 @@ class UserModel extends User {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'email': email,
-      'fullName': fullName,
-      'role': _roleToJson(role),
+      _idKey: id,
+      _memberIdKey: memberId,
+      _roleKey: _roleToJson(role),
     };
   }
 }

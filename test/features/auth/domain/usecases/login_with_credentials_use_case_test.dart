@@ -12,12 +12,9 @@ void main() {
   late LoginWithCredentialsUseCase useCase;
   late MockAuthRepository mockRepository;
 
-  const testUser = User(
-    id: 'usr_001',
-    email: 'test@club.com',
-    fullName: 'Test User',
-    role: UserRole.member,
-  );
+  const testUser = User(id: 1, memberId: 3001, role: UserRole.member);
+  const emptyFieldsFailure =
+      Left<Failure, User>(ValidationFailure('DNI and password cannot be empty'));
 
   setUp(() {
     mockRepository = MockAuthRepository();
@@ -25,73 +22,102 @@ void main() {
   });
 
   group('LoginWithCredentialsUseCase', () {
-    test('returns AuthFailure when email is empty', () async {
-      final result = await useCase(email: '', password: 'password123');
+    test('returns ValidationFailure when the DNI is empty', () async {
+      final result = await useCase(dni: '', password: 'password123');
 
-      expect(result,
-          const Left(AuthFailure('Email and password cannot be empty')));
+      expect(result, emptyFieldsFailure);
       verifyNever(() => mockRepository.loginWithCredentials(
-            email: any(named: 'email'),
+            dni: any(named: 'dni'),
             password: any(named: 'password'),
           ));
     });
 
-    test('returns AuthFailure when password is empty', () async {
-      final result = await useCase(email: 'test@club.com', password: '');
+    test('returns ValidationFailure when the password is empty', () async {
+      final result = await useCase(dni: '30111222', password: '');
 
-      expect(result,
-          const Left(AuthFailure('Email and password cannot be empty')));
+      expect(result, emptyFieldsFailure);
       verifyNever(() => mockRepository.loginWithCredentials(
-            email: any(named: 'email'),
+            dni: any(named: 'dni'),
             password: any(named: 'password'),
           ));
     });
 
-    test('returns AuthFailure when both fields are blank spaces', () async {
-      final result = await useCase(email: '   ', password: '   ');
+    test('returns ValidationFailure when the DNI is blank spaces', () async {
+      final result = await useCase(dni: '   ', password: 'password123');
 
-      expect(result,
-          const Left(AuthFailure('Email and password cannot be empty')));
+      expect(result, emptyFieldsFailure);
     });
 
-    test('delegates to repository and returns User on success', () async {
+    test('returns ValidationFailure when the password is blank spaces',
+        () async {
+      final result = await useCase(dni: '30111222', password: '   ');
+
+      expect(result, emptyFieldsFailure);
+      verifyNever(() => mockRepository.loginWithCredentials(
+            dni: any(named: 'dni'),
+            password: any(named: 'password'),
+          ));
+    });
+
+    test('trims the DNI before delegating', () async {
       when(() => mockRepository.loginWithCredentials(
-            email: 'test@club.com',
+            dni: '30111222',
             password: 'password123',
           )).thenAnswer((_) async => const Right(testUser));
 
-      final result =
-          await useCase(email: 'test@club.com', password: 'password123');
+      await useCase(dni: '  30111222  ', password: 'password123');
 
-      expect(result, const Right(testUser));
       verify(() => mockRepository.loginWithCredentials(
-            email: 'test@club.com',
+            dni: '30111222',
             password: 'password123',
           )).called(1);
     });
 
+    test('keeps the password untouched, spaces included', () async {
+      when(() => mockRepository.loginWithCredentials(
+            dni: '30111222',
+            password: '  pass  ',
+          )).thenAnswer((_) async => const Right(testUser));
+
+      await useCase(dni: '30111222', password: '  pass  ');
+
+      verify(() => mockRepository.loginWithCredentials(
+            dni: '30111222',
+            password: '  pass  ',
+          )).called(1);
+    });
+
+    test('delegates to repository and returns User on success', () async {
+      when(() => mockRepository.loginWithCredentials(
+            dni: '30111222',
+            password: 'password123',
+          )).thenAnswer((_) async => const Right(testUser));
+
+      final result = await useCase(dni: '30111222', password: 'password123');
+
+      expect(result, const Right(testUser));
+    });
+
     test('propagates repository Failure on invalid credentials', () async {
       when(() => mockRepository.loginWithCredentials(
-                email: any(named: 'email'),
+                dni: any(named: 'dni'),
                 password: any(named: 'password'),
               ))
           .thenAnswer(
               (_) async => const Left(AuthFailure('Invalid credentials')));
 
-      final result =
-          await useCase(email: 'test@club.com', password: 'wrongpass');
+      final result = await useCase(dni: '30111222', password: 'wrongpass');
 
       expect(result, const Left(AuthFailure('Invalid credentials')));
     });
 
     test('propagates repository Failure on server error', () async {
       when(() => mockRepository.loginWithCredentials(
-            email: any(named: 'email'),
+            dni: any(named: 'dni'),
             password: any(named: 'password'),
           )).thenAnswer((_) async => const Left(ServerFailure('Server error')));
 
-      final result =
-          await useCase(email: 'test@club.com', password: 'password123');
+      final result = await useCase(dni: '30111222', password: 'password123');
 
       expect(result, const Left(ServerFailure('Server error')));
     });

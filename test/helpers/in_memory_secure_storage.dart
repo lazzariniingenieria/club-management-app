@@ -10,12 +10,12 @@ class InMemorySecureStorage implements SecureStorageService {
 
   void seedSession(UserRole role) {
     values[StorageKeys.accessToken] = 'seeded-access-token';
-    values[StorageKeys.refreshToken] = 'seeded-refresh-token';
+    values[StorageKeys.sessionSchemaVersion] =
+        StorageKeys.currentSessionSchemaVersion;
     values[StorageKeys.currentUser] = jsonEncode(
       UserModel(
-        id: 'seeded-${role.name}',
-        email: '${role.name}@club.com',
-        fullName: 'Seeded ${role.name}',
+        id: role.index + 1,
+        memberId: role == UserRole.member ? 3001 : null,
         role: role,
       ).toJson(),
     );

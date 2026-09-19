@@ -11,6 +11,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   AppEnvironment.guardAgainstFakesInRelease();
+  AppEnvironment.guardAgainstIncompleteRemoteConfig();
 
   await di.init();
 

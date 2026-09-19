@@ -4,9 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   Map<String, dynamic> payloadWithRole(Object? role) => {
-        'id': '42',
-        'email': 'someone@club.com',
-        'fullName': 'Alguien',
+        'userAccountId': 42,
+        'memberId': 34,
         'role': role,
       };
 
@@ -34,30 +33,34 @@ void main() {
       expect(UserModel.fromJson(payloadWithRole(null)).role, UserRole.member);
     });
 
-    test('accepts a numeric id, which the API may serialize either way', () {
+    test('reads userAccountId as the account id', () {
+      expect(UserModel.fromJson(payloadWithRole('ADMIN')).id, 42);
+    });
+
+    test('keeps memberId null when the account has no member', () {
       final model = UserModel.fromJson(const {
-        'id': 42,
-        'email': 'someone@club.com',
-        'fullName': 'Alguien',
-        'role': 'ADMIN',
+        'userAccountId': 12,
+        'memberId': null,
+        'role': 'SUPER_ADMIN',
       });
 
-      expect(model.id, '42');
+      expect(model.memberId, isNull);
     });
   });
 
   group('UserModel.toJson', () {
     test('round-trips every role', () {
       for (final role in UserRole.values) {
-        final original = UserModel(
-          id: '7',
-          email: 'someone@club.com',
-          fullName: 'Alguien',
-          role: role,
-        );
+        final original = UserModel(id: 7, memberId: 34, role: role);
 
         expect(UserModel.fromJson(original.toJson()), original);
       }
+    });
+
+    test('round-trips an account without a member', () {
+      const original = UserModel(id: 7, memberId: null, role: UserRole.admin);
+
+      expect(UserModel.fromJson(original.toJson()), original);
     });
   });
 }

@@ -23,13 +23,13 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, User>> loginWithCredentials({
-    required String email,
+    required String dni,
     required String password,
   }) async {
     try {
-      final response = await remoteDataSource.login(email, password);
+      final response = await remoteDataSource.login(dni, password);
       await localDataSource.saveSession(
-        token: response.token,
+        accessToken: response.accessToken,
         user: response.user,
       );
       return Right(response.user);
@@ -70,6 +70,8 @@ class AuthRepositoryImpl implements AuthRepository {
     return switch (error) {
       UnauthorizedException() =>
         AuthFailure(error.message ?? 'Invalid credentials'),
+      ValidationException() =>
+        ValidationFailure(error.message ?? 'The request was rejected'),
       NetworkException() =>
         NetworkFailure(error.message ?? 'No internet connection'),
       ServerException() => ServerFailure(error.message ?? 'Server error'),

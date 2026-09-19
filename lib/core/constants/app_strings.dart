@@ -5,14 +5,19 @@ class AppStrings {
   static const String loginWelcomeSubtitle =
       'Accede a tus reservas y gestión de socios';
 
-  static const String loginEmailHint = 'Correo electrónico';
+  static const String loginDniHint = 'DNI';
   static const String loginPasswordHint = 'Contraseña';
 
-  static const String loginEmailRequired = 'El correo es requerido';
-  static const String loginEmailInvalidFormat = 'Formato de correo inválido';
+  static const String loginDniRequired = 'Ingresá tu DNI';
   static const String loginPasswordRequired = 'La contraseña es requerida';
-  static const String loginPasswordTooShort =
-      'La contraseña debe tener al menos 6 caracteres';
+
+  static const String loginInvalidCredentials =
+      'DNI o contraseña incorrectos. Verificá los datos e intentá de nuevo.';
+  static const String loginInvalidData = 'Revisá los datos ingresados.';
+  static const String loginNetworkError =
+      'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
+  static const String loginServerError =
+      'Tuvimos un problema. Intentá de nuevo en unos minutos.';
 
   static const String loginSubmitButton = 'Ingresar';
   static const String loginForgotPassword = '¿Olvidaste tu contraseña?';

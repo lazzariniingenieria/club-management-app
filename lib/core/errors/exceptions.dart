@@ -29,3 +29,11 @@ class UnauthorizedException implements Exception {
   @override
   String toString() => message ?? 'UnauthorizedException';
 }
+
+class ValidationException implements Exception {
+  final String? message;
+  ValidationException([this.message]);
+
+  @override
+  String toString() => message ?? 'ValidationException';
+}
