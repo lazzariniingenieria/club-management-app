@@ -8,6 +8,7 @@ import '../models/user_model.dart';
 abstract class AuthLocalDataSource {
   Future<void> saveSession({
     required String accessToken,
+    required String refreshToken,
     required UserModel user,
   });
   Future<UserModel?> readUser();
@@ -23,9 +24,11 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> saveSession({
     required String accessToken,
+    required String refreshToken,
     required UserModel user,
   }) async {
     await secureStorage.saveToken(StorageKeys.accessToken, accessToken);
+    await secureStorage.saveToken(StorageKeys.refreshToken, refreshToken);
     await secureStorage.saveToken(
       StorageKeys.currentUser,
       jsonEncode(user.toJson()),

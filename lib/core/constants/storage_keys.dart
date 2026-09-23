@@ -6,5 +6,5 @@ class StorageKeys {
   static const String currentUser = 'current_user';
   static const String sessionSchemaVersion = 'session_schema_version';
 
-  static const String currentSessionSchemaVersion = '2';
+  static const String currentSessionSchemaVersion = '3';
 }

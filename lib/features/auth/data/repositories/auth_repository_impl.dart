@@ -30,6 +30,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final response = await remoteDataSource.login(dni, password);
       await localDataSource.saveSession(
         accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
         user: response.user,
       );
       return Right(response.user);
