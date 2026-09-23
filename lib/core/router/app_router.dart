@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/admin/presentation/screens/admin_home_screen.dart';
 import '../../features/admin/presentation/screens/admin_pending_screen.dart';
 import '../../features/admin/presentation/screens/admin_profile_screen.dart';
 import '../../features/admin/presentation/widgets/admin_shell.dart';
@@ -79,14 +80,7 @@ class AppRouter {
     builder: (context, state, navigationShell) =>
         AdminShell(navigationShell: navigationShell),
     branches: [
-      _branch(
-        AppRoutes.adminHome,
-        const AdminPendingScreen(
-          title: AppStrings.adminHomeTitle,
-          message: AppStrings.adminHomePending,
-          icon: Icons.dashboard_rounded,
-        ),
-      ),
+      _branch(AppRoutes.adminHome, const AdminHomeScreen()),
       _branch(
         AppRoutes.adminPayments,
         const AdminPendingScreen(

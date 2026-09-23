@@ -2,6 +2,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 
+import '../../features/admin/data/datasources/admin_summary_fake_data_source.dart';
+import '../../features/admin/data/datasources/admin_summary_remote_data_source.dart';
+import '../../features/admin/data/repositories/admin_summary_repository_impl.dart';
+import '../../features/admin/domain/repositories/admin_summary_repository.dart';
+import '../../features/admin/domain/usecases/load_admin_summary_use_case.dart';
+import '../../features/admin/presentation/cubit/admin_home_cubit.dart';
 import '../../features/auth/data/datasources/auth_fake_data_source.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
@@ -25,6 +31,8 @@ Future<void> init() async {
   _registerCore();
   _registerAuthDataSources();
   _registerAuthDomain();
+  _registerAdminDataSources();
+  _registerAdminDomain();
   _registerPresentation();
 }
 
@@ -76,6 +84,22 @@ void _registerAuthDomain() {
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
 }
 
+void _registerAdminDataSources() {
+  sl.registerLazySingleton<AdminSummaryRemoteDataSource>(
+    () => AppEnvironment.usesFakeDataSources
+        ? AdminSummaryFakeDataSource()
+        : AdminSummaryRemoteDataSourceImpl(sl(), sl()),
+  );
+}
+
+void _registerAdminDomain() {
+  sl.registerLazySingleton<AdminSummaryRepository>(
+    () => AdminSummaryRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+  );
+
+  sl.registerLazySingleton(() => LoadAdminSummaryUseCase(sl()));
+}
+
 void _registerPresentation() {
   sl.registerLazySingleton<AuthBloc>(
     () => AuthBloc(
@@ -88,4 +112,5 @@ void _registerPresentation() {
   sl.registerLazySingleton<AppRouter>(() => AppRouter(sl()));
 
   sl.registerFactory(() => LoginCubit(sl()));
+  sl.registerFactory(() => AdminHomeCubit(sl()));
 }
