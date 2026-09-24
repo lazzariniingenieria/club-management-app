@@ -73,8 +73,8 @@ void main() {
 
     await expectLater(
       bloc.stream,
-      emits(const AuthUnauthenticated(
-          reason: SignedOutReason.sessionUnverified)),
+      emits(
+          const AuthUnauthenticated(reason: SignedOutReason.sessionUnverified)),
     );
   });
 
@@ -96,8 +96,8 @@ void main() {
 
     await expectLater(
       bloc.stream,
-      emits(const AuthUnauthenticated(
-          reason: SignedOutReason.sessionUnverified)),
+      emits(
+          const AuthUnauthenticated(reason: SignedOutReason.sessionUnverified)),
     );
   });
 

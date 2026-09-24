@@ -52,8 +52,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       return result.fold(
         (_) => _sessionUnverified,
-        (user) =>
-            user == null ? const AuthUnauthenticated() : AuthAuthenticated(user),
+        (user) => user == null
+            ? const AuthUnauthenticated()
+            : AuthAuthenticated(user),
       );
     } on TimeoutException {
       return _sessionUnverified;
