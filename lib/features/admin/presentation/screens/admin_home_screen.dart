@@ -26,10 +26,55 @@ class AdminHomeScreen extends StatelessWidget {
       create: (_) => sl<AdminHomeCubit>()..load(),
       child: const AdminScaffold(
         title: AppStrings.adminHomeTitle,
-        body: _AdminHomeBody(),
+        body: _ReloadOnReturn(child: _AdminHomeBody()),
       ),
     );
   }
+}
+
+class _ReloadOnReturn extends StatefulWidget {
+  final Widget child;
+
+  const _ReloadOnReturn({required this.child});
+
+  @override
+  State<_ReloadOnReturn> createState() => _ReloadOnReturnState();
+}
+
+class _ReloadOnReturnState extends State<_ReloadOnReturn> {
+  GoRouterDelegate? _routerDelegate;
+  bool _homeWasShown = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _routerDelegate?.removeListener(_onRouteChanged);
+    _routerDelegate = GoRouter.maybeOf(context)?.routerDelegate;
+    _routerDelegate?.addListener(_onRouteChanged);
+  }
+
+  @override
+  void dispose() {
+    _routerDelegate?.removeListener(_onRouteChanged);
+    super.dispose();
+  }
+
+  void _onRouteChanged() {
+    final homeIsShown = _isShowingHome();
+    if (homeIsShown && !_homeWasShown && mounted) {
+      context.read<AdminHomeCubit>().load();
+    }
+    _homeWasShown = homeIsShown;
+  }
+
+  bool _isShowingHome() {
+    final matches = _routerDelegate!.currentConfiguration;
+    return matches.isNotEmpty &&
+        matches.last.matchedLocation == AppRoutes.adminHome;
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _AdminHomeBody extends StatelessWidget {
@@ -151,25 +196,27 @@ class _QuickAccessRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: QuickAccessCard(
-            label: AppStrings.adminHomeMembersAccess,
-            variant: QuickAccessVariant.members,
-            onTap: () => context.push(AppRoutes.adminMembers),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: QuickAccessCard(
+              label: AppStrings.adminHomeMembersAccess,
+              variant: QuickAccessVariant.members,
+              onTap: () => context.push(AppRoutes.adminMembers),
+            ),
           ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: QuickAccessCard(
-            label: AppStrings.adminHomeCourtsAccess,
-            variant: QuickAccessVariant.courts,
-            onTap: () => context.push(AppRoutes.adminCourts),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: QuickAccessCard(
+              label: AppStrings.adminHomeCourtsAccess,
+              variant: QuickAccessVariant.courts,
+              onTap: () => context.push(AppRoutes.adminCourts),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

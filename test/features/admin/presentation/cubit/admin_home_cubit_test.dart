@@ -71,4 +71,30 @@ void main() {
     expect(cubit.state, const AdminHomeReady(summary));
     verify(() => useCase()).called(2);
   });
+
+  test('a reload keeps the numbers on screen instead of the skeleton',
+      () async {
+    const freshSummary = AdminSummary(activeMembers: 231, overdueMembers: 24);
+    stub(const Right(summary));
+    await cubit.load();
+
+    final states = <AdminHomeState>[];
+    cubit.stream.listen(states.add);
+    stub(const Right(freshSummary));
+    await cubit.load();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(states, [const AdminHomeReady(freshSummary)]);
+  });
+
+  test('a failed reload reports the error instead of keeping old numbers',
+      () async {
+    stub(const Right(summary));
+    await cubit.load();
+
+    stub(const Left(NetworkFailure('Unreachable')));
+    await cubit.load();
+
+    expect(cubit.state, const AdminHomeFailure(AppStrings.loginNetworkError));
+  });
 }

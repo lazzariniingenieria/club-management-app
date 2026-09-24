@@ -26,6 +26,7 @@ class QuickAccessCard extends StatelessWidget {
     return Semantics(
       button: true,
       excludeSemantics: true,
+      onTap: onTap,
       label: label,
       child: Material(
         color: style.background,

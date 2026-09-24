@@ -28,6 +28,7 @@ class SummaryCountCard extends StatelessWidget {
     return Semantics(
       button: true,
       excludeSemantics: true,
+      onTap: onTap,
       label: '$label: $count',
       child: Material(
         color: style.background,

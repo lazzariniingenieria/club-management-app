@@ -13,6 +13,7 @@ import 'in_memory_secure_storage.dart';
 Future<InMemorySecureStorage> bootApp(
   WidgetTester tester, {
   UserRole? signedInAs,
+  AdminSummaryRemoteDataSource? adminSummarySource,
 }) async {
   final storage = InMemorySecureStorage();
   if (signedInAs != null) storage.seedSession(signedInAs);
@@ -30,7 +31,9 @@ Future<InMemorySecureStorage> bootApp(
 
   di.sl.unregister<AdminSummaryRemoteDataSource>();
   di.sl.registerLazySingleton<AdminSummaryRemoteDataSource>(
-    () => AdminSummaryFakeDataSource(latency: Duration.zero),
+    () =>
+        adminSummarySource ??
+        AdminSummaryFakeDataSource(latency: Duration.zero),
   );
 
   await tester.pumpWidget(const ClubManagementApp());

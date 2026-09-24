@@ -10,7 +10,7 @@ class AdminHomeCubit extends Cubit<AdminHomeState> {
   AdminHomeCubit(this._loadSummary) : super(const AdminHomeLoading());
 
   Future<void> load() async {
-    emit(const AdminHomeLoading());
+    if (state is! AdminHomeReady) emit(const AdminHomeLoading());
 
     final result = await _loadSummary();
 
