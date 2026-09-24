@@ -1,6 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 
-import '../../../../core/errors/exceptions.dart';
+import '../../../../core/errors/failure_mapper.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../domain/entities/user.dart';
@@ -68,16 +68,6 @@ class AuthRepositoryImpl implements AuthRepository {
   Failure _mapToFailure(Object error, String operation) {
     logger.error('$operation failed', context: _logContext, cause: error);
 
-    return switch (error) {
-      UnauthorizedException() =>
-        AuthFailure(error.message ?? 'Invalid credentials'),
-      ValidationException() =>
-        ValidationFailure(error.message ?? 'The request was rejected'),
-      NetworkException() =>
-        NetworkFailure(error.message ?? 'No internet connection'),
-      ServerException() => ServerFailure(error.message ?? 'Server error'),
-      CacheException() => CacheFailure(error.message ?? 'Local storage error'),
-      _ => const ServerFailure('An unexpected error occurred'),
-    };
+    return failureFromException(error);
   }
 }

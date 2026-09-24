@@ -46,3 +46,11 @@ ResponseBody jsonResponse(int statusCode, [Map<String, dynamic>? body]) {
 ResponseBody emptyResponse(int statusCode) {
   return ResponseBody.fromString('', statusCode, headers: _jsonHeaders());
 }
+
+ResponseBody jsonListResponse(int statusCode, List<dynamic> body) {
+  return ResponseBody.fromString(
+    jsonEncode(body),
+    statusCode,
+    headers: _jsonHeaders(),
+  );
+}

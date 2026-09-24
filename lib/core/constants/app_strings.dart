@@ -45,8 +45,14 @@ class AppStrings {
   static const String comingSoonBadge = 'Próximamente';
 
   static const String adminHomeTitle = 'Inicio';
-  static const String adminHomePending =
-      'El resumen del club con socios activos, socios en mora y próximos turnos se habilita en la próxima entrega.';
+  static const String adminHomeSummaryTitle = 'Resumen general';
+  static const String adminHomeActiveMembers = 'Socios activos';
+  static const String adminHomeOverdueMembers = 'Socios en mora';
+  static const String adminHomeSummaryErrorTitle =
+      'No pudimos cargar el resumen del club';
+  static const String adminHomeQuickAccessTitle = 'Accesos rápidos';
+  static const String adminHomeMembersAccess = 'Gestión de socios';
+  static const String adminHomeCourtsAccess = 'Gestión de canchas';
 
   static const String adminPaymentsTitle = 'Pagos';
   static const String adminPaymentsPending =
@@ -78,4 +84,5 @@ class AppStrings {
   static const String logoutConfirmMessage =
       'Vas a volver a la pantalla de ingreso.';
   static const String cancelAction = 'Cancelar';
+  static const String retryAction = 'Reintentar';
 }

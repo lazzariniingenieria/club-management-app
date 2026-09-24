@@ -317,7 +317,7 @@ Vertical slices: cada PR entrega una feature de punta a punta (`domain` → `dat
 | :--- | :--- | :--- | :--- |
 | **E1** | **Migración de paleta y theming de lo ya construido** | — | ✅ Entregada |
 | **E2** | **Base de conexión + shell del admin** | — (contra fakes) | ✅ Entregada |
-| E3 | Inicio del Administrador | §9.4 | Próxima |
+| E3 | Inicio del Administrador | §9.4 | ✅ Entregada |
 | E4 | Gestión de socios: listado, búsqueda, filtros, paginación | §9.1 | — |
 | E5 | Alta y edición de socio | §9.2 | — |
 | E6 | Pagos del admin: listado, registrar pago, detalle | §9.5 | — |
@@ -359,6 +359,18 @@ Dejar la conexión al backend **armada y lista**, sin depender de que la API est
 - Shell del admin con los 3 tabs de §3.2.
 
 **Terminado cuando**: se puede navegar el shell completo del admin contra fakes, cambiar a remoto solo con un `--dart-define`, un build de release con fakes **falla al arrancar** en lugar de entregar cuentas de prueba, y los guards se testean por rol (`member`, `admin`, `superAdmin`).
+
+### E3 — Inicio del Administrador
+
+Primera pantalla de la app que lee datos reales del club.
+
+- **Sin endpoint de resumen**: los dos contadores se arman con `GET /api/members` y `GET /api/payments/delinquency`, las dos llamadas en paralelo y un solo estado de carga. El pedido de §9.4 sigue abierto como mejora, no como bloqueo.
+- `ActiveMembersCard` y `OverdueMembersCard`, ambas navegan a `/admin/members` sin pre-filtro.
+- Accesos rápidos a *Gestión de socios* y *Gestión de canchas*.
+- **"Próximos turnos" queda fuera**: la API todavía no tiene canchas ni reservas. Se suma en E9, con la agenda.
+- Estados de §5 resueltos en la pantalla: skeleton con la forma de las cards, error con "Reintentar" que no tapa los accesos rápidos, y pull-to-refresh para volver a pedir el resumen.
+
+**Terminado cuando**: el Inicio muestra ambos contadores contra la API real, un fallo de red se explica y se puede reintentar sin salir de la pantalla, y los accesos rápidos abren las pantallas de socios y canchas.
 
 ### E5 — Alta y edición de socio
 
@@ -428,11 +440,22 @@ Ya resuelto: el DNI duplicado devuelve **409** y el 201 trae el `MemberResponse`
 - Cambio de contraseña del propio usuario logueado.
 - **Reset de contraseña de un tercero**: endpoint para que un ADMIN o SUPER_ADMIN restablezca la contraseña de otra cuenta. Es el modelo que ya eligió el backend y el que consume §3.1.2; no pedimos recuperación por email.
 
-### 9.4 Resumen del Inicio — bloquea E3
+### 9.4 Resumen del Inicio — ya no bloquea E3
 
-Pedimos un endpoint de resumen que devuelva en **una sola llamada**: cantidad de socios activos, cantidad en mora, y los próximos turnos del día. Si no es viable, son tres endpoints y el Inicio pasa a ser tres Cubits en vez de uno.
+**Resuelto sin endpoint nuevo.** E3 arma los dos contadores con lo que la API ya expone, en dos llamadas paralelas:
 
-Definir además la **fuente de verdad de cada contador**: en las capturas el Inicio muestra 450 socios activos y el listado 245 totales. Son datos mock, pero no pueden quedar dos números distintos del mismo concepto en producción.
+| Contador | Fuente | Cómo se calcula |
+| :--- | :--- | :--- |
+| Socios activos | `GET /api/members` | Filas con `status = ACTIVE` |
+| Socios en mora | `GET /api/payments/delinquency` | Filas con `daysOverdue > 0` |
+
+El endpoint de mora ya devuelve **solo socios activos**, lo que contesta la pregunta que teníamos abierta: el contador de mora no incluye a quien dejó el club.
+
+Sigue abierto, como mejora y no como bloqueo:
+
+- **Un `GET /api/admin/summary`** que devuelva ambos números (y más adelante los próximos turnos) en una sola llamada. Hoy traemos el listado completo de socios para contar: sirve con ~200 socios, no escala si el club crece.
+- **Días de gracia**. `daysOverdue` se cuenta desde el mes siguiente al último período pagado, así que quien pagó agosto figura con mora a los pocos días de septiembre. La app hoy toma `daysOverdue > 0` como "en mora"; si el club tiene tolerancia, el umbral lo define el backend y lo expone, no lo inventa el cliente.
+- **Fuente de verdad de cada contador**: en las capturas el Inicio muestra 450 socios activos y el listado 245 totales. Son datos mock, pero no pueden quedar dos números distintos del mismo concepto en producción.
 
 ### 9.5 Pagos — bloquea E6
 
