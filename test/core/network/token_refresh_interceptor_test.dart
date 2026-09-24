@@ -152,7 +152,8 @@ void main() {
         dio.get<Map<String, dynamic>>('/courts'),
       ]);
 
-      expect(responses.map((response) => response.statusCode), everyElement(200));
+      expect(
+          responses.map((response) => response.statusCode), everyElement(200));
       expect(adapter.callsTo(ApiConstants.refresh), 1);
     });
 

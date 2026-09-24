@@ -13,8 +13,8 @@ void main() {
   late MockAuthRepository mockRepository;
 
   const testUser = User(id: 1, memberId: 3001, role: UserRole.member);
-  const emptyFieldsFailure =
-      Left<Failure, User>(ValidationFailure('DNI and password cannot be empty'));
+  const emptyFieldsFailure = Left<Failure, User>(
+      ValidationFailure('DNI and password cannot be empty'));
 
   setUp(() {
     mockRepository = MockAuthRepository();
