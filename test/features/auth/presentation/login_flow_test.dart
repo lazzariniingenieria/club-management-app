@@ -39,6 +39,7 @@ void main() {
 
     expect(currentLocation(), AppRoutes.adminHome);
     expect(storage.values[StorageKeys.accessToken], isNotNull);
+    expect(storage.values[StorageKeys.refreshToken], isNotNull);
     expect(storage.values[StorageKeys.currentUser], contains('ADMIN'));
   });
 

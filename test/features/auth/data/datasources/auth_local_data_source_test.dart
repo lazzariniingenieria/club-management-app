@@ -14,17 +14,29 @@ void main() {
 
   const user = UserModel(id: 12, memberId: 34, role: UserRole.admin);
 
+  Future<void> saveSession() => dataSource.saveSession(
+        accessToken: 'token',
+        refreshToken: 'refresh-token',
+        user: user,
+      );
+
   setUp(() {
     storage = InMemorySecureStorage();
     dataSource = AuthLocalDataSourceImpl(storage);
   });
 
   test('round-trips a saved session', () async {
-    await dataSource.saveSession(accessToken: 'token', user: user);
+    await saveSession();
 
     expect(await dataSource.hasSession(), isTrue);
     expect(await dataSource.readUser(), user);
     expect(storage.values[StorageKeys.accessToken], 'token');
+  });
+
+  test('keeps the refresh token the interceptor needs on a 401', () async {
+    await saveSession();
+
+    expect(storage.values[StorageKeys.refreshToken], 'refresh-token');
   });
 
   test('reports no session when nothing is stored', () async {
@@ -46,8 +58,18 @@ void main() {
     expect(storage.values, isEmpty);
   });
 
+  test('invalidates a session saved when the refresh token was dropped',
+      () async {
+    storage.values[StorageKeys.accessToken] = 'token';
+    storage.values[StorageKeys.currentUser] = jsonEncode(user.toJson());
+    storage.values[StorageKeys.sessionSchemaVersion] = '2';
+
+    expect(await dataSource.hasSession(), isFalse);
+    expect(storage.values, isEmpty);
+  });
+
   test('clearing a session wipes every key', () async {
-    await dataSource.saveSession(accessToken: 'token', user: user);
+    await saveSession();
 
     await dataSource.clearSession();
 

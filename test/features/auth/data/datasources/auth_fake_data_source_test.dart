@@ -21,6 +21,7 @@ void main() {
 
       expect(response.user, account.user);
       expect(response.accessToken, isNotEmpty);
+      expect(response.refreshToken, isNotEmpty);
     }
   });
 

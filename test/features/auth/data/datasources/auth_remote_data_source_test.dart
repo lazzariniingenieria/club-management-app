@@ -29,6 +29,8 @@ class SilentLogger implements AppLogger {
 
 const Map<String, dynamic> _contractResponse = {
   'accessToken': 'eyJhbGciOiJIUzI1NiJ9.payload.signature',
+  'refreshToken': 'eyJhbGciOiJIUzI1NiJ9.refresh.signature',
+  'expiresIn': 3600,
   'userAccountId': 12,
   'role': 'ADMIN',
   'memberId': 34,
@@ -105,6 +107,7 @@ void main() {
       final response = await dataSource.login('30111222', 's3cr3t123');
 
       expect(response.accessToken, _contractResponse['accessToken']);
+      expect(response.refreshToken, _contractResponse['refreshToken']);
       expect(response.user.id, 12);
       expect(response.user.role, UserRole.admin);
       expect(response.user.memberId, 34);
@@ -129,6 +132,18 @@ void main() {
       final dataSource = buildDataSource(
         (_, __) => jsonResponse(200, const {'userAccountId': 12}),
       );
+
+      expect(
+        () => dataSource.login('30111222', 's3cr3t123'),
+        throwsA(isA<ServerException>()),
+      );
+    });
+
+    test('reports a login body without a refresh token as a contract drift',
+        () {
+      final body = Map<String, dynamic>.from(_contractResponse)
+        ..remove('refreshToken');
+      final dataSource = buildDataSource((_, __) => jsonResponse(200, body));
 
       expect(
         () => dataSource.login('30111222', 's3cr3t123'),

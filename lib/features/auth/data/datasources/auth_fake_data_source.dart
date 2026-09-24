@@ -44,6 +44,7 @@ class AuthFakeDataSource implements AuthRemoteDataSource {
 
     return AuthResponseModel(
       accessToken: 'fake-access-token-${account.user.id}',
+      refreshToken: 'fake-refresh-token-${account.user.id}',
       user: account.user,
     );
   }
