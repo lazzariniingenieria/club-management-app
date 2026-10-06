@@ -247,6 +247,109 @@ void main() {
     });
   });
 
+  group('the filter row', () {
+    testWidgets('fades its edge so hidden chips announce themselves', (
+      tester,
+    ) async {
+      await bootPayments(tester);
+
+      expect(
+        find.ancestor(
+          of: find.byType(ChoiceChip).first,
+          matching: find.byType(ShaderMask),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('scrolls sideways to reach a chip that does not fit', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3;
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+      await bootPayments(tester);
+
+      final chipRow = find.ancestor(
+        of: find.byType(ChoiceChip).first,
+        matching: find.byType(Scrollable),
+      );
+      final position = tester.widget<Scrollable>(chipRow).controller!.position;
+      expect(position.maxScrollExtent, greaterThan(0));
+
+      await tester.drag(chipRow, const Offset(-400, 0));
+      await tester.pumpAndSettle();
+
+      expect(position.pixels, greaterThan(0));
+    });
+  });
+
+  group('the create button yields to the report bar', () {
+    testWidgets('it is there while there is nothing to report', (tester) async {
+      await bootPayments(tester);
+
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+    });
+
+    testWidgets('it steps aside so it cannot sit on the report button', (
+      tester,
+    ) async {
+      await bootPayments(tester);
+
+      await tester.tap(find.byIcon(Icons.description_outlined).first);
+      await settleSession(tester);
+      await tapChip(tester, AppStrings.adminPaymentsFilterToCollect, 1);
+
+      expect(find.byType(ElevatedButton), findsOneWidget);
+      expect(find.byType(FloatingActionButton), findsNothing);
+    });
+
+    testWidgets('it clears the last row once the list is scrolled home', (
+      tester,
+    ) async {
+      await bootPayments(
+        tester,
+        members: [for (var id = 1; id <= 20; id++) buildMember(id: id)],
+      );
+
+      await tester.drag(find.byType(ListView), const Offset(0, -4000));
+      await tester.pumpAndSettle();
+
+      final createButton = tester.getRect(find.byType(FloatingActionButton));
+      final lastRow = tester.getRect(find.byType(MemberListTile).last);
+
+      expect(createButton.overlaps(lastRow), isFalse);
+    });
+  });
+
+  group('a refresh that fails', () {
+    testWidgets('keeps the roster and reports the failure without wiping it', (
+      tester,
+    ) async {
+      final source = FlakyMemberDataSource(roster);
+      await bootApp(
+        tester,
+        signedInAs: UserRole.admin,
+        memberSource: source,
+      );
+      await openPaymentsTab(tester);
+
+      await tester.tap(find.byIcon(Icons.description_outlined).first);
+      await settleSession(tester);
+
+      source.failsNext = true;
+      await tester.fling(find.byType(ListView), const Offset(0, 400), 1000);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MemberListTile), findsNWidgets(3));
+      expect(chip(AppStrings.adminPaymentsFilterToCollect, 1), findsOneWidget);
+      expect(find.text(AppStrings.loginNetworkError), findsOneWidget);
+    });
+  });
+
   group('accessibility', () {
     Future<void> bootAtPhoneSize(WidgetTester tester, double textScale) async {
       tester.view.physicalSize = const Size(1170, 2532);

@@ -7,9 +7,9 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
 
   final Duration latency;
 
-  static const int activeMembers = 230;
-  static const int inactiveMembers = 15;
-  static const int overdueMembers = 25;
+  static const int activeMembers = 34;
+  static const int inactiveMembers = 6;
+  static const int overdueMembers = 5;
   static const int totalMembers = activeMembers + inactiveMembers;
 
   static final List<MemberModel> roster = _buildRoster();
@@ -47,7 +47,7 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
     return isOverdue ? 12 + (index % 7) * 15 : 0;
   }
 
-  static const int _overdueEvery = 9;
+  static const int _overdueEvery = 6;
 
   static const List<String> _firstNames = [
     'Juan',

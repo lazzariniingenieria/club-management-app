@@ -1,3 +1,4 @@
+import 'package:club_management_app/core/errors/exceptions.dart';
 import 'package:club_management_app/features/members/data/datasources/member_remote_data_source.dart';
 import 'package:club_management_app/features/members/data/models/member_model.dart';
 import 'package:club_management_app/features/members/domain/entities/member.dart';
@@ -41,4 +42,18 @@ MemberModel buildMember({
     status: status,
     daysOverdue: daysOverdue,
   );
+}
+
+class FlakyMemberDataSource implements MemberRemoteDataSource {
+  FlakyMemberDataSource(this.roster);
+
+  final List<MemberModel> roster;
+  bool failsNext = false;
+
+  @override
+  Future<List<MemberModel>> fetchMembers() async {
+    if (failsNext) throw NetworkException('offline');
+
+    return roster;
+  }
 }

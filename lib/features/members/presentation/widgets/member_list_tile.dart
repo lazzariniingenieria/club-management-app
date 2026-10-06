@@ -80,7 +80,7 @@ class _EditAction extends StatelessWidget {
     return IconButton(
       onPressed: onPressed,
       tooltip: AppStrings.memberEditAction,
-      icon: const Icon(Icons.edit_outlined, color: AppColors.disabledText),
+      icon: const Icon(Icons.edit_outlined, color: AppColors.textSecondary),
     );
   }
 }

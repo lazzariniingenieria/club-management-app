@@ -9,7 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/widgets/coming_soon_snack_bar.dart';
+import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/error_retry_view.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../domain/entities/member.dart';
@@ -31,7 +31,7 @@ class AdminPaymentsScreen extends StatelessWidget {
       create: (_) => sl<AdminPaymentsCubit>()..load(),
       child: AdminScaffold(
         title: AppStrings.adminPaymentsTitle,
-        floatingActionButton: const _CreateMemberButton(),
+        floatingActionButton: _CreateMemberButton(filter: filter),
         body: _AdminPaymentsBody(filter: filter),
       ),
     );
@@ -45,10 +45,19 @@ class _AdminPaymentsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AdminPaymentsCubit, AdminPaymentsState>(
+    return BlocConsumer<AdminPaymentsCubit, AdminPaymentsState>(
+      listenWhen: (previous, current) =>
+          current is AdminPaymentsFailure && current.previous != null,
+      listener: (context, state) {
+        if (state is AdminPaymentsFailure) {
+          showAppSnackBar(context, state.message);
+        }
+      },
       builder: (context, state) => switch (state) {
         AdminPaymentsLoading() => const _RosterSkeleton(),
         AdminPaymentsReady() => _RosterContent(state: state, filter: filter),
+        AdminPaymentsFailure(previous: final roster?) =>
+          _RosterContent(state: roster, filter: filter),
         AdminPaymentsFailure(:final message) => _RosterError(message: message),
       },
     );
@@ -61,9 +70,7 @@ class _RosterContent extends StatelessWidget {
 
   const _RosterContent({required this.state, required this.filter});
 
-  bool get _showsReportBar =>
-      filter == MemberCollectionFilter.toCollect &&
-      state.selectedMemberIds.isNotEmpty;
+  bool get _showsReportBar => reportBarIsVisible(state, filter);
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +147,7 @@ class _MemberList extends StatelessWidget {
           AppSpacing.lg,
           0,
           AppSpacing.lg,
-          AppSpacing.xxxl,
+          _floatingActionClearance,
         ),
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: members.length,
@@ -154,8 +161,7 @@ class _MemberList extends StatelessWidget {
     return MemberListTile(
       member: member,
       isSelectedForReport: state.isSelected(member),
-      onEdit: () =>
-          showComingSoonSnackBar(context, AppStrings.comingSoonEditMember),
+      onEdit: () => showAppSnackBar(context, AppStrings.comingSoonEditMember),
       onToggleReport: () =>
           context.read<AdminPaymentsCubit>().toggleReportSelection(member.id),
     );
@@ -247,7 +253,7 @@ class _GenerateReportBar extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: ElevatedButton(
-            onPressed: () => showComingSoonSnackBar(
+            onPressed: () => showAppSnackBar(
               context,
               AppStrings.comingSoonGenerateReport,
             ),
@@ -269,16 +275,33 @@ class _GenerateReportBar extends StatelessWidget {
 }
 
 class _CreateMemberButton extends StatelessWidget {
-  const _CreateMemberButton();
+  final MemberCollectionFilter filter;
+
+  const _CreateMemberButton({required this.filter});
 
   @override
   Widget build(BuildContext context) {
+    return BlocBuilder<AdminPaymentsCubit, AdminPaymentsState>(
+      builder: (context, state) => _yieldsToReportBar(state)
+          ? const SizedBox.shrink()
+          : _button(context),
+    );
+  }
+
+  bool _yieldsToReportBar(AdminPaymentsState state) {
+    return state is AdminPaymentsReady && reportBarIsVisible(state, filter);
+  }
+
+  Widget _button(BuildContext context) {
     return FloatingActionButton(
       onPressed: () =>
-          showComingSoonSnackBar(context, AppStrings.comingSoonCreateMember),
+          showAppSnackBar(context, AppStrings.comingSoonCreateMember),
       backgroundColor: AppColors.disabledSurface,
       foregroundColor: AppColors.textSecondary,
       elevation: 0,
+      shape: const CircleBorder(
+        side: BorderSide(color: AppColors.textSecondary, width: 1.5),
+      ),
       tooltip: AppStrings.adminPaymentsCreateMember,
       child: const Icon(Icons.add_rounded),
     );
@@ -350,6 +373,16 @@ class _SkeletonBox extends StatelessWidget {
       ),
     );
   }
+}
+
+const double _floatingActionClearance = 88;
+
+bool reportBarIsVisible(
+  AdminPaymentsReady state,
+  MemberCollectionFilter filter,
+) {
+  return filter == MemberCollectionFilter.toCollect &&
+      state.selectedMemberIds.isNotEmpty;
 }
 
 String _emptyMessageFor(

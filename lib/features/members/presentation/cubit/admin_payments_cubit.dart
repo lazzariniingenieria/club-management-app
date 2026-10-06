@@ -11,8 +11,7 @@ class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
   AdminPaymentsCubit(this._loadMembers) : super(const AdminPaymentsLoading());
 
   Future<void> load() async {
-    final previous =
-        state is AdminPaymentsReady ? state as AdminPaymentsReady : null;
+    final previous = _lastLoadedRoster;
     if (previous == null) emit(const AdminPaymentsLoading());
 
     final result = await _loadMembers();
@@ -21,10 +20,19 @@ class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
 
     emit(
       result.fold(
-        (failure) => AdminPaymentsFailure(failure.userMessage),
+        (failure) =>
+            AdminPaymentsFailure(failure.userMessage, previous: previous),
         (members) => _readyFrom(members, previous),
       ),
     );
+  }
+
+  AdminPaymentsReady? get _lastLoadedRoster {
+    final current = state;
+    if (current is AdminPaymentsReady) return current;
+    if (current is AdminPaymentsFailure) return current.previous;
+
+    return null;
   }
 
   void search(String query) {

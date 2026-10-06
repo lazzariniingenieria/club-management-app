@@ -57,9 +57,10 @@ class AdminPaymentsReady extends AdminPaymentsState {
 
 class AdminPaymentsFailure extends AdminPaymentsState {
   final String message;
+  final AdminPaymentsReady? previous;
 
-  const AdminPaymentsFailure(this.message);
+  const AdminPaymentsFailure(this.message, {this.previous});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, previous];
 }

@@ -7,6 +7,7 @@ import 'package:club_management_app/features/admin/data/models/admin_summary_mod
 import 'package:club_management_app/features/admin/presentation/widgets/quick_access_card.dart';
 import 'package:club_management_app/features/admin/presentation/widgets/summary_count_card.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
+import 'package:club_management_app/features/members/data/datasources/member_fake_data_source.dart';
 import 'package:club_management_app/features/members/data/models/member_model.dart';
 import 'package:club_management_app/features/members/domain/entities/member.dart';
 import 'package:club_management_app/features/members/domain/entities/member_collection_filter.dart';
@@ -94,8 +95,8 @@ void main() {
     await bootHome(tester);
 
     expect(currentLocation(), AppRoutes.adminHome);
-    expect(find.text('230'), findsOneWidget);
-    expect(find.text('25'), findsOneWidget);
+    expect(find.text('${MemberFakeDataSource.activeMembers}'), findsOneWidget);
+    expect(find.text('${MemberFakeDataSource.overdueMembers}'), findsOneWidget);
   });
 
   testWidgets('the active members card opens Pagos on every member', (
@@ -196,7 +197,7 @@ void main() {
 
     expect(currentLocation(), AppRoutes.adminHome);
     expect(find.text(AppStrings.roleBadgeSuperAdmin), findsOneWidget);
-    expect(find.text('230'), findsOneWidget);
+    expect(find.text('${MemberFakeDataSource.activeMembers}'), findsOneWidget);
   });
 
   testWidgets('coming back from a pushed screen shows fresh numbers', (

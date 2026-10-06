@@ -1,3 +1,4 @@
+import '../../../members/data/datasources/member_fake_data_source.dart';
 import '../models/admin_summary_model.dart';
 import 'admin_summary_remote_data_source.dart';
 
@@ -9,8 +10,8 @@ class AdminSummaryFakeDataSource implements AdminSummaryRemoteDataSource {
   final Duration latency;
 
   static const AdminSummaryModel summary = AdminSummaryModel(
-    activeMembers: 230,
-    overdueMembers: 25,
+    activeMembers: MemberFakeDataSource.activeMembers,
+    overdueMembers: MemberFakeDataSource.overdueMembers,
   );
 
   @override

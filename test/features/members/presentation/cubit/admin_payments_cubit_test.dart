@@ -185,6 +185,59 @@ void main() {
     });
   });
 
+  group('a failed reload', () {
+    setUp(() async {
+      stub(Right(roster()));
+      await cubit.load();
+      cubit.toggleReportSelection(overdueMember.id);
+      cubit.search('Zárate');
+      stub(const Left(NetworkFailure('Unreachable')));
+      await cubit.load();
+    });
+
+    test('carries the roster it already had', () {
+      final failure = cubit.state as AdminPaymentsFailure;
+
+      expect(failure.message, AppStrings.loginNetworkError);
+      expect(failure.previous?.members, hasLength(3));
+    });
+
+    test('does not drop the selection the admin marked by hand', () {
+      final failure = cubit.state as AdminPaymentsFailure;
+
+      expect(failure.previous?.selectedMemberIds, {overdueMember.id});
+      expect(failure.previous?.searchQuery, 'Zárate');
+    });
+
+    test('a later retry comes back with that selection intact', () async {
+      stub(Right(roster()));
+
+      await cubit.load();
+
+      expect(readyState().selectedMemberIds, {overdueMember.id});
+      expect(readyState().searchQuery, 'Zárate');
+    });
+
+    test('never shows the skeleton again once there is data', () async {
+      final states = <AdminPaymentsState>[];
+      cubit.stream.listen(states.add);
+      stub(const Left(NetworkFailure('Unreachable')));
+
+      await cubit.load();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(states.whereType<AdminPaymentsLoading>(), isEmpty);
+    });
+  });
+
+  test('a first load that fails has no roster to fall back on', () async {
+    stub(const Left(NetworkFailure('Unreachable')));
+
+    await cubit.load();
+
+    expect((cubit.state as AdminPaymentsFailure).previous, isNull);
+  });
+
   test('a reload keeps the rows on screen instead of the skeleton', () async {
     stub(Right(roster()));
     await cubit.load();
