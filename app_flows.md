@@ -1,14 +1,12 @@
 # Mapa de Flujos, Pantallas y Entregas (`club-management-app`)
 
-Documento de referencia del frontend: **qué pantallas existen, cómo se navega, qué ve cada rol, y en qué orden se entrega**. De acá salen los PRs (§8) y los pedidos al equipo de backend (§9).
+Documento de referencia del frontend: **qué pantallas existen, cómo se navega, qué ve cada rol, y en qué orden se entrega**. De acá salen los PRs (§8).
 
 No define píxeles. Define estructura, flujos, estados y alcance por entrega.
 
-> **Revisión 2026-09-01.** La superficie del **administrador es el camino crítico**: se construye completa antes de la del socio. La paleta de §7 y la navegación del admin de §3.2 derivan de dos capturas de referencia (*Inicio - Administrador*, *Gestión de Socios - Administrador*); los hexadecimales están estimados visualmente y hay que confirmarlos. Backend: [club-management-api](https://github.com/lazzariniingenieria/club-management-api).
+> **Estado al 2026-10-06.** La superficie del **administrador es el camino crítico**: se construye completa antes de la del socio, y va entregada hasta E4. La paleta de §7 y la navegación de §3.2 derivan de dos capturas de referencia; los hexadecimales están estimados visualmente y hay que confirmarlos.
 >
-> Esta revisión incorpora la revisión del PR #3: §9 quedó alineada contra la implementación real de la API (verbos, códigos de error y contratos ya resueltos), el reset de contraseña se rediseñó como acción manual del admin (§3.1, §9.3), la fila de socio pasó a un badge combinado único (§3.2.2) y los pares de color de §7 se verificaron contra WCAG AA.
->
-> **Revisión 2026-10-06.** El contrato de la API vive ahora en **[backend_api.md](backend_api.md)**, verificado contra `develop` (commit `142b070`): es el documento a leer en lugar del repo del backend. §9 de este archivo quedó realineada contra él — refresh token y pagos pasaron a implementados, el listado de socios sigue sin paginación ni filtros, y el `code` estable en los errores no existe.
+> **El contrato de la API no se documenta acá**: vive en [backend_api.md](backend_api.md), verificado contra `develop`. Este archivo manda en pantallas, flujos y entregas; ese otro manda en endpoints, shapes, errores y reglas del servidor.
 
 ---
 
@@ -83,7 +81,7 @@ Bottom navigation navy, 3 items con ícono **y** etiqueta. Badge `RoleBadge` ("A
 | **Pagos** | `/admin/payments` | Listado de socios con buscador y chips Todos / En mora / A cobrar (§3.2.2) |
 | **Perfil** | `/admin/profile` | Datos, cambiar contraseña, logout, y acceso a Administradores si `canManageAdmins` |
 
-**Reservas entra como cuarto tab recién en E9**, cuando la agenda exista. Un tab que no hace nada, tocado varias veces por semana durante varios sprints, se lee como app rota, no como app simple: el costo de que la barra cambie de forma una vez es menor que el de sostener un tab muerto. Hasta entonces la agenda ya tiene presencia en el Inicio a través de `UpcomingSlotsCard` (§3.2.1), marcada como no navegable: ahí la ausencia se explica sola y no ocupa un lugar permanente en la navegación.
+**Reservas entra como cuarto tab recién en E9**, cuando la agenda exista. Un tab que no hace nada, tocado varias veces por semana durante varios sprints, se lee como app rota, no como app simple: el costo de que la barra cambie de forma una vez es menor que el de sostener un tab muerto. Hasta entonces la agenda no tiene presencia en ninguna superficie: el `UpcomingSlotsCard` de §3.2.1 se diseñó y quedó **sin construir**, porque un card que no puede mostrar ni un turno real es un hueco anunciado, no una pista útil. Entra con la agenda.
 
 Rutas push, fuera de los tabs:
 
@@ -106,7 +104,7 @@ Rutas push, fuera de los tabs:
 | :--- | :--- | :--- | :--- |
 | `ActiveMembersCard` | "SOCIOS ACTIVOS" + contador | Card navy sólida, texto blanco | → tab **Pagos** con el chip **Todos** |
 | `OverdueMembersCard` | "SOCIOS EN MORA" + contador | Card azul claro, contador en rojo | → tab **Pagos** con el chip **En mora** |
-| `UpcomingSlotsCard` | "PRÓXIMOS TURNOS" + cancha / horario | Card azul claro, horario en azul a la derecha | → agenda (no navegable hasta E9) |
+| `UpcomingSlotsCard` **(E9, sin construir)** | "PRÓXIMOS TURNOS" + cancha / horario | Card azul claro, horario en azul a la derecha | → agenda |
 
 **Accesos Rápidos** — dos cards lado a lado: *Gestión de Socios* (navy) → tab **Pagos** con el chip **Todos**, *Gestión de Canchas* (verde) → `/admin/courts`.
 
@@ -119,7 +117,7 @@ Los tres contadores de los chips (§3.2.2) salen del mismo listado que ya está 
 #### 3.2.2 Pagos — listado de socios y cobranza
 
 1. **Header**: "Pagos" + `RoleBadge`.
-2. **Buscador**: placeholder "Buscar socio por nombre o DNI...". Lo resuelve el cliente sobre el padrón ya cargado, porque la API no expone búsqueda (§9.1); ignora mayúsculas y acentos, así que "alvarez" encuentra a "Álvarez".
+2. **Buscador**: placeholder "Buscar socio por nombre o DNI...". Lo resuelve el cliente sobre el padrón ya cargado, porque la API no expone búsqueda; ignora mayúsculas y acentos, así que "alvarez" encuentra a "Álvarez".
 3. **Filtros**: tres chips con contador — "Todos (n)", "En mora (n)", "A cobrar (n)". Seleccionado en navy sólido.
 4. **Listado**: `ListView.builder` de `MemberListTile`, ordenado por apellido. Cada fila: nombre, badge **Activo / Inactivo**, acción **lápiz** → edición, acción **documento** → agrega o quita del reporte, con estado visual propio.
 5. **Botón "Generar reporte (n)"** al pie, visible solo con el chip "A cobrar" seleccionado y una selección no vacía.
@@ -176,7 +174,7 @@ Inicio ──[Socios activos    ⇒ chip Todos   ]──►
                                          │
                     ┌────────────────────┼────────────────────┐
                     ▼                    ▼                    ▼
-              [FAB azul +]         [lápiz fila]        [buscar / chips]
+              [FAB + ]             [lápiz fila]        [buscar / chips]
                     │                    │
               Alta de socio       Edición de socio
                     └──────────┬─────────┘
@@ -184,8 +182,8 @@ Inicio ──[Socios activos    ⇒ chip Todos   ]──►
                         Confirmar ──► Listado actualizado
 ```
 
-- La búsqueda y el filtrado hoy los resuelve el cliente sobre el padrón completo, porque la API devuelve la lista entera sin paginar ni filtrar (§9.1). Sirve con los ~245 socios del club; cuando el backend exponga paginación, el listado pasa a "cargando más" al pie y el mapeo no cambia.
-- El DNI duplicado lo valida el backend con un **409**: la app lo mapea a un mensaje en el campo `dni`, no a un snackbar genérico. No hay código de error estable en el cuerpo, pero en este endpoint el status code alcanza (§9.2).
+- La búsqueda y el filtrado hoy los resuelve el cliente sobre el padrón completo, porque la API devuelve la lista entera sin paginar ni filtrar. Sirve con los ~245 socios del club; cuando el backend exponga paginación, el listado pasa a "cargando más" al pie y el mapeo no cambia.
+- El DNI duplicado lo valida el backend y se muestra en el campo, no en un snackbar genérico (E5).
 - Al volver de un alta exitosa el listado refresca y hace scroll al socio creado.
 - Abandonar un formulario con cambios pide confirmación. La búsqueda y el filtro sobreviven a la ida y vuelta.
 
@@ -199,10 +197,10 @@ Impacta en dinero: confirmación con resumen (socio, período, monto, medio) ant
 
 `Perfil → Administradores → [+ | lápiz | baja | reactivar] → Confirmar`
 
-- **La baja es lógica y reversible** (`PATCH /api/admins/{id}/deactivate`, con `/reactivate` del otro lado). No hay borrado físico en la API.
+- **La baja es lógica y reversible**, nunca un borrado.
 - Por eso la confirmación es un diálogo estándar con copy claro — *"¿Dar de baja a Juan Pérez? Vas a poder reactivarlo cuando quieras."* — y **no** el patrón de escribir el nombre. Ese patrón se reserva para acciones genuinamente irreversibles; gastarlo en algo que se deshace con un tap es fricción sin contrapartida, y lo deja desgastado para el día que exista una acción que sí lo amerite.
 - Un admin dado de baja sigue en el listado, marcado como inactivo, con la acción de reactivar en su fila. Desaparecer de la lista al desactivar hace creer que se borró.
-- **No hace falta lógica defensiva contra la auto-baja del superAdmin**: `GET /api/admins` solo devuelve cuentas con `role = ADMIN`, y el SUPER_ADMIN es una única cuenta seedeada en base que nunca aparece en ese listado. No existe la fila que se podría tocar por error.
+- **No hace falta lógica defensiva contra la auto-baja del superAdmin**: el listado de la API nunca devuelve esa cuenta, así que no existe la fila que se podría tocar por error.
 
 ### 4.4 Reservar una cancha (admin)
 
@@ -252,14 +250,15 @@ Estructura de [app_router.dart](lib/core/router/app_router.dart), construida en 
 ```
 GoRouter
 ├── /                              → SplashScreen (resuelve sesión)
-├── /login  (+ /activate, /forgot)
+├── /login                          (+ /activate, /forgot ← se suman en E11)
+├── /member                         → superficie del socio en preparación
 ├── StatefulShellRoute (admin + superAdmin)
 │   ├── branch: /admin              → Inicio
 │   ├── branch: /admin/payments      → Pagos   ?filter=all|overdue|to-collect
 │   ├── branch: /admin/profile       → Perfil
 │   └── branch: /admin/reservations  → Agenda        ← se suma en E9
 ├── rutas push del admin
-│   ├── /admin/members  (+ /new, /:memberId/edit)     ← se suman en E5
+│   ├── /admin/members/new, /admin/members/:memberId/edit  ← se suman en E5
 │   ├── /admin/payments/report                        ← se suma en E10
 │   ├── /admin/courts
 │   └── /admin/admins   (+ /new, /:adminId/edit)      ← solo superAdmin
@@ -295,8 +294,8 @@ Paleta derivada de las capturas. **Valores estimados visualmente, a confirmar.**
 | `brandGreen` | `#12784A` | Card "Gestión de Canchas" |
 | `accentBlue` | `#2563EB` | FAB de crear socio, horarios, enlaces |
 | `infoSurface` | `#DDE7F7` | Fondo de cards informativas (mora, próximos turnos) |
-| `successSurface` / `successText` | `#C8EFD9` / `#0F6B41` | Badge "Activo · Al día", `RoleBadge` |
-| `dangerSurface` / `dangerText` | `#FADBDB` / `#B3261E` | Badge "Activo · En mora", contador de mora |
+| `successSurface` / `successText` | `#C8EFD9` / `#0F6B41` | Badge "Activo" de la fila de socio, `RoleBadge` |
+| `dangerSurface` / `dangerText` | `#FADBDB` / `#B3261E` | Contador de mora, errores de campo |
 | `background` / `surface` | `#F4F6F9` / `#FFFFFF` | Fondo de pantalla / cards y campos |
 | `textSecondary` | `#5B6472` | Placeholders y labels |
 
@@ -318,7 +317,7 @@ Paleta derivada de las capturas. **Valores estimados visualmente, a confirmar.**
 
 Dos valores se corrigieron a partir de esta medición, antes de que quedaran fijados: `dangerText` era `#D32F2F` (**3.85** sobre `dangerSurface`, por debajo del mínimo) y `textSecondary` era `#6B7280` (**4.47** sobre `background`, apenas corto). Ambos son ajustes de luminosidad sobre el mismo tono, así que la lectura visual frente a las capturas no cambia.
 
-**Separar la rampa de marca de la semántica aunque hoy compartan tono.** El verde de la card "Gestión de Canchas" es `brandGreen`; el del badge "Al día" es `successText`. Si mañana "al día" cambia de color, no se arrastra el FAB. Igual con `accentBlue` (acción) frente a `infoSurface` (información). Es lo que se degrada solo si no se explicita ahora.
+**Separar la rampa de marca de la semántica aunque hoy compartan tono.** El verde de la card "Gestión de Canchas" es `brandGreen`; el del badge "Activo" es `successText`. Si mañana el estado del socio cambia de color, no se arrastra la card. Igual con `accentBlue` (acción) frente a `infoSurface` (información). Es lo que se degrada solo si no se explicita ahora.
 
 **Tipografía**: Inter (ya está vía `google_fonts`), cuerpo en 16sp.
 
@@ -330,20 +329,22 @@ Dos valores se corrigieron a partir de esta medición, antes de que quedaran fij
 
 Vertical slices: cada PR entrega una feature de punta a punta (`domain` → `data` → `presentation`) con sus estados y sus tests. Antes de cerrar cada una: `flutter analyze` sin warnings y suite verde.
 
-| # | Entrega | Depende de backend | Estado |
+La columna **Falta backend** dice si la entrega necesita algo que la API todavía no expone; qué le falta exactamente a cada una está en [backend_api.md](backend_api.md) §10.
+
+| # | Entrega | Falta backend | Estado |
 | :--- | :--- | :--- | :--- |
 | **E1** | **Migración de paleta y theming de lo ya construido** | — | ✅ Entregada |
 | **E2** | **Base de conexión + shell del admin** | — (contra fakes) | ✅ Entregada |
-| E3 | Inicio del Administrador | §9.4 | ✅ Entregada |
-| E4 | Pagos: padrón de socios, búsqueda, chips y selección para el reporte | §9.1 | ✅ Entregada |
-| E5 | Alta y edición de socio | §9.2 | — |
-| E6 | Registrar un pago y detalle de cuotas, sobre el listado de E4 | §9.5 | — |
-| E7 | Perfil del admin + cambiar contraseña + logout | §9.3 | — |
-| E8 | ABM de administradores (superAdmin) | §9.6 | — |
-| E9 | Agenda / Reservas + canchas + bloqueos | §9.8 | — |
-| E10 | Reporte de pagos | §9.7 | — |
-| E11 | Recuperar contraseña (informativa) + primer ingreso | §9.3 | — |
-| E12+ | Superficie del socio completa | §9.8 | — |
+| E3 | Inicio del Administrador | — | ✅ Entregada |
+| E4 | Pagos: padrón de socios, búsqueda, chips y selección para el reporte | — | ✅ Entregada |
+| E5 | Alta y edición de socio | No bloquea | — |
+| E6 | Registrar un pago y detalle de cuotas, sobre el listado de E4 | **Sí** | — |
+| E7 | Perfil del admin + cambiar contraseña + logout | **Sí** | — |
+| E8 | ABM de administradores (superAdmin) | No bloquea | — |
+| E9 | Agenda / Reservas + canchas + bloqueos | **Bloqueada** | — |
+| E10 | Reporte de pagos | **Bloqueada** | — |
+| E11 | Recuperar contraseña (informativa) + primer ingreso | **Sí** | — |
+| E12+ | Superficie del socio completa | **Bloqueada** | — |
 
 ### E1 — Migración de paleta y theming
 
@@ -370,7 +371,7 @@ Dejar la conexión al backend **armada y lista**, sin depender de que la API est
 - `--dart-define=API_BASE_URL` con el **remoto por defecto**: hoy [api_client.dart](lib/core/network/api_client.dart) tiene `localhost` hardcodeado como default, contra lo que fija el `CLAUDE.md`.
 - Centralizar endpoints en `core/constants/api_constants.dart` en lugar de strings dispersos por los data sources.
 - Sumar `superAdmin` al enum `UserRole` de [user.dart](lib/features/auth/domain/entities/user.dart) y al mapeo del `UserModel`.
-- Interceptor de refresco de token en el `ApiClient`, detrás del contrato de §9.3. Queda escrito y testeado contra un mock aunque el endpoint todavía no exista.
+- Interceptor de refresco de token en el `ApiClient`, detrás del contrato acordado. Quedó escrito y testeado contra un mock antes de que el endpoint existiera.
 - **Fake data sources por flavor**: cada repositorio con implementación remota y una fake seleccionada por `--dart-define`. Es lo que permite construir E3–E8 sin backend, y lo que el `CLAUDE.md` ya pide ("UI development con datos mockeados"). Los fakes viven junto a la implementación remota, detrás de la misma interfaz de `domain`.
 - `AuthBloc` de sesión + Splash con los estados de §3.1.1 + guards de §6.
 - Shell del admin con los 3 tabs de §3.2.
@@ -381,7 +382,7 @@ Dejar la conexión al backend **armada y lista**, sin depender de que la API est
 
 Primera pantalla de la app que lee datos reales del club.
 
-- **Sin endpoint de resumen**: los dos contadores se arman con `GET /api/members` y `GET /api/payments/delinquency`, las dos llamadas en paralelo y un solo estado de carga. El pedido de §9.4 sigue abierto como mejora, no como bloqueo.
+- **Sin endpoint de resumen**: los dos contadores se arman con `GET /api/members` y `GET /api/payments/delinquency`, las dos llamadas en paralelo y un solo estado de carga. Un endpoint de resumen sigue siendo una mejora posible, no un bloqueo.
 - `ActiveMembersCard` y `OverdueMembersCard`, ambas navegan a `/admin/members` sin pre-filtro. *(E4 las repuntó al tab Pagos, cada una con su chip — §3.2.1.)*
 - Accesos rápidos a *Gestión de socios* y *Gestión de canchas*.
 - **"Próximos turnos" queda fuera**: la API todavía no tiene canchas ni reservas. Se suma en E9, con la agenda.
@@ -395,15 +396,15 @@ El listado de socios deja de ser una pantalla aparte y pasa a ser **el contenido
 
 - Tres chips con contador en lugar de cuatro: **Todos**, **En mora** y **A cobrar**. Los dos primeros se derivan de la API; el tercero es la canasta manual que reemplaza al FAB verde de las capturas.
 - El filtro viaja por query param, así que las tres entradas del Inicio (card de activos, card de mora, acceso rápido a socios) llegan cada una con su chip puesto.
-- **Sin endpoint nuevo**: el padrón se arma con `GET /api/members` y `GET /api/payments/delinquency` en paralelo, las mismas dos llamadas que ya usa el Inicio. Búsqueda, filtrado y orden se resuelven en el cliente porque la API no los expone (§9.1).
-- Fake data source con 245 socios (230 activos, 15 inactivos, 25 en mora) alineado con el fake del Inicio, para que los dos números del mismo concepto no se contradigan.
+- **Sin endpoint nuevo**: el padrón se arma con `GET /api/members` y `GET /api/payments/delinquency` en paralelo, las mismas dos llamadas que ya usa el Inicio. Búsqueda, filtrado y orden se resuelven en el cliente porque la API no los expone.
+- Fake data source con 40 socios (34 activos, 6 inactivos, 5 en mora), chico a propósito para poder recorrerlo de punta a punta mientras se desarrolla. **El fake del Inicio deriva sus contadores de ese mismo padrón**, así que los dos números del mismo concepto no pueden contradecirse ni aunque alguien toque el generador; un test lo fija.
 - Alta, edición y generación del reporte quedan **dibujadas y deshabilitadas**, con aviso de en qué entrega se habilitan.
 
 **Terminado cuando**: las tres entradas del Inicio abren Pagos con el chip correcto, la búsqueda ignora acentos, la selección de "A cobrar" sobrevive a cambiar de chip y a un refresh, los cuatro vacíos se explican, y la pantalla renderiza sin overflow a 130% y 200% de escala de texto.
 
 ### E5 — Alta y edición de socio
 
-Las dos primeras pantallas de escritura de la app. El contrato con el backend está en §9.2; lo que define esta entrega es el comportamiento del formulario, que es donde se juega la usabilidad.
+Las dos primeras pantallas de escritura de la app. El contrato está en [backend_api.md](backend_api.md) §5; lo que define esta entrega es el comportamiento del formulario, que es donde se juega la usabilidad.
 
 **Validación**: híbrida, no una sola estrategia.
 - **Al perder el foco** se valida el campo que se abandona, solo si el usuario ya escribió algo. Validar mientras se tipea marca en rojo un DNI a medio escribir; validar recién al enviar obliga a recorrer el formulario de nuevo.
@@ -413,7 +414,7 @@ Las dos primeras pantallas de escritura de la app. El contrato con el backend es
 
 **Teclado y formato**: `TextInputType.number` para DNI, `TextInputType.phone` para teléfono, `emailAddress` para email, capitalización de palabras en nombre y apellido. Un admin cargando socios de a diez no debería cambiar de teclado a mano.
 
-**Errores del servidor**: el 409 de DNI duplicado se mapea al campo `dni` **por el status code**, nunca por el texto del mensaje — la API no expone un `code` estable y el `message` viene en inglés y puede cambiar de redacción. En `POST`/`PATCH /api/members` el status alcanza porque el DNI es la única restricción que puede chocar (§9.2). El resto de los campos conserva lo cargado.
+**Errores del servidor**: el 409 de DNI duplicado se mapea al campo `dni` **por el status code**, nunca por el texto del mensaje, porque la API no expone un código de error estable ([backend_api.md](backend_api.md) §4). En este endpoint alcanza: el DNI es la única restricción que puede chocar. El resto de los campos conserva lo cargado.
 
 **Terminado cuando**: alta y edición funcionan contra fakes y contra la API, el DNI duplicado se muestra en el campo, abandonar con cambios pide confirmación, y hay tests de widget de la validación y unitarios del mapeo DTO ↔ dominio.
 
@@ -423,153 +424,15 @@ El orden E4 → E5 → E10 es intencional: listado antes de escrituras, y el rep
 
 ## 9. Necesidades del backend
 
-Lista para enviar al equipo de [club-management-api](https://github.com/lazzariniingenieria/club-management-api). Ordenada por la entrega que bloquea.
+**El contrato vigente vive en [backend_api.md](backend_api.md)**, y el inventario de lo que falta — con la entrega que bloquea cada cosa — en su §10. Esta sección no los repite. Deja solo las **decisiones de producto** que la app sostiene mientras la API no las soporte, que es lo que no se puede leer del lado del backend:
 
-> **Fuente de verdad del contrato: [backend_api.md](backend_api.md).** Ahí está lo que la API expone hoy — endpoints, shapes, errores, reglas de mora, modelo de datos y trampas conocidas —, verificado contra `develop`. Esta sección es la otra mitad: **lo que la app necesita y todavía no existe**. Ante una contradicción entre las dos, manda `backend_api.md`.
-
-**Pedidos ya redactados**: [backend_request_e2_e3.md](backend_request_e2_e3.md) cubre E2 y E3 (§9.3 y §9.4), sin el bloque de próximos turnos. Se escribió cuando la API todavía no tenía código; hoy `develop` de `club-management-api` ya tiene implementación, así que el documento distingue lo que quedó resuelto de lo que sigue siendo un acuerdo de contrato pendiente.
-
-**Ya definido, a reflejar en la API:**
-- `activo/inactivo` (sigue siendo socio) y `al día/en mora` (estado de cuota) son **dos campos independientes**: la API los expone por separado y ambos son filtrables.
-- El **filtrado y la búsqueda los resuelve el backend**, no el cliente.
-- El listado de socios es **paginado**.
-- El alta de socio crea **solo `member`**, no `user_account`.
-
-**Ya resuelto del lado de la API — no se pide, se consume.** Confirmado contra `develop` (commit `142b070`, 2026-10-06); el detalle de cada punto está en [backend_api.md](backend_api.md):
-
-| Punto | Estado |
+| Decisión ya tomada | Cómo se sostiene hoy |
 | :--- | :--- |
-| Verbos HTTP | La API usa **`GET` / `POST` / `PATCH`**, y **un** `DELETE`: `/api/members/{id}/family-group`. No existe `PUT` en ningún endpoint. |
-| DNI duplicado | Devuelve **`409 Conflict`** con mensaje específico, no un 400 genérico. La app distingue por status code. |
-| Alta de socio | El **`201`** de `POST /api/members` ya devuelve el `MemberResponse` completo. |
-| Rol en el login | `LoginResponse.role` ya devuelve el enum completo: `SUPER_ADMIN` / `ADMIN` / `MEMBER`. |
-| `memberId` en el login | Ya viene en la respuesta, `null` si la cuenta no es socia. |
-| `clubId` | Viaja **dentro del JWT** y el backend lo resuelve solo; ningún endpoint lo recibe por parámetro. **No vuelve en el login**, así que la app lo sigue necesitando por `--dart-define=CLUB_ID`. |
-| Bajas | Siempre **lógicas**, nunca borrado físico, con endpoint de reactivación. Dos shapes distintos: `status` enum en socios, `active` booleano en admins. |
-| Reset de contraseña | Es una **acción manual de un ADMIN o SUPER_ADMIN**. No hay ni va a haber flujo self-service por email. El endpoint todavía no existe (§9.3). |
-| Refresh token | **Implementado** (PR #16). Rota en cada uso, access token de 1 h y refresh de 60 días, `401` para un refresh inválido o revocado. Contrato completo en [backend_api.md](backend_api.md) §3.2. |
-| Pagos | **Parcialmente implementado** (PR #17): registrar pago, historial por socio y listado de mora. Ver §9.5. |
-| Autorización | `/api/admins/**` es **solo `SUPER_ADMIN`**; socios, grupos familiares y pagos son `ADMIN` + `SUPER_ADMIN`. **Un token `MEMBER` no entra a ningún endpoint**: la superficie del socio no tiene backend. |
-| `401` vs `403` | Bien separados: `401` es sesión inválida o vencida, `403` es rol insuficiente. Ninguno de los dos trae el envelope de error. |
-| Tipo de los `id` | **Números** JSON, no strings. |
-| Formato de error | `{ timestamp, status, error, message, details }`. **Sin `code` estable** — ver §9.2. |
+| El filtrado y la búsqueda los resuelve el backend | Los resuelve el cliente sobre el padrón completo (§3.2.2). Con ~245 socios son dos llamadas y unos kilobytes; cuando exista en la API, el mapeo no cambia |
+| El listado de socios es paginado, con página de 20 | Sin paginar. Al existir, el listado suma "cargando más" al pie |
+| `activo/inactivo` y `al día/en mora` son dos ejes independientes, y los dos filtrables | La API los expone en dos endpoints que la app cruza por `memberId`. El filtro combinado (activo + en mora) sigue sin existir, y el Inicio entra pre-filtrado por mora |
+| El umbral de "en mora" lo define el backend, no el cliente | La app toma `daysOverdue > 0` y no inventa días de gracia |
+| El alta de socio crea solo `member`, nunca `user_account` | Ya es así |
+| Un error de formulario se muestra en su campo | Se usa el status code donde alcanza (E5) y un mensaje genérico donde no (E8), hasta que el envelope traiga un `code` estable |
 
-### 9.1 Listado de socios — ya no bloquea E4
-
-**Estado real**: `GET /api/members` existe y devuelve **todos** los socios del club en un array plano, ordenado por `createdAt` descendente. **No acepta ningún query param**: sin paginación, sin búsqueda y sin filtros. Hoy E4 filtra, busca y ordena en el cliente sobre la lista completa, y cruza la mora contra `GET /api/payments/delinquency` por `memberId` — `MemberResponse` no trae estado de cuota.
-
-E4 se entregó contra eso, así que esto dejó de ser un bloqueo y pasó a ser deuda de escala. Sigue abierto, en su totalidad, `GET /api/members` con paginación, búsqueda por nombre y DNI, y filtro por estado. Necesitamos:
-- Nombres exactos de los parámetros de paginación, búsqueda y filtro.
-- Shape de la respuesta con metadata de paginación (total de elementos, total de páginas, página actual). Tamaño de página objetivo: **20**.
-- Cada socio con **ambos** campos de estado, más `id`, nombre completo y DNI.
-- Contadores por estado para los chips ("Todos" y "En mora"; "A cobrar" es selección local y no sale de la API), en la misma respuesta para no pedir dos veces.
-- Que el filtro acepte **los dos ejes a la vez** (activo + en mora), porque el Inicio entra pre-filtrado por mora (§3.2.1).
-
-**Hasta entonces, traer el padrón completo es una decisión explícita, no un descuido.** Con ~245 socios son dos llamadas y unos pocos kilobytes; cambiarlo por paginación en el cliente sería complejidad sin beneficio. El punto en que deja de servir es conocido y está anotado arriba.
-
-### 9.2 Alta y edición de socio — bloquea E5
-
-`POST /api/members` y **`PATCH /api/members/{memberId}`** — la edición es `PATCH`, no `PUT`; sigue siendo reemplazo completo (van todos los campos igual), solo cambia el verbo. Codearlo como `PUT` da **405** contra la API real.
-
-Ya resuelto: el DNI duplicado devuelve **409**, el 201 trae el `MemberResponse` completo, y los campos y sus validaciones están documentados en [backend_api.md](backend_api.md) §6.2 (`firstName`/`lastName` ≤ 100, `dni` ≤ 20, `phone` ≤ 30, `email` ≤ 150 con formato; `familyGroupId` opcional). Dos aclaraciones que cambian el formulario:
-
-- **`joinedAt` y `status` los fija el servidor**: el alta no puede retrodatarse ni crear un socio inactivo.
-- **`PATCH` es reemplazo completo** y **no toca `familyGroupId` ni `status`** — esos se mueven por endpoints dedicados. Omitir `phone` o `email` en el body los borra.
-
-Lo que falta:
-- El **`code` estable** dentro del cuerpo del 409, para mapear el error al campo sin hacer matching sobre el texto del mensaje. **No existe**: el envelope es `{ timestamp, status, error, message, details }`. Para socios el status code alcanza igual — un `409` en `POST`/`PATCH /api/members` solo puede ser el DNI duplicado, porque el endpoint no tiene otra restricción que pueda chocar. En `/api/admins` no alcanza (§9.6).
-- Si el alta admite cargar el **último mes pagado**, para que un socio que entra con deuda previa no aparezca al día desde el minuto cero. Hoy pasa lo contrario y es peor: **un socio recién creado nace en mora**, porque `daysOverdue` se cuenta desde el primer día del mes del alta ([backend_api.md](backend_api.md) §7.1). Un socio cargado el día 20 aparece con 19 días de mora en el listado, apenas se vuelve del formulario.
-
-### 9.3 Autenticación — ya no bloquea E2; sigue bloqueando E7 y E11
-
-**`POST /api/auth/refresh` está implementado** (PR #16) y E2 quedó integrada contra él. El contrato vigente, con todo el detalle, en [backend_api.md](backend_api.md) §3.2: rota el `refreshToken` en cada uso, access token de 1 hora, refresh de **60 días**, y `401` para un token vencido, revocado o reusado. El `refreshToken` también viene en la respuesta del login, así que el único dato nuevo a persistir ya lo tenemos.
-
-Dos cosas a tener presentes, no pedidos:
-
-- **No hay `POST /api/auth/logout`** ni ningún endpoint de revocación. El logout es local: se borra el storage y el refresh token descartado sigue válido en base hasta vencer.
-- **No hay revocación en cascada por reuso**: reusar un token rotado rechaza esa llamada, pero no invalida los demás tokens vivos de la cuenta.
-
-Sigue abierto:
-
-- **Cambio de contraseña del propio usuario logueado.** Bloquea E7.
-- **Reset de contraseña de un tercero**: endpoint para que un ADMIN o SUPER_ADMIN restablezca la contraseña de otra cuenta. Es el modelo que ya eligió el backend y el que consume §3.1.2; no pedimos recuperación por email. Bloquea E11.
-- **Flag de "debe cambiar la contraseña en el próximo ingreso"** en la respuesta del login, si la decisión de producto es obligar al cambio después de un reset. Bloquea la pantalla de primer ingreso de E11.
-
-### 9.4 Resumen del Inicio — ya no bloquea E3
-
-**Resuelto sin endpoint nuevo.** E3 arma los dos contadores con lo que la API ya expone, en dos llamadas paralelas:
-
-| Contador | Fuente | Cómo se calcula |
-| :--- | :--- | :--- |
-| Socios activos | `GET /api/members` | Filas con `status = ACTIVE` |
-| Socios en mora | `GET /api/payments/delinquency` | Filas con `daysOverdue > 0` |
-
-El endpoint de mora ya devuelve **solo socios activos**, lo que contesta la pregunta que teníamos abierta: el contador de mora no incluye a quien dejó el club.
-
-**Los dos contadores salen de una sola llamada, y conviene aprovecharlo.** `GET /api/payments/delinquency` devuelve **una fila por cada socio `ACTIVE`**, no solo por los morosos — las filas con `daysOverdue: 0` son socios al día ([backend_api.md](backend_api.md) §6.5). Entonces `response.length` *es* la cantidad de socios activos y las filas con `daysOverdue > 0` son los morosos: el Inicio no necesita `GET /api/members` para contar, que es justamente la llamada que no escala. Es una simplificación pendiente de E3, no un cambio de contrato.
-
-Sigue abierto, como mejora y no como bloqueo:
-
-- **Un `GET /api/admin/summary`** que devuelva ambos números (y más adelante los próximos turnos) en una sola llamada. Pierde urgencia: con lo de arriba ya es una sola llamada, aunque siga trayendo una fila por socio activo en lugar de dos números.
-- **Días de gracia**. `daysOverdue` se cuenta desde el mes siguiente al último período pagado, así que quien pagó agosto figura con mora a los pocos días de septiembre. La app hoy toma `daysOverdue > 0` como "en mora"; si el club tiene tolerancia, el umbral lo define el backend y lo expone, no lo inventa el cliente.
-- **Fuente de verdad de cada contador**: en las capturas el Inicio muestra 450 socios activos y el listado 245 totales. Son datos mock, pero no pueden quedar dos números distintos del mismo concepto en producción.
-
-### 9.5 Pagos — parcialmente resuelto; sigue bloqueando E6
-
-**Implementado** (PR #17), contrato completo en [backend_api.md](backend_api.md) §6.5:
-
-| Operación | Endpoint |
-| :--- | :--- |
-| Registrar pago | `POST /api/payments` — `201` con el array de pagos creados |
-| Historial de un socio | `GET /api/payments/members/{memberId}` |
-| Listado de mora | `GET /api/payments/delinquency` |
-
-Campos del pago, que es lo que pedíamos: `memberId`, `paidByMemberId` (opcional, tiene que ser del mismo grupo familiar), `amount`, `periodsCovered` (array de fechas, primer día de cada mes) y `paymentMethod` (`CASH` / `TRANSFER` / `OTHER`). Qué se considera "cuota vencida" también está cerrado: la fórmula de `daysOverdue` está en [backend_api.md](backend_api.md) §7.1 y **no tiene días de gracia**.
-
-**Dos detalles del contrato que condicionan la pantalla de registrar pago**, los dos en §9 de `backend_api.md`:
-
-- **`amount` es por período, no el total.** Pagar junio y julio con `amount: 15000` registra dos pagos de 15 000. El campo se etiqueta como importe de la cuota y la confirmación muestra el total calculado.
-- **Nada impide pagar dos veces el mismo período** en dos requests separadas: no hay constraint ni validación cruzada. La protección contra el doble submit es de la app.
-
-Lo que falta para cerrar E6:
-
-- **`GET /api/payments` con filtro por estado de cuota y por socio.** Hoy solo hay historial por socio, así que el tab Pagos no tiene de dónde leer un listado filtrable.
-- **Anulación o corrección de un pago.** Un pago mal cargado no se puede deshacer por API, y es una pantalla que escribe dinero.
-- **Monto de referencia de la cuota del club.** Hoy el importe lo tipea el admin en cada pago, sin valor por defecto ni validación contra nada.
-
-### 9.6 ABM de administradores — bloquea E8
-
-Contrato ya confirmado, se documenta acá para que la app codee contra esto y no contra una suposición:
-
-| Operación | Endpoint |
-| :--- | :--- |
-| Listar | `GET /api/admins` — solo cuentas con `role = ADMIN` |
-| Crear | `POST /api/admins` |
-| Editar | `PATCH /api/admins/{id}` |
-| Dar de baja | `PATCH /api/admins/{id}/deactivate` |
-| Reactivar | `PATCH /api/admins/{id}/reactivate` |
-
-La baja es **lógica** (booleano `active`) y reversible; no hay `DELETE`. El **SUPER_ADMIN es una única cuenta seedeada en base**, sin pantalla de alta, y nunca aparece en el listado — así que la app no necesita defenderse de una auto-baja (§4.3). Todo el árbol `/api/admins/**` es **solo `SUPER_ADMIN`**: un `ADMIN` que llegue ahí recibe `403`.
-
-**Resuelto lo que faltaba** ([backend_api.md](backend_api.md) §6.4): el alta recibe `dni` (requerido, ≤ 20), `password` (requerido, **entre 8 y 100 caracteres**), `email` y `memberId` opcionales — o sea que **la contraseña inicial la define el SUPER_ADMIN**, la API no genera ninguna. El `role` lo fija el servidor en `ADMIN`.
-
-Dos cosas a cuidar en la implementación:
-
-- **`PATCH /api/admins/{id}` sobrescribe `dni`, `email` y `memberId`.** Mandar el body sin `memberId` desvincula al admin de su socio.
-- **Hay dos fuentes de `409`** en este endpoint — DNI repetido y `memberId` ya tomado por otra cuenta — y sin `code` estable solo se distinguen leyendo el `message`. Es el caso donde el pedido de §9.2 sí hace falta.
-
-Lo que falta: **no hay endpoint para cambiarle la contraseña a un admin** (es el mismo pedido de §9.3).
-
-### 9.7 Reporte de pagos — bloquea E10
-
-Postergado por decisión de producto: no es necesario para las primeras entregas. Cuando se retome, definir endpoint, formato (PDF / Excel), si recibe lista de IDs de socios y rango de fechas, y si devuelve binario o URL descargable.
-
-### 9.8 Reservas y superficie del socio — bloquea E9 y E12+
-
-**Punto de partida: no hay nada del otro lado.** Las tablas `court`, `court_block`, `recurring_slot` y `reservation` **no existen en base** — las migraciones aplicadas son cinco tablas (`user_account`, `member`, `family_group`, `refresh_token`, `payment`), ver [backend_api.md](backend_api.md) §8. Y ningún endpoint implementado acepta un token con `role = MEMBER`, así que la superficie del socio no tiene backend ni parcial. Las preguntas de abajo son de diseño del contrato, no de ajuste de algo existente.
-
-- **Disponibilidad**: un endpoint que devuelva las franjas libres de una cancha para una fecha. Debe resolverlo el backend — cruzar `reservation` + `court_block` + `recurring_slot` en el cliente es una fuente garantizada de bugs.
-- **Cuota vencida y reservas**: ¿bloquea la reserva? Define si interceptamos antes de elegir horario.
-- **Turnos fijos**: ¿generan `reservation` materializadas o son una regla evaluada al consultar disponibilidad?
-- **Cancelación**: ¿hay ventana mínima de antelación?
-- **Grupo familiar**: ¿el titular puede reservar a nombre de un integrante?
+**Lo único que no se puede averiguar leyendo el repo del backend**: las URLs de los dos entornos de Railway, que son variables del dashboard. Hay que pedirlas.
