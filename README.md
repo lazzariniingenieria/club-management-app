@@ -10,6 +10,15 @@ payment status, and (for admins) managing the club.
 - Talks to `club-management-api` (Spring Boot backend)
 - Distributed as a native app (not a wrapped web app)
 
+## Documentation
+
+| Document | What it owns |
+| :--- | :--- |
+| [backend_api.md](backend_api.md) | **The API contract.** Endpoints, request/response shapes, error model, authorization by role, server-side business rules, the data model actually migrated, known pitfalls, and what doesn't exist yet. Read this instead of the backend repo. |
+| [app_flows.md](app_flows.md) | Screens, navigation, per-role surfaces, screen states, visual direction and delivery order. §9 tracks what the app still needs from the API. |
+| [backend_request_e2_e3.md](backend_request_e2_e3.md) | Historical record of what was requested from the backend team and what was agreed. |
+| [CLAUDE.md](CLAUDE.md) | Coding rules, architecture and workflow for this repository. |
+
 ## Architecture
 
 Feature-first structure, favoring the most professional/production-grade
@@ -85,8 +94,8 @@ flutter run \
 | Define | Default | Notes |
 | :--- | :--- | :--- |
 | `DATA_SOURCE` | `fake` | `remote` targets the API. A release build wired to the fakes refuses to boot. |
-| `API_BASE_URL` | *(empty)* | Includes the `/api` prefix, no trailing slash, no version segment. |
-| `CLUB_ID` | *(unset)* | The club the login authenticates against, until `GET /api/clubs` exists. |
+| `API_BASE_URL` | *(empty)* | Includes the `/api` prefix, no trailing slash, no version segment — the API has none. |
+| `CLUB_ID` | *(unset)* | The club the login authenticates against. Still required: the `clubId` travels inside the JWT and the login response never returns it, and there is no `club` table or `GET /api/clubs` to look it up. |
 
 All three are read in `lib/core/config/app_environment.dart`. A `remote` build
 missing `API_BASE_URL` or `CLUB_ID` throws at startup rather than failing later:
