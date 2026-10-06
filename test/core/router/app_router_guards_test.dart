@@ -3,6 +3,7 @@ import 'package:club_management_app/core/di/injection_container.dart' as di;
 import 'package:club_management_app/core/router/app_router.dart';
 import 'package:club_management_app/core/router/app_routes.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
+import 'package:club_management_app/features/members/domain/entities/member_collection_filter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -49,7 +50,7 @@ void main() {
       await navigateTo(tester, AppRoutes.adminHome);
       expect(currentLocation(), AppRoutes.memberSurfacePending);
 
-      await navigateTo(tester, AppRoutes.adminMembers);
+      await navigateTo(tester, AppRoutes.adminPayments);
       expect(currentLocation(), AppRoutes.memberSurfacePending);
     });
   });
@@ -98,11 +99,21 @@ void main() {
     testWidgets('reaches the admin push routes', (tester) async {
       await bootApp(tester, signedInAs: UserRole.admin);
 
-      await navigateTo(tester, AppRoutes.adminMembers);
-      expect(currentLocation(), AppRoutes.adminMembers);
-
       await navigateTo(tester, AppRoutes.adminCourts);
       expect(currentLocation(), AppRoutes.adminCourts);
+    });
+
+    testWidgets('reaches the payments tab carrying a filter', (tester) async {
+      await bootApp(tester, signedInAs: UserRole.admin);
+
+      await navigateTo(
+        tester,
+        AppRoutes.adminPaymentsWithFilter(
+          MemberCollectionFilter.overdue.queryValue,
+        ),
+      );
+
+      expect(currentLocation(), AppRoutes.adminPayments);
     });
 
     testWidgets('is pushed out of the super-admin route', (tester) async {
