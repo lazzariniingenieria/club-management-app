@@ -44,6 +44,10 @@ void main() {
         AppColors.textSecondary,
         AppColors.surface,
       ],
+      'textSecondary on disabledSurface': [
+        AppColors.textSecondary,
+        AppColors.disabledSurface,
+      ],
       'textPrimary on background': [
         AppColors.textPrimary,
         AppColors.background,

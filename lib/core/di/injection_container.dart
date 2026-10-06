@@ -18,6 +18,12 @@ import '../../features/auth/domain/usecases/logout_use_case.dart';
 import '../../features/auth/domain/usecases/restore_session_use_case.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/cubit/login_cubit.dart';
+import '../../features/members/data/datasources/member_fake_data_source.dart';
+import '../../features/members/data/datasources/member_remote_data_source.dart';
+import '../../features/members/data/repositories/member_repository_impl.dart';
+import '../../features/members/domain/repositories/member_repository.dart';
+import '../../features/members/domain/usecases/load_members_use_case.dart';
+import '../../features/members/presentation/cubit/admin_payments_cubit.dart';
 import '../config/app_environment.dart';
 import '../logging/app_logger.dart';
 import '../network/api_client.dart';
@@ -33,6 +39,8 @@ Future<void> init() async {
   _registerAuthDomain();
   _registerAdminDataSources();
   _registerAdminDomain();
+  _registerMemberDataSources();
+  _registerMemberDomain();
   _registerPresentation();
 }
 
@@ -100,6 +108,22 @@ void _registerAdminDomain() {
   sl.registerLazySingleton(() => LoadAdminSummaryUseCase(sl()));
 }
 
+void _registerMemberDataSources() {
+  sl.registerLazySingleton<MemberRemoteDataSource>(
+    () => AppEnvironment.usesFakeDataSources
+        ? MemberFakeDataSource()
+        : MemberRemoteDataSourceImpl(sl(), sl()),
+  );
+}
+
+void _registerMemberDomain() {
+  sl.registerLazySingleton<MemberRepository>(
+    () => MemberRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+  );
+
+  sl.registerLazySingleton(() => LoadMembersUseCase(sl()));
+}
+
 void _registerPresentation() {
   sl.registerLazySingleton<AuthBloc>(
     () => AuthBloc(
@@ -113,4 +137,5 @@ void _registerPresentation() {
 
   sl.registerFactory(() => LoginCubit(sl()));
   sl.registerFactory(() => AdminHomeCubit(sl()));
+  sl.registerFactory(() => AdminPaymentsCubit(sl()));
 }

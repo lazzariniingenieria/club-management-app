@@ -5,13 +5,17 @@ abstract final class AppRoutes {
   static const String adminHome = '/admin';
   static const String adminPayments = '/admin/payments';
   static const String adminProfile = '/admin/profile';
-  static const String adminMembers = '/admin/members';
   static const String adminCourts = '/admin/courts';
   static const String adminAdmins = '/admin/admins';
 
   static const String memberSurfacePending = '/member';
 
   static const String devGallery = '/dev/gallery';
+
+  static const String filterQueryParameter = 'filter';
+
+  static String adminPaymentsWithFilter(String filter) =>
+      '$adminPayments?$filterQueryParameter=$filter';
 
   static bool isAuthRoute(String location) => location == login;
 

@@ -13,6 +13,8 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/dev/presentation/screens/component_gallery_screen.dart';
 import '../../features/member/presentation/screens/member_surface_pending_screen.dart';
+import '../../features/members/domain/entities/member_collection_filter.dart';
+import '../../features/members/presentation/screens/admin_payments_screen.dart';
 import '../constants/app_strings.dart';
 import 'app_routes.dart';
 import 'go_router_refresh_stream.dart';
@@ -80,34 +82,32 @@ class AppRouter {
     builder: (context, state, navigationShell) =>
         AdminShell(navigationShell: navigationShell),
     branches: [
-      _branch(AppRoutes.adminHome, const AdminHomeScreen()),
+      _branch(AppRoutes.adminHome, (context, state) => const AdminHomeScreen()),
+      _branch(AppRoutes.adminPayments, _buildPaymentsScreen),
       _branch(
-        AppRoutes.adminPayments,
-        const AdminPendingScreen(
-          title: AppStrings.adminPaymentsTitle,
-          message: AppStrings.adminPaymentsPending,
-          icon: Icons.payments_rounded,
-        ),
+        AppRoutes.adminProfile,
+        (context, state) => const AdminProfileScreen(),
       ),
-      _branch(AppRoutes.adminProfile, const AdminProfileScreen()),
     ],
   );
 
-  static StatefulShellBranch _branch(String path, Widget screen) {
+  static Widget _buildPaymentsScreen(
+      BuildContext context, GoRouterState state) {
+    return AdminPaymentsScreen(
+      filter: MemberCollectionFilter.fromQueryValue(
+        state.uri.queryParameters[AppRoutes.filterQueryParameter],
+      ),
+    );
+  }
+
+  static StatefulShellBranch _branch(
+      String path, GoRouterWidgetBuilder builder) {
     return StatefulShellBranch(
-      routes: [GoRoute(path: path, builder: (context, state) => screen)],
+      routes: [GoRoute(path: path, builder: builder)],
     );
   }
 
   static final List<GoRoute> _adminPushRoutes = [
-    GoRoute(
-      path: AppRoutes.adminMembers,
-      builder: (context, state) => const AdminPendingScreen(
-        title: AppStrings.adminMembersTitle,
-        message: AppStrings.adminMembersPending,
-        icon: Icons.groups_rounded,
-      ),
-    ),
     GoRoute(
       path: AppRoutes.adminCourts,
       builder: (context, state) => const AdminPendingScreen(
