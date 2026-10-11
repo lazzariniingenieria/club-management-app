@@ -10,8 +10,14 @@ import 'role_badge.dart';
 class AdminScaffold extends StatelessWidget {
   final String title;
   final Widget body;
+  final Widget? floatingActionButton;
 
-  const AdminScaffold({super.key, required this.title, required this.body});
+  const AdminScaffold({
+    super.key,
+    required this.title,
+    required this.body,
+    this.floatingActionButton,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +27,7 @@ class AdminScaffold extends StatelessWidget {
         actions: const [_CurrentRoleBadge(), SizedBox(width: AppSpacing.lg)],
       ),
       body: body,
+      floatingActionButton: floatingActionButton,
     );
   }
 }

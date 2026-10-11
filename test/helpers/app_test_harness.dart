@@ -5,6 +5,8 @@ import 'package:club_management_app/features/admin/data/datasources/admin_summar
 import 'package:club_management_app/features/auth/data/datasources/auth_fake_data_source.dart';
 import 'package:club_management_app/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
+import 'package:club_management_app/features/members/data/datasources/member_fake_data_source.dart';
+import 'package:club_management_app/features/members/data/datasources/member_remote_data_source.dart';
 import 'package:club_management_app/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,6 +16,7 @@ Future<InMemorySecureStorage> bootApp(
   WidgetTester tester, {
   UserRole? signedInAs,
   AdminSummaryRemoteDataSource? adminSummarySource,
+  MemberRemoteDataSource? memberSource,
 }) async {
   final storage = InMemorySecureStorage();
   if (signedInAs != null) storage.seedSession(signedInAs);
@@ -34,6 +37,11 @@ Future<InMemorySecureStorage> bootApp(
     () =>
         adminSummarySource ??
         AdminSummaryFakeDataSource(latency: Duration.zero),
+  );
+
+  di.sl.unregister<MemberRemoteDataSource>();
+  di.sl.registerLazySingleton<MemberRemoteDataSource>(
+    () => memberSource ?? MemberFakeDataSource(latency: Duration.zero),
   );
 
   await tester.pumpWidget(const ClubManagementApp());

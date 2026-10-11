@@ -5,11 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/router/app_routes.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/error_retry_view.dart';
+import '../../../../shared/widgets/skeleton_box.dart';
+import '../../../members/domain/entities/member_collection_filter.dart';
 import '../../domain/entities/admin_summary.dart';
 import '../cubit/admin_home_cubit.dart';
 import '../cubit/admin_home_state.dart';
@@ -136,8 +137,8 @@ class _SummaryCards extends StatelessWidget {
 
   const _SummaryCards({required this.summary});
 
-  void _openMembers(BuildContext context) =>
-      context.push(AppRoutes.adminMembers);
+  void _openPayments(BuildContext context, MemberCollectionFilter filter) =>
+      context.go(AppRoutes.adminPaymentsWithFilter(filter));
 
   @override
   Widget build(BuildContext context) {
@@ -147,14 +148,14 @@ class _SummaryCards extends StatelessWidget {
           label: AppStrings.adminHomeActiveMembers,
           count: summary.activeMembers,
           variant: SummaryCardVariant.activeMembers,
-          onTap: () => _openMembers(context),
+          onTap: () => _openPayments(context, MemberCollectionFilter.all),
         ),
         const SizedBox(height: AppSpacing.md),
         SummaryCountCard(
           label: AppStrings.adminHomeOverdueMembers,
           count: summary.overdueMembers,
           variant: SummaryCardVariant.overdueMembers,
-          onTap: () => _openMembers(context),
+          onTap: () => _openPayments(context, MemberCollectionFilter.overdue),
         ),
       ],
     );
@@ -164,29 +165,16 @@ class _SummaryCards extends StatelessWidget {
 class _SummarySkeleton extends StatelessWidget {
   const _SummarySkeleton();
 
+  static const double _cardHeight = 84;
+
   @override
   Widget build(BuildContext context) {
     return const Column(
       children: [
-        _SkeletonBox(),
+        SkeletonBox(height: _cardHeight, borderRadius: AppRadius.lgAll),
         SizedBox(height: AppSpacing.md),
-        _SkeletonBox(),
+        SkeletonBox(height: _cardHeight, borderRadius: AppRadius.lgAll),
       ],
-    );
-  }
-}
-
-class _SkeletonBox extends StatelessWidget {
-  const _SkeletonBox();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 84,
-      decoration: const BoxDecoration(
-        color: AppColors.disabledSurface,
-        borderRadius: AppRadius.lgAll,
-      ),
     );
   }
 }
@@ -204,7 +192,9 @@ class _QuickAccessRow extends StatelessWidget {
             child: QuickAccessCard(
               label: AppStrings.adminHomeMembersAccess,
               variant: QuickAccessVariant.members,
-              onTap: () => context.push(AppRoutes.adminMembers),
+              onTap: () => context.go(
+                AppRoutes.adminPaymentsWithFilter(MemberCollectionFilter.all),
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.md),

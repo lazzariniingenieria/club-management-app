@@ -101,11 +101,14 @@ void main() {
       ),
     );
 
-    expect(find.text('230'), findsNothing);
+    final seededActiveMembers =
+        '${AdminSummaryFakeDataSource.summary.activeMembers}';
+
+    expect(find.text(seededActiveMembers), findsNothing);
 
     await tester.pump(const Duration(milliseconds: 60));
 
-    expect(find.text('230'), findsOneWidget);
+    expect(find.text(seededActiveMembers), findsOneWidget);
   });
 
   testWidgets('explains a failed summary and lets the admin retry', (

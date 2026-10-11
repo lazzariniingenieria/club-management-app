@@ -56,4 +56,8 @@ Act as a senior Flutter/Dart developer with equivalent 20 years of experience. A
 - Long or dynamic lists use `ListView.builder`/slivers instead of building the full list eagerly; images are cached and sized appropriately for the target device.
 
 ## Domain context
-Mobile app for members and administrators of a neighborhood club: court booking, recurring slots and activities, fee/payment tracking, family groups. Backend is Spring Boot consumed over REST. See the backend repo's `CLAUDE.md` for the full data model (nine tables: club, family_group, member, user_account, payment, court, court_block, recurring_slot, reservation).
+Mobile app for members and administrators of a neighborhood club: court booking, recurring slots and activities, fee/payment tracking, family groups. Backend is Spring Boot consumed over REST.
+
+**[backend_api.md](backend_api.md) is the single source of truth for the API contract** — endpoints, request/response shapes, error model, authorization, server-side business rules, the data model actually migrated, known pitfalls, and what does not exist yet. Read it instead of the backend repo: it states which commit it was verified against. Only go to [club-management-api](https://github.com/lazzariniingenieria/club-management-api) when it cannot answer the question — and when you do, update it with what you found.
+
+[app_flows.md](app_flows.md) owns the other half: screens, navigation, per-role surfaces, screen states, visual direction and delivery order. Keep each fact in whichever of the two owns it; don't restate the contract in `app_flows.md` or screen decisions in `backend_api.md`.
