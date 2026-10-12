@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure_messages.dart';
+import '../../../../core/errors/failures.dart';
 import '../../domain/entities/member.dart';
 import '../../domain/usecases/load_members_use_case.dart';
 import 'admin_payments_state.dart';
@@ -10,21 +11,42 @@ class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
 
   AdminPaymentsCubit(this._loadMembers) : super(const AdminPaymentsLoading());
 
+  bool _isLoading = false;
+  int _failedAttempts = 0;
+
   Future<void> load() async {
-    final previous = _lastLoadedRoster;
-    if (previous == null) emit(const AdminPaymentsLoading());
+    if (_isLoading) return;
+    _isLoading = true;
+
+    if (_lastLoadedRoster == null) emit(const AdminPaymentsLoading());
 
     final result = await _loadMembers();
 
+    _isLoading = false;
     if (isClosed) return;
 
-    emit(
-      result.fold(
-        (failure) =>
-            AdminPaymentsFailure(failure.userMessage, previous: previous),
-        (members) => _readyFrom(members, previous),
-      ),
-    );
+    final AdminPaymentsState next = result.fold(_failureFrom, _readyFrom);
+
+    emit(next);
+  }
+
+  void search(String query) {
+    final roster = _lastLoadedRoster;
+    if (roster == null) return;
+
+    _emitRoster(roster.copyWith(searchQuery: query));
+  }
+
+  void clearSearch() => search('');
+
+  void toggleReportSelection(int memberId) {
+    final roster = _lastLoadedRoster;
+    if (roster == null) return;
+
+    final selection = Set<int>.from(roster.selectedMemberIds);
+    if (!selection.remove(memberId)) selection.add(memberId);
+
+    _emitRoster(roster.copyWith(selectedMemberIds: selection));
   }
 
   AdminPaymentsReady? get _lastLoadedRoster {
@@ -35,29 +57,24 @@ class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
     return null;
   }
 
-  void search(String query) {
+  void _emitRoster(AdminPaymentsReady roster) {
     final current = state;
-    if (current is! AdminPaymentsReady) return;
 
-    emit(current.copyWith(searchQuery: query));
+    emit(current is AdminPaymentsFailure ? current.withRoster(roster) : roster);
   }
 
-  void clearSearch() => search('');
+  AdminPaymentsFailure _failureFrom(Failure failure) {
+    _failedAttempts++;
 
-  void toggleReportSelection(int memberId) {
-    final current = state;
-    if (current is! AdminPaymentsReady) return;
-
-    final selection = Set<int>.from(current.selectedMemberIds);
-    if (!selection.remove(memberId)) selection.add(memberId);
-
-    emit(current.copyWith(selectedMemberIds: selection));
+    return AdminPaymentsFailure(
+      failure.userMessage,
+      previous: _lastLoadedRoster,
+      attempt: _failedAttempts,
+    );
   }
 
-  AdminPaymentsReady _readyFrom(
-    List<Member> members,
-    AdminPaymentsReady? previous,
-  ) {
+  AdminPaymentsReady _readyFrom(List<Member> members) {
+    final previous = _lastLoadedRoster;
     final knownIds = members.map((member) => member.id).toSet();
 
     return AdminPaymentsReady(

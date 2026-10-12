@@ -218,6 +218,36 @@ void main() {
       expect(readyState().searchQuery, 'Zárate');
     });
 
+    test('keeps the search usable while the error is on screen', () {
+      cubit.search('Álvarez');
+
+      final failure = cubit.state as AdminPaymentsFailure;
+
+      expect(failure.previous?.searchQuery, 'Álvarez');
+    });
+
+    test('keeps marking members for the report while the error is shown', () {
+      cubit.toggleReportSelection(upToDateMember.id);
+
+      final failure = cubit.state as AdminPaymentsFailure;
+
+      expect(
+        failure.previous?.selectedMemberIds,
+        {overdueMember.id, upToDateMember.id},
+      );
+    });
+
+    test('reports a second failure instead of swallowing it', () async {
+      final states = <AdminPaymentsState>[];
+      cubit.stream.listen(states.add);
+      stub(const Left(NetworkFailure('Unreachable')));
+
+      await cubit.load();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(states.whereType<AdminPaymentsFailure>(), hasLength(1));
+    });
+
     test('never shows the skeleton again once there is data', () async {
       final states = <AdminPaymentsState>[];
       cubit.stream.listen(states.add);
@@ -238,6 +268,26 @@ void main() {
     expect((cubit.state as AdminPaymentsFailure).previous, isNull);
   });
 
+
+  test('keeps a selection the admin made while the reload was in flight',
+      () async {
+    stub(Right(roster()));
+    await cubit.load();
+
+    final reload = cubit.load();
+    cubit.toggleReportSelection(upToDateMember.id);
+    await reload;
+
+    expect(readyState().selectedMemberIds, {upToDateMember.id});
+  });
+
+  test('ignores a second load while one is already in flight', () async {
+    stub(Right(roster()));
+
+    await Future.wait([cubit.load(), cubit.load()]);
+
+    verify(() => useCase()).called(1);
+  });
   test('a reload keeps the rows on screen instead of the skeleton', () async {
     stub(Right(roster()));
     await cubit.load();

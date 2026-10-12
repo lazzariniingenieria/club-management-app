@@ -108,9 +108,7 @@ void main() {
 
       await navigateTo(
         tester,
-        AppRoutes.adminPaymentsWithFilter(
-          MemberCollectionFilter.overdue.queryValue,
-        ),
+        AppRoutes.adminPaymentsWithFilter(MemberCollectionFilter.overdue),
       );
 
       expect(currentLocation(), AppRoutes.adminPayments);

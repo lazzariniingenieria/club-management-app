@@ -109,7 +109,7 @@ void main() {
 
     expect(
       currentUri(),
-      AppRoutes.adminPaymentsWithFilter(MemberCollectionFilter.all.queryValue),
+      AppRoutes.adminPaymentsWithFilter(MemberCollectionFilter.all),
     );
     expect(
         isChipSelected(tester, AppStrings.adminPaymentsFilterAll, 3), isTrue);
@@ -125,9 +125,7 @@ void main() {
 
     expect(
       currentUri(),
-      AppRoutes.adminPaymentsWithFilter(
-        MemberCollectionFilter.overdue.queryValue,
-      ),
+      AppRoutes.adminPaymentsWithFilter(MemberCollectionFilter.overdue),
     );
     expect(
       isChipSelected(tester, AppStrings.adminPaymentsFilterOverdue, 1),
@@ -147,7 +145,7 @@ void main() {
 
     expect(
       currentUri(),
-      AppRoutes.adminPaymentsWithFilter(MemberCollectionFilter.all.queryValue),
+      AppRoutes.adminPaymentsWithFilter(MemberCollectionFilter.all),
     );
     expect(
         isChipSelected(tester, AppStrings.adminPaymentsFilterAll, 3), isTrue);

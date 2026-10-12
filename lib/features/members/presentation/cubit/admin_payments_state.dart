@@ -58,9 +58,20 @@ class AdminPaymentsReady extends AdminPaymentsState {
 class AdminPaymentsFailure extends AdminPaymentsState {
   final String message;
   final AdminPaymentsReady? previous;
+  final int attempt;
 
-  const AdminPaymentsFailure(this.message, {this.previous});
+  const AdminPaymentsFailure(
+    this.message, {
+    this.previous,
+    this.attempt = 1,
+  });
+
+  AdminPaymentsFailure withRoster(AdminPaymentsReady roster) =>
+      AdminPaymentsFailure(message, previous: roster, attempt: attempt);
+
+  bool isNewerThan(AdminPaymentsState other) =>
+      other is! AdminPaymentsFailure || other.attempt != attempt;
 
   @override
-  List<Object?> get props => [message, previous];
+  List<Object?> get props => [message, previous, attempt];
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../../domain/entities/member_collection_filter.dart';
 
 class MemberFilterChips extends StatefulWidget {
@@ -38,7 +39,12 @@ class _MemberFilterChipsState extends State<MemberFilterChips> {
   @override
   void didUpdateWidget(MemberFilterChips oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _scheduleFadeSync();
+    if (_fadesCouldHaveChanged(oldWidget)) _scheduleFadeSync();
+  }
+
+  bool _fadesCouldHaveChanged(MemberFilterChips oldWidget) {
+    return oldWidget.selected != widget.selected ||
+        !mapEquals(oldWidget.counts, widget.counts);
   }
 
   @override
@@ -128,6 +134,7 @@ class _FilterChip extends StatelessWidget {
       label: Text(AppStrings.withCount(_labelFor(filter), count)),
       selected: isSelected,
       showCheckmark: false,
+      labelStyle: isSelected ? _selectedLabelStyle : AppTextStyles.bodyMedium,
       side: BorderSide(
         color: isSelected ? AppColors.brandNavy : AppColors.border,
       ),
@@ -143,3 +150,7 @@ String _labelFor(MemberCollectionFilter filter) {
     MemberCollectionFilter.toCollect => AppStrings.adminPaymentsFilterToCollect,
   };
 }
+
+final TextStyle _selectedLabelStyle = AppTextStyles.bodyMedium.copyWith(
+  color: AppColors.textOnDark,
+);

@@ -1,3 +1,5 @@
+import '../../features/members/domain/entities/member_collection_filter.dart';
+
 abstract final class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
@@ -14,8 +16,8 @@ abstract final class AppRoutes {
 
   static const String filterQueryParameter = 'filter';
 
-  static String adminPaymentsWithFilter(String filter) =>
-      '$adminPayments?$filterQueryParameter=$filter';
+  static String adminPaymentsWithFilter(MemberCollectionFilter filter) =>
+      '$adminPayments?$filterQueryParameter=${filter.queryValue}';
 
   static bool isAuthRoute(String location) => location == login;
 

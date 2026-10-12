@@ -6,11 +6,11 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/error_retry_view.dart';
+import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../domain/entities/member.dart';
 import '../../domain/entities/member_collection_filter.dart';
@@ -47,10 +47,12 @@ class _AdminPaymentsBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<AdminPaymentsCubit, AdminPaymentsState>(
       listenWhen: (previous, current) =>
-          current is AdminPaymentsFailure && current.previous != null,
+          current is AdminPaymentsFailure &&
+          current.previous != null &&
+          current.isNewerThan(previous),
       listener: (context, state) {
         if (state is AdminPaymentsFailure) {
-          showAppSnackBar(context, state.message);
+          showAppSnackBar(context, state.message, isError: true);
         }
       },
       builder: (context, state) => switch (state) {
@@ -82,7 +84,13 @@ class _RosterContent extends StatelessWidget {
         Expanded(
           child: members.isEmpty
               ? _RosterEmpty(state: state, filter: filter)
-              : _MemberList(state: state, members: members),
+              : _MemberList(
+                  state: state,
+                  members: members,
+                  bottomInset: _showsReportBar
+                      ? AppSpacing.lg
+                      : _floatingActionClearance,
+                ),
         ),
         if (_showsReportBar)
           _GenerateReportBar(count: state.selectedMemberIds.length),
@@ -98,7 +106,7 @@ class _RosterHeader extends StatelessWidget {
   const _RosterHeader({required this.state, required this.filter});
 
   void _openFilter(BuildContext context, MemberCollectionFilter next) =>
-      context.go(AppRoutes.adminPaymentsWithFilter(next.queryValue));
+      context.go(AppRoutes.adminPaymentsWithFilter(next));
 
   Map<MemberCollectionFilter, int> get _counts => {
         for (final value in MemberCollectionFilter.values)
@@ -135,19 +143,24 @@ class _RosterHeader extends StatelessWidget {
 class _MemberList extends StatelessWidget {
   final AdminPaymentsReady state;
   final List<Member> members;
+  final double bottomInset;
 
-  const _MemberList({required this.state, required this.members});
+  const _MemberList({
+    required this.state,
+    required this.members,
+    required this.bottomInset,
+  });
 
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: context.read<AdminPaymentsCubit>().load,
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
           AppSpacing.lg,
           0,
           AppSpacing.lg,
-          _floatingActionClearance,
+          bottomInset,
         ),
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: members.length,
@@ -339,37 +352,15 @@ class _RosterSkeleton extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _SkeletonBox(height: 56),
+          const SkeletonBox(height: 56),
           const SizedBox(height: AppSpacing.md),
-          const _SkeletonBox(height: 36, width: 220),
+          const SkeletonBox(height: 36, width: 220),
           const SizedBox(height: AppSpacing.lg),
           for (var row = 0; row < _placeholderRows; row++) ...[
-            const _SkeletonBox(height: 72),
+            const SkeletonBox(height: 72),
             const SizedBox(height: AppSpacing.sm),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _SkeletonBox extends StatelessWidget {
-  final double height;
-  final double? width;
-
-  const _SkeletonBox({required this.height, this.width});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        height: height,
-        width: width ?? double.infinity,
-        decoration: const BoxDecoration(
-          color: AppColors.disabledSurface,
-          borderRadius: AppRadius.mdAll,
-        ),
       ),
     );
   }

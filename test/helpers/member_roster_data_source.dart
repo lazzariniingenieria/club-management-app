@@ -7,14 +7,9 @@ class MemberRosterDataSource implements MemberRemoteDataSource {
   MemberRosterDataSource(this.roster);
 
   final List<MemberModel> roster;
-  int calls = 0;
 
   @override
-  Future<List<MemberModel>> fetchMembers() async {
-    calls++;
-
-    return roster;
-  }
+  Future<List<MemberModel>> fetchMembers() async => roster;
 }
 
 class FailingMemberDataSource implements MemberRemoteDataSource {

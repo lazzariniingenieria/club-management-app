@@ -65,7 +65,7 @@ void main() {
     return MemberRemoteDataSourceImpl(apiClient, const SilentLogger());
   }
 
-  ResponseBody respondWithBothLists(RequestOptions options, int callCount) {
+  ResponseBody respondWithBothLists(RequestOptions options, int _) {
     return switch (options.path) {
       ApiConstants.members => jsonListResponse(200, _members),
       ApiConstants.paymentDelinquency => jsonListResponse(200, _delinquency),

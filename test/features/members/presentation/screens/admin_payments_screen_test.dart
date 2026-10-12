@@ -1,5 +1,6 @@
 import 'package:club_management_app/core/constants/app_strings.dart';
 import 'package:club_management_app/core/errors/exceptions.dart';
+import 'package:club_management_app/core/theme/app_colors.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
 import 'package:club_management_app/features/members/data/models/member_model.dart';
 import 'package:club_management_app/features/members/domain/entities/member.dart';
@@ -248,6 +249,28 @@ void main() {
   });
 
   group('the filter row', () {
+    testWidgets('labels the selected chip in white, not in grey on navy', (
+      tester,
+    ) async {
+      await bootPayments(tester);
+
+      final selected = tester.widget<ChoiceChip>(
+        find.ancestor(
+          of: chip(AppStrings.adminPaymentsFilterAll, 3),
+          matching: find.byType(ChoiceChip),
+        ),
+      );
+      final unselected = tester.widget<ChoiceChip>(
+        find.ancestor(
+          of: chip(AppStrings.adminPaymentsFilterOverdue, 1),
+          matching: find.byType(ChoiceChip),
+        ),
+      );
+
+      expect(selected.labelStyle?.color, AppColors.textOnDark);
+      expect(unselected.labelStyle?.color, AppColors.textSecondary);
+    });
+
     testWidgets('fades its edge so hidden chips announce themselves', (
       tester,
     ) async {
@@ -347,6 +370,27 @@ void main() {
       expect(find.byType(MemberListTile), findsNWidgets(3));
       expect(chip(AppStrings.adminPaymentsFilterToCollect, 1), findsOneWidget);
       expect(find.text(AppStrings.loginNetworkError), findsOneWidget);
+    });
+
+    testWidgets('keeps the rows usable while the error is on screen', (
+      tester,
+    ) async {
+      final source = FlakyMemberDataSource(roster);
+      await bootApp(
+        tester,
+        signedInAs: UserRole.admin,
+        memberSource: source,
+      );
+      await openPaymentsTab(tester);
+
+      source.failsNext = true;
+      await tester.fling(find.byType(ListView), const Offset(0, 400), 1000);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.description_outlined).first);
+      await tester.pumpAndSettle();
+
+      expect(chip(AppStrings.adminPaymentsFilterToCollect, 1), findsOneWidget);
     });
   });
 

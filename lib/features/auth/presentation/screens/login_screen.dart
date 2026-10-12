@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/widgets/app_snack_bar.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../cubit/login_cubit.dart';
@@ -16,12 +17,7 @@ class LoginScreen extends StatelessWidget {
 
   void _onLoginStateChanged(BuildContext context, LoginState state) {
     if (state is LoginFailure) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(state.message),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      showAppSnackBar(context, state.message, isError: true);
     } else if (state is LoginSuccess) {
       context.read<AuthBloc>().add(AuthLoggedIn(state.user));
     }
