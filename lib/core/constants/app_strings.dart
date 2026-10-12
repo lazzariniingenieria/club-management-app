@@ -81,10 +81,46 @@ class AppStrings {
   static const String memberAddToReportAction = 'Agregar al reporte';
   static const String memberRemoveFromReportAction = 'Quitar del reporte';
 
-  static const String comingSoonCreateMember =
-      'El alta de socios se habilita en una próxima entrega.';
-  static const String comingSoonEditMember =
-      'La edición de socios se habilita en una próxima entrega.';
+  static const String memberFormCreateTitle = 'Nuevo socio';
+  static const String memberFormEditTitle = 'Editar socio';
+  static const String memberFormFirstName = 'Nombre';
+  static const String memberFormLastName = 'Apellido';
+  static const String memberFormDni = 'DNI';
+  static const String memberFormPhone = 'Teléfono (opcional)';
+  static const String memberFormEmail = 'Email (opcional)';
+  static const String memberFormRequiredField = 'Este dato es obligatorio';
+  static const String memberFormTooLong = 'Es demasiado largo';
+  static const String memberFormDniOnlyDigits =
+      'El DNI va sin puntos ni letras';
+  static const String memberFormMalformedEmail =
+      'Revisá el email: le falta el @ o el dominio';
+  static const String memberFormDniTaken =
+      'Ya hay un socio con este DNI en el club';
+  static const String memberFormSaveCreation = 'Crear socio';
+  static const String memberFormSaveEdition = 'Guardar cambios';
+  static const String memberFormCreated = 'Socio creado';
+  static const String memberFormUpdated = 'Cambios guardados';
+  static const String memberFormDiscardTitle = '¿Descartar los cambios?';
+  static const String memberFormDiscardMessage =
+      'Lo que cargaste en el formulario no se va a guardar.';
+  static const String memberFormDiscardAction = 'Descartar';
+  static const String memberFormKeepEditingAction = 'Seguir editando';
+
+  static const String memberDeactivateAction = 'Dar de baja';
+  static const String memberReactivateAction = 'Reactivar socio';
+  static const String memberDeactivated = 'Socio dado de baja';
+  static const String memberReactivated = 'Socio reactivado';
+  static const String memberDeactivateConfirmMessage =
+      'Deja de contar como socio activo y su cuota deja de figurar. Podés reactivarlo cuando quieras.';
+  static const String memberReactivateConfirmMessage =
+      'Vuelve a contar como socio activo y su cuota vuelve a figurar.';
+
+  static String memberDeactivateConfirmTitle(String fullName) =>
+      '¿Dar de baja a $fullName?';
+
+  static String memberReactivateConfirmTitle(String fullName) =>
+      '¿Reactivar a $fullName?';
+
   static const String comingSoonGenerateReport =
       'La generación del reporte se habilita en una próxima entrega.';
 

@@ -17,6 +17,8 @@ class AppTextFormField extends StatelessWidget {
   final Iterable<String>? autofillHints;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onFieldSubmitted;
+  final TextCapitalization textCapitalization;
+  final AutovalidateMode? autovalidateMode;
 
   const AppTextFormField({
     super.key,
@@ -32,6 +34,8 @@ class AppTextFormField extends StatelessWidget {
     this.autofillHints,
     this.textInputAction,
     this.onFieldSubmitted,
+    this.textCapitalization = TextCapitalization.none,
+    this.autovalidateMode,
   });
 
   @override
@@ -45,6 +49,8 @@ class AppTextFormField extends StatelessWidget {
       autofillHints: autofillHints,
       textInputAction: textInputAction,
       onFieldSubmitted: onFieldSubmitted,
+      textCapitalization: textCapitalization,
+      autovalidateMode: autovalidateMode,
       style: Theme.of(context).textTheme.bodyLarge,
       decoration: InputDecoration(
         hintText: hintText,

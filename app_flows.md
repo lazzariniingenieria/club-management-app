@@ -337,7 +337,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | **E2** | **Base de conexión + shell del admin** | — (contra fakes) | ✅ Entregada |
 | E3 | Inicio del Administrador | — | ✅ Entregada |
 | E4 | Pagos: padrón de socios, búsqueda, chips y selección para el reporte | — | ✅ Entregada |
-| E5 | Alta y edición de socio | No bloquea | — |
+| E5 | Alta y edición de socio | No bloquea | ✅ Entregada |
 | E6 | Registrar un pago y detalle de cuotas, sobre el listado de E4 | **Sí** | — |
 | E7 | Perfil del admin + cambiar contraseña + logout | **Sí** | — |
 | E8 | ABM de administradores (superAdmin) | No bloquea | — |

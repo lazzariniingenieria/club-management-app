@@ -1,4 +1,5 @@
 import '../../domain/entities/member.dart';
+import '../../domain/entities/member_draft.dart';
 
 class MemberModel extends Member {
   const MemberModel({
@@ -8,12 +9,16 @@ class MemberModel extends Member {
     required super.dni,
     required super.status,
     required super.daysOverdue,
+    super.phone,
+    super.email,
   });
 
   static const String _idKey = 'id';
   static const String _firstNameKey = 'firstName';
   static const String _lastNameKey = 'lastName';
   static const String _dniKey = 'dni';
+  static const String _phoneKey = 'phone';
+  static const String _emailKey = 'email';
   static const String _statusKey = 'status';
   static const String _memberIdKey = 'memberId';
   static const String _daysOverdueKey = 'daysOverdue';
@@ -31,6 +36,18 @@ class MemberModel extends Member {
     ];
   }
 
+  static Map<String, dynamic> bodyFromDraft(MemberDraft draft) {
+    return {
+      _firstNameKey: draft.firstName,
+      _lastNameKey: draft.lastName,
+      _dniKey: draft.dni,
+      _phoneKey: _orNull(draft.phone),
+      _emailKey: _orNull(draft.email),
+    };
+  }
+
+  static String? _orNull(String value) => value.isEmpty ? null : value;
+
   static MemberModel _fromRow(
     Map<String, dynamic> row,
     Map<int, int> daysOverdueByMemberId,
@@ -44,6 +61,8 @@ class MemberModel extends Member {
       dni: row[_dniKey] as String,
       status: _statusFrom(row[_statusKey] as String?),
       daysOverdue: daysOverdueByMemberId[id] ?? 0,
+      phone: row[_phoneKey] as String?,
+      email: row[_emailKey] as String?,
     );
   }
 

@@ -28,3 +28,7 @@ class CacheFailure extends Failure {
 class ValidationFailure extends Failure {
   const ValidationFailure([super.message = 'The request was rejected']);
 }
+
+class ConflictFailure extends Failure {
+  const ConflictFailure([super.message = 'Conflicting data']);
+}

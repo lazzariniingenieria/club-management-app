@@ -5,6 +5,14 @@ abstract final class ApiConstants {
   static const String members = '/members';
   static const String paymentDelinquency = '/payments/delinquency';
 
+  static String member(int memberId) => '$members/$memberId';
+
+  static String memberDeactivation(int memberId) =>
+      '${member(memberId)}/deactivate';
+
+  static String memberReactivation(int memberId) =>
+      '${member(memberId)}/reactivate';
+
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
 

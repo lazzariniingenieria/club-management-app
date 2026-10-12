@@ -13,8 +13,10 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/dev/presentation/screens/component_gallery_screen.dart';
 import '../../features/member/presentation/screens/member_surface_pending_screen.dart';
+import '../../features/members/domain/entities/member.dart';
 import '../../features/members/domain/entities/member_collection_filter.dart';
 import '../../features/members/presentation/screens/admin_payments_screen.dart';
+import '../../features/members/presentation/screens/member_form_screen.dart';
 import '../constants/app_strings.dart';
 import 'app_routes.dart';
 import 'go_router_refresh_stream.dart';
@@ -108,6 +110,17 @@ class AppRouter {
   }
 
   static final List<GoRoute> _adminPushRoutes = [
+    GoRoute(
+      path: AppRoutes.adminMemberCreation,
+      builder: (context, state) => const MemberFormScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.adminMemberEditionPattern,
+      redirect: (context, state) =>
+          state.extra is Member ? null : AppRoutes.adminPayments,
+      builder: (context, state) =>
+          MemberFormScreen(member: state.extra as Member),
+    ),
     GoRoute(
       path: AppRoutes.adminCourts,
       builder: (context, state) => const AdminPendingScreen(

@@ -10,6 +10,10 @@ abstract final class AppRoutes {
   static const String adminCourts = '/admin/courts';
   static const String adminAdmins = '/admin/admins';
 
+  static const String adminMemberCreation = '/admin/members/new';
+  static const String adminMemberEditionPattern =
+      '/admin/members/:memberId/edit';
+
   static const String memberSurfacePending = '/member';
 
   static const String devGallery = '/dev/gallery';
@@ -18,6 +22,9 @@ abstract final class AppRoutes {
 
   static String adminPaymentsWithFilter(MemberCollectionFilter filter) =>
       '$adminPayments?$filterQueryParameter=${filter.queryValue}';
+
+  static String adminMemberEdition(int memberId) =>
+      '/admin/members/$memberId/edit';
 
   static bool isAuthRoute(String location) => location == login;
 

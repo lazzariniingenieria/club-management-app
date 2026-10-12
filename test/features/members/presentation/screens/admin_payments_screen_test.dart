@@ -212,27 +212,29 @@ void main() {
     });
   });
 
-  group('actions still pending', () {
-    testWidgets('creating a member announces the next delivery', (
+  group('the member form', () {
+    testWidgets('creating a member opens the form', (tester) async {
+      await bootPayments(tester);
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.memberFormCreateTitle), findsWidgets);
+    });
+
+    testWidgets('editing a member opens the form on that member', (
       tester,
     ) async {
       await bootPayments(tester);
 
-      await tester.tap(find.byType(FloatingActionButton));
-      await settleSession(tester);
-
-      expect(find.text(AppStrings.comingSoonCreateMember), findsOneWidget);
-    });
-
-    testWidgets('editing a member announces the next delivery', (tester) async {
-      await bootPayments(tester);
-
       await tester.tap(find.byIcon(Icons.edit_outlined).first);
-      await settleSession(tester);
+      await tester.pumpAndSettle();
 
-      expect(find.text(AppStrings.comingSoonEditMember), findsOneWidget);
+      expect(find.text(AppStrings.memberFormEditTitle), findsWidgets);
     });
+  });
 
+  group('actions still pending', () {
     testWidgets('generating the report announces the next delivery', (
       tester,
     ) async {

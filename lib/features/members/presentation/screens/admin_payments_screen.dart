@@ -174,7 +174,11 @@ class _MemberList extends StatelessWidget {
     return MemberListTile(
       member: member,
       isSelectedForReport: state.isSelected(member),
-      onEdit: () => showAppSnackBar(context, AppStrings.comingSoonEditMember),
+      onEdit: () => openMemberForm(
+        context,
+        location: AppRoutes.adminMemberEdition(member.id),
+        member: member,
+      ),
       onToggleReport: () =>
           context.read<AdminPaymentsCubit>().toggleReportSelection(member.id),
     );
@@ -307,14 +311,12 @@ class _CreateMemberButton extends StatelessWidget {
 
   Widget _button(BuildContext context) {
     return FloatingActionButton(
-      onPressed: () =>
-          showAppSnackBar(context, AppStrings.comingSoonCreateMember),
-      backgroundColor: AppColors.disabledSurface,
-      foregroundColor: AppColors.textSecondary,
-      elevation: 0,
-      shape: const CircleBorder(
-        side: BorderSide(color: AppColors.textSecondary, width: 1.5),
+      onPressed: () => openMemberForm(
+        context,
+        location: AppRoutes.adminMemberCreation,
       ),
+      backgroundColor: AppColors.accentBlue,
+      foregroundColor: AppColors.textOnDark,
       tooltip: AppStrings.adminPaymentsCreateMember,
       child: const Icon(Icons.add_rounded),
     );
@@ -367,6 +369,17 @@ class _RosterSkeleton extends StatelessWidget {
 }
 
 const double _floatingActionClearance = 88;
+
+Future<void> openMemberForm(
+  BuildContext context, {
+  required String location,
+  Member? member,
+}) async {
+  final cubit = context.read<AdminPaymentsCubit>();
+  final saved = await context.push<bool>(location, extra: member);
+
+  if (saved ?? false) await cubit.load();
+}
 
 bool reportBarIsVisible(
   AdminPaymentsReady state,

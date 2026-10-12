@@ -7,6 +7,7 @@ Failure failureFromException(Object error) {
       AuthFailure(error.message ?? 'Invalid credentials'),
     ValidationException() =>
       ValidationFailure(error.message ?? 'The request was rejected'),
+    ConflictException() => ConflictFailure(error.message ?? 'Conflict'),
     NetworkException() =>
       NetworkFailure(error.message ?? 'No internet connection'),
     ServerException() => ServerFailure(error.message ?? 'Server error'),

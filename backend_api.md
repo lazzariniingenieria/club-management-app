@@ -306,7 +306,7 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | :--- | :--- |
 | Paginación, búsqueda y filtro por estado en `GET /api/members` | E4 a escala — hoy se trae el listado completo y filtra el cliente |
 | Contadores por estado para los chips del listado | E4 |
-| Cargar el último mes pagado en el alta de socio | E5 — sin eso, el socio nuevo nace en mora (§7) |
+| Cargar el último mes pagado en el alta de socio | E6 — el socio recién creado nace en mora desde el 1° del mes (§7) |
 | `code` estable y `fieldErrors` en el envelope de error | Mapear un error al campo del formulario (E5, E8) |
 | `GET /api/payments` con filtro por estado y por socio | E6 — hoy solo hay historial por socio |
 | Anulación o corrección de un pago | E6 — un pago mal cargado no se deshace por API |

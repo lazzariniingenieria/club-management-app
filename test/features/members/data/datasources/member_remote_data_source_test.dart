@@ -5,6 +5,7 @@ import 'package:club_management_app/core/network/api_client.dart';
 import 'package:club_management_app/core/session/session_expiry_notifier.dart';
 import 'package:club_management_app/features/members/data/datasources/member_remote_data_source.dart';
 import 'package:club_management_app/features/members/domain/entities/member.dart';
+import 'package:club_management_app/features/members/domain/entities/member_draft.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -31,6 +32,8 @@ const List<dynamic> _members = [
     'firstName': 'Juan',
     'lastName': 'Pérez',
     'dni': '30111222',
+    'phone': '1155667788',
+    'email': 'juan@club.com',
     'status': 'ACTIVE',
   },
   {
@@ -90,6 +93,9 @@ void main() {
     expect(roster, hasLength(2));
     expect(roster.first.fullName, 'Juan Pérez');
     expect(roster.first.daysOverdue, 42);
+    expect(roster.first.phone, '1155667788');
+    expect(roster.first.email, 'juan@club.com');
+    expect(roster.last.phone, isNull);
     expect(roster.last.status, MemberStatus.inactive);
     expect(roster.last.isOverdue, isFalse);
   });
@@ -122,5 +128,66 @@ void main() {
     });
 
     expect(dataSource.fetchMembers(), throwsA(isA<ServerException>()));
+  });
+
+  group('writes', () {
+    const draft = MemberDraft(
+      firstName: 'Ana',
+      lastName: 'Álvarez',
+      dni: '30111222',
+      email: 'ana@club.com',
+    );
+
+    test('posts the draft and sends an empty optional field as null', () async {
+      late RequestOptions sent;
+      final dataSource = buildDataSource((options, _) {
+        sent = options;
+
+        return jsonResponse(201);
+      });
+
+      await dataSource.createMember(draft);
+
+      expect(sent.path, ApiConstants.members);
+      expect(sent.method, 'POST');
+      expect(sent.data, {
+        'firstName': 'Ana',
+        'lastName': 'Álvarez',
+        'dni': '30111222',
+        'phone': null,
+        'email': 'ana@club.com',
+      });
+    });
+
+    test('patches the member being edited', () async {
+      late RequestOptions sent;
+      final dataSource = buildDataSource((options, _) {
+        sent = options;
+
+        return jsonResponse(200);
+      });
+
+      await dataSource.updateMember(7, draft);
+
+      expect(sent.path, ApiConstants.member(7));
+      expect(sent.method, 'PATCH');
+    });
+
+    test('maps a dni already taken to a conflict, not to a generic error', () {
+      final dataSource = buildDataSource((_, __) => jsonResponse(409));
+
+      expect(dataSource.createMember(draft), throwsA(isA<ConflictException>()));
+    });
+
+    test('uses a dedicated endpoint for each side of the logical delete',
+        () async {
+      final dataSource = buildDataSource((_, __) => jsonResponse(200));
+
+      await dataSource.setMemberActive(7, isActive: false);
+      await dataSource.setMemberActive(7, isActive: true);
+
+      expect(adapter.callsTo(ApiConstants.memberDeactivation(7)), 1);
+      expect(adapter.callsTo(ApiConstants.memberReactivation(7)), 1);
+    });
   });
 }

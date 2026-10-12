@@ -37,3 +37,11 @@ class ValidationException implements Exception {
   @override
   String toString() => message ?? 'ValidationException';
 }
+
+class ConflictException implements Exception {
+  final String? message;
+  ConflictException([this.message]);
+
+  @override
+  String toString() => message ?? 'ConflictException';
+}
