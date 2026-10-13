@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/formatters/digit_layout_formatter.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/app_text_form_field.dart';
+import '../../../../shared/widgets/edge_swipe_back.dart';
 import '../../domain/entities/member.dart';
 import '../../domain/entities/member_draft.dart';
 import '../../domain/validation/member_draft_rules.dart';
@@ -34,16 +36,17 @@ class _MemberFormState extends State<MemberForm> {
   final _touchedFields = <MemberField>{};
 
   late final MemberDraft _initialDraft;
+  late final Listenable _anyFieldEdited;
   String? _takenDniError;
 
   bool get _isEdition => widget.member != null;
 
   MemberDraft get _draft => MemberDraft(
-        firstName: _textOf(MemberField.firstName),
-        lastName: _textOf(MemberField.lastName),
-        dni: _textOf(MemberField.dni),
-        phone: _textOf(MemberField.phone),
-        email: _textOf(MemberField.email),
+        firstName: _valueOf(MemberField.firstName),
+        lastName: _valueOf(MemberField.lastName),
+        dni: _valueOf(MemberField.dni),
+        phone: _valueOf(MemberField.phone),
+        email: _valueOf(MemberField.email),
       );
 
   bool get _hasChanges => _draft.trimmed() != _initialDraft.trimmed();
@@ -57,10 +60,11 @@ class _MemberFormState extends State<MemberForm> {
         : MemberDraft.fromMember(member);
 
     for (final field in MemberField.values) {
-      _controllers[field] = TextEditingController(text: _initialValueOf(field));
+      _controllers[field] = TextEditingController(text: _initialTextOf(field));
       _focusNodes[field] = FocusNode()..addListener(() => _markTouched(field));
     }
     _controllers[MemberField.dni]!.addListener(_clearTakenDniError);
+    _anyFieldEdited = Listenable.merge(_controllers.values.toList());
   }
 
   @override
@@ -74,6 +78,13 @@ class _MemberFormState extends State<MemberForm> {
     super.dispose();
   }
 
+  String _initialTextOf(MemberField field) {
+    final value = _initialValueOf(field);
+    final layout = _MemberFieldStyle.of(field).digitLayout;
+
+    return layout == null ? value : layout(DigitLayouts.digitsOf(value));
+  }
+
   String _initialValueOf(MemberField field) {
     return switch (field) {
       MemberField.firstName => _initialDraft.firstName,
@@ -84,7 +95,12 @@ class _MemberFormState extends State<MemberForm> {
     };
   }
 
-  String _textOf(MemberField field) => _controllers[field]!.text;
+  String _valueOf(MemberField field) {
+    final text = _controllers[field]!.text;
+    final hasDigitLayout = _MemberFieldStyle.of(field).digitLayout != null;
+
+    return hasDigitLayout ? DigitLayouts.digitsOf(text) : text;
+  }
 
   void _clearTakenDniError() {
     if (_takenDniError == null) return;
@@ -120,7 +136,7 @@ class _MemberFormState extends State<MemberForm> {
 
   MemberField? get _firstInvalidField {
     for (final field in MemberField.values) {
-      if (_validate(field, _textOf(field)) != null) return field;
+      if (_validate(field, _valueOf(field)) != null) return field;
     }
 
     return null;
@@ -152,10 +168,6 @@ class _MemberFormState extends State<MemberForm> {
 
   void _onPopInvoked(bool didPop, Object? result) {
     if (didPop) return;
-    if (!_hasChanges) {
-      context.pop();
-      return;
-    }
 
     _confirmDiscard();
   }
@@ -178,9 +190,13 @@ class _MemberFormState extends State<MemberForm> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: _onPopInvoked,
+    return ListenableBuilder(
+      listenable: _anyFieldEdited,
+      builder: (context, form) => PopScope(
+        canPop: !_hasChanges,
+        onPopInvokedWithResult: _onPopInvoked,
+        child: EdgeSwipeBack(enabled: _hasChanges, child: form!),
+      ),
       child: BlocConsumer<MemberFormCubit, MemberFormState>(
         listener: _onFormStateChanged,
         builder: (context, state) => Form(
@@ -228,14 +244,14 @@ class _MemberFormState extends State<MemberForm> {
         prefixIcon: style.icon,
         keyboardType: style.keyboardType,
         textCapitalization: style.textCapitalization,
-        inputFormatters: [LengthLimitingTextInputFormatter(style.maxLength)],
+        inputFormatters: [style.inputFormatter],
         textInputAction: field == MemberField.email
             ? TextInputAction.done
             : TextInputAction.next,
         autovalidateMode: _touchedFields.contains(field)
             ? AutovalidateMode.onUserInteraction
             : AutovalidateMode.disabled,
-        validator: (value) => _validate(field, value),
+        validator: (_) => _validate(field, _valueOf(field)),
       ),
     );
   }
@@ -267,6 +283,7 @@ class _MemberFieldStyle {
   final TextInputType keyboardType;
   final TextCapitalization textCapitalization;
   final int maxLength;
+  final DigitLayout? digitLayout;
 
   const _MemberFieldStyle({
     required this.hintText,
@@ -274,7 +291,15 @@ class _MemberFieldStyle {
     required this.keyboardType,
     required this.maxLength,
     this.textCapitalization = TextCapitalization.none,
+    this.digitLayout,
   });
+
+  TextInputFormatter get inputFormatter {
+    final layout = digitLayout;
+    if (layout == null) return LengthLimitingTextInputFormatter(maxLength);
+
+    return DigitLayoutFormatter(layout: layout, maxDigits: maxLength);
+  }
 
   static _MemberFieldStyle of(MemberField field) {
     return switch (field) {
@@ -287,22 +312,24 @@ class _MemberFieldStyle {
         ),
       MemberField.lastName => const _MemberFieldStyle(
           hintText: AppStrings.memberFormLastName,
-          icon: Icons.badge_outlined,
+          icon: Icons.person_outline_rounded,
           keyboardType: TextInputType.name,
           textCapitalization: TextCapitalization.words,
           maxLength: MemberDraftRules.maxNameLength,
         ),
       MemberField.dni => const _MemberFieldStyle(
           hintText: AppStrings.memberFormDni,
-          icon: Icons.pin_outlined,
+          icon: Icons.badge_outlined,
           keyboardType: TextInputType.number,
           maxLength: MemberDraftRules.maxDniLength,
+          digitLayout: DigitLayouts.groupedByThousands,
         ),
       MemberField.phone => const _MemberFieldStyle(
           hintText: AppStrings.memberFormPhone,
           icon: Icons.phone_outlined,
           keyboardType: TextInputType.phone,
           maxLength: MemberDraftRules.maxPhoneLength,
+          digitLayout: DigitLayouts.hyphenBeforeLastFour,
         ),
       MemberField.email => const _MemberFieldStyle(
           hintText: AppStrings.memberFormEmail,

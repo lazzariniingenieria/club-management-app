@@ -185,7 +185,7 @@ Inicio ──[Socios activos    ⇒ chip Todos   ]──►
 - La búsqueda y el filtrado hoy los resuelve el cliente sobre el padrón completo, porque la API devuelve la lista entera sin paginar ni filtrar. Sirve con los ~245 socios del club; cuando el backend exponga paginación, el listado pasa a "cargando más" al pie y el mapeo no cambia.
 - El DNI duplicado lo valida el backend y se muestra en el campo, no en un snackbar genérico (E5).
 - Al volver de un alta exitosa el listado refresca y hace scroll al socio creado.
-- Abandonar un formulario con cambios pide confirmación. La búsqueda y el filtro sobreviven a la ida y vuelta.
+- Abandonar un formulario con cambios pide confirmación, también con el gesto de deslizar desde el borde en iOS. Sin cambios, el gesto vuelve directo. La búsqueda y el filtro sobreviven a la ida y vuelta.
 
 ### 4.2 Registrar un pago
 
@@ -413,6 +413,8 @@ Las dos primeras pantallas de escritura de la app. El contrato está en [backend
 - Un campo con error se limpia en cuanto pasa a ser válido, sin esperar al submit.
 
 **Teclado y formato**: `TextInputType.number` para DNI, `TextInputType.phone` para teléfono, `emailAddress` para email, capitalización de palabras en nombre y apellido. Un admin cargando socios de a diez no debería cambiar de teclado a mano.
+
+**Formato mientras se escribe**: el DNI se agrupa con puntos (`30.111.222`) y el teléfono lleva un guion antes de los últimos cuatro dígitos (`115566-7788`), solo para leerlos mejor. Los dos campos aceptan únicamente dígitos y **viajan a la API sin separadores**: el DNI tiene que coincidir con el de la base para que la búsqueda y el `409` de duplicado funcionen, y el teléfono se guarda con el mismo criterio.
 
 **Errores del servidor**: el 409 de DNI duplicado se mapea al campo `dni` **por el status code**, nunca por el texto del mensaje, porque la API no expone un código de error estable ([backend_api.md](backend_api.md) §4). En este endpoint alcanza: el DNI es la única restricción que puede chocar. El resto de los campos conserva lo cargado.
 

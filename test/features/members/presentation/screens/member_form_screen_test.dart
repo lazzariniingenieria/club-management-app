@@ -1,6 +1,7 @@
 import 'package:club_management_app/core/constants/app_strings.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
 import 'package:club_management_app/features/members/data/datasources/member_fake_data_source.dart';
+import 'package:club_management_app/shared/formatters/digit_layout_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -113,16 +114,33 @@ void main() {
       expect(find.text(AppStrings.memberFormCreateTitle), findsWidgets);
     });
 
-    testWidgets('a dni with dots is rejected before reaching the API', (
+    testWidgets('the dni and the phone are laid out while typing', (
       tester,
     ) async {
       await openCreationForm(tester);
 
-      await fillIdentity(tester, dni: '30.111.222');
+      await tester.enterText(field(2), '30111222');
+      await tester.enterText(field(3), '1155667788');
+      await tester.pump();
+
+      expect(find.text('30.111.222'), findsOneWidget);
+      expect(find.text('115566-7788'), findsOneWidget);
+    });
+
+    testWidgets('the dni shown with dots is saved as plain digits', (
+      tester,
+    ) async {
+      await openCreationForm(tester);
+
+      await fillIdentity(tester, dni: '45999888');
       await tester.tap(find.text(AppStrings.memberFormSaveCreation));
       await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, '45999888');
+      await settleSession(tester);
 
-      expect(find.text(AppStrings.memberFormDniOnlyDigits), findsOneWidget);
+      expect(find.text('Ana Álvarez'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 5));
     });
 
     testWidgets('a valid form adds the member to the roster', (tester) async {
@@ -178,6 +196,7 @@ void main() {
       await openCreationForm(tester);
 
       await tester.enterText(find.byType(TextFormField).first, 'Ana');
+      await tester.pump();
       await tester.pageBack();
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.memberFormDiscardAction));
@@ -206,15 +225,15 @@ void main() {
         (tester) async {
       await openCreationForm(tester);
 
-      await tester.enterText(field(2), '30.111');
+      await tester.enterText(field(4), 'ana@club');
       await tester.pump();
 
-      expect(find.text(AppStrings.memberFormDniOnlyDigits), findsNothing);
+      expect(find.text(AppStrings.memberFormMalformedEmail), findsNothing);
 
       await tester.tap(field(3));
       await tester.pump();
 
-      expect(find.text(AppStrings.memberFormDniOnlyDigits), findsOneWidget);
+      expect(find.text(AppStrings.memberFormMalformedEmail), findsOneWidget);
     });
 
     testWidgets('an error clears as soon as the field becomes valid', (
@@ -222,13 +241,13 @@ void main() {
     ) async {
       await openCreationForm(tester);
 
-      await tester.enterText(field(2), '30.111');
+      await tester.enterText(field(4), 'ana@club');
       await tester.tap(field(3));
       await tester.pump();
-      await tester.enterText(field(2), '30111');
+      await tester.enterText(field(4), 'ana@club.com');
       await tester.pump();
 
-      expect(find.text(AppStrings.memberFormDniOnlyDigits), findsNothing);
+      expect(find.text(AppStrings.memberFormMalformedEmail), findsNothing);
     });
 
     Future<void> submitWithFirstNameOutOfSight(WidgetTester tester) async {
@@ -267,7 +286,10 @@ void main() {
 
       expect(find.text(AppStrings.memberFormEditTitle), findsWidgets);
       expect(find.text(seededMember.firstName), findsOneWidget);
-      expect(find.text(seededMember.dni), findsOneWidget);
+      expect(
+        find.text(DigitLayouts.groupedByThousands(seededMember.dni)),
+        findsOneWidget,
+      );
       expect(find.text(AppStrings.memberFormSaveEdition), findsOneWidget);
     });
 
@@ -325,5 +347,33 @@ void main() {
 
       await tester.pump(const Duration(seconds: 5));
     });
+  });
+
+  group('the back swipe on iOS', () {
+    final iOS = TargetPlatformVariant.only(TargetPlatform.iOS);
+
+    Future<void> swipeFromTheEdge(WidgetTester tester) async {
+      await tester.dragFrom(const Offset(4, 300), const Offset(500, 0));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('asks before discarding what was typed', (tester) async {
+      await openCreationForm(tester);
+      await tester.enterText(field(0), 'Ana');
+      await tester.pumpAndSettle();
+
+      await swipeFromTheEdge(tester);
+
+      expect(find.text(AppStrings.memberFormDiscardTitle), findsOneWidget);
+    }, variant: iOS);
+
+    testWidgets('goes straight back from an untouched form', (tester) async {
+      await openCreationForm(tester);
+
+      await swipeFromTheEdge(tester);
+
+      expect(find.text(AppStrings.memberFormDiscardTitle), findsNothing);
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+    }, variant: iOS);
   });
 }

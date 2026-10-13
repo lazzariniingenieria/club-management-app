@@ -90,8 +90,7 @@ class AppStrings {
   static const String memberFormEmail = 'Email (opcional)';
   static const String memberFormRequiredField = 'Este dato es obligatorio';
   static const String memberFormTooLong = 'Es demasiado largo';
-  static const String memberFormDniOnlyDigits =
-      'El DNI va sin puntos ni letras';
+  static const String memberFormDniOnlyDigits = 'El DNI solo lleva números';
   static const String memberFormMalformedEmail =
       'Revisá el email: le falta el @ o el dominio';
   static const String memberFormDniTaken =
