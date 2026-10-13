@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 class AppTextFormField extends StatelessWidget {
   final String hintText;
   final TextEditingController controller;
+  final FocusNode? focusNode;
   final IconData prefixIcon;
   final bool isPassword;
   final String? Function(String?)? validator;
@@ -24,6 +25,7 @@ class AppTextFormField extends StatelessWidget {
     super.key,
     required this.hintText,
     required this.controller,
+    this.focusNode,
     required this.prefixIcon,
     this.isPassword = false,
     this.validator,
@@ -42,6 +44,7 @@ class AppTextFormField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       validator: validator,
       keyboardType: keyboardType,
       obscureText: obscureText,

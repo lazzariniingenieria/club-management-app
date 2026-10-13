@@ -27,6 +27,10 @@ class MemberForm extends StatefulWidget {
 class _MemberFormState extends State<MemberForm> {
   final _formKey = GlobalKey<FormState>();
   final _controllers = <MemberField, TextEditingController>{};
+  final _focusNodes = <MemberField, FocusNode>{};
+  final _fieldKeys = {
+    for (final field in MemberField.values) field: GlobalKey(),
+  };
   final _touchedFields = <MemberField>{};
 
   late final MemberDraft _initialDraft;
@@ -54,6 +58,7 @@ class _MemberFormState extends State<MemberForm> {
 
     for (final field in MemberField.values) {
       _controllers[field] = TextEditingController(text: _initialValueOf(field));
+      _focusNodes[field] = FocusNode()..addListener(() => _markTouched(field));
     }
     _controllers[MemberField.dni]!.addListener(_clearTakenDniError);
   }
@@ -62,6 +67,9 @@ class _MemberFormState extends State<MemberForm> {
   void dispose() {
     for (final controller in _controllers.values) {
       controller.dispose();
+    }
+    for (final focusNode in _focusNodes.values) {
+      focusNode.dispose();
     }
     super.dispose();
   }
@@ -84,8 +92,9 @@ class _MemberFormState extends State<MemberForm> {
     setState(() => _takenDniError = null);
   }
 
-  void _markTouched(MemberField field, bool hasFocus) {
-    if (hasFocus || _touchedFields.contains(field)) return;
+  void _markTouched(MemberField field) {
+    if (!mounted || _focusNodes[field]!.hasFocus) return;
+    if (_touchedFields.contains(field)) return;
 
     setState(() => _touchedFields.add(field));
   }
@@ -101,9 +110,35 @@ class _MemberFormState extends State<MemberForm> {
 
   void _submit() {
     setState(() => _touchedFields.addAll(MemberField.values));
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      _revealFirstInvalidField();
+      return;
+    }
 
     context.read<MemberFormCubit>().save(_draft, memberId: widget.member?.id);
+  }
+
+  MemberField? get _firstInvalidField {
+    for (final field in MemberField.values) {
+      if (_validate(field, _textOf(field)) != null) return field;
+    }
+
+    return null;
+  }
+
+  Future<void> _revealFirstInvalidField() async {
+    final field = _firstInvalidField;
+    final fieldContext =
+        field == null ? null : _fieldKeys[field]!.currentContext;
+    if (field == null || fieldContext == null) return;
+
+    await Scrollable.ensureVisible(
+      fieldContext,
+      duration: _revealDuration,
+      curve: Curves.easeOut,
+      alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+    );
+    if (mounted) _focusNodes[field]!.requestFocus();
   }
 
   Future<void> _confirmDiscard() async {
@@ -150,55 +185,63 @@ class _MemberFormState extends State<MemberForm> {
         listener: _onFormStateChanged,
         builder: (context, state) => Form(
           key: _formKey,
-          child: ListView(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              for (final field in MemberField.values) _fieldFor(field),
-              const SizedBox(height: AppSpacing.md),
-              AppButton(
-                text: _isEdition
-                    ? AppStrings.memberFormSaveEdition
-                    : AppStrings.memberFormSaveCreation,
-                isLoading: state is MemberFormSubmitting,
-                onPressed: _submit,
-              ),
-              if (widget.member != null) ...[
-                const SizedBox(height: AppSpacing.xl),
-                MemberStatusAction(member: widget.member!),
-              ],
-            ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: _formChildren(state),
+            ),
           ),
         ),
       ),
     );
   }
 
+  List<Widget> _formChildren(MemberFormState state) {
+    return [
+      for (final field in MemberField.values) _fieldFor(field),
+      const SizedBox(height: AppSpacing.md),
+      AppButton(
+        text: _isEdition
+            ? AppStrings.memberFormSaveEdition
+            : AppStrings.memberFormSaveCreation,
+        isLoading: state is MemberFormSubmitting,
+        onPressed: _submit,
+      ),
+      if (widget.member != null) ...[
+        const SizedBox(height: AppSpacing.xl),
+        MemberStatusAction(member: widget.member!),
+      ],
+    ];
+  }
+
   Widget _fieldFor(MemberField field) {
     final style = _MemberFieldStyle.of(field);
 
     return Padding(
+      key: _fieldKeys[field],
       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-      child: Focus(
-        onFocusChange: (hasFocus) => _markTouched(field, hasFocus),
-        child: AppTextFormField(
-          controller: _controllers[field]!,
-          hintText: style.hintText,
-          prefixIcon: style.icon,
-          keyboardType: style.keyboardType,
-          textCapitalization: style.textCapitalization,
-          inputFormatters: [LengthLimitingTextInputFormatter(style.maxLength)],
-          textInputAction: field == MemberField.email
-              ? TextInputAction.done
-              : TextInputAction.next,
-          autovalidateMode: _touchedFields.contains(field)
-              ? AutovalidateMode.onUserInteraction
-              : AutovalidateMode.disabled,
-          validator: (value) => _validate(field, value),
-        ),
+      child: AppTextFormField(
+        controller: _controllers[field]!,
+        focusNode: _focusNodes[field],
+        hintText: style.hintText,
+        prefixIcon: style.icon,
+        keyboardType: style.keyboardType,
+        textCapitalization: style.textCapitalization,
+        inputFormatters: [LengthLimitingTextInputFormatter(style.maxLength)],
+        textInputAction: field == MemberField.email
+            ? TextInputAction.done
+            : TextInputAction.next,
+        autovalidateMode: _touchedFields.contains(field)
+            ? AutovalidateMode.onUserInteraction
+            : AutovalidateMode.disabled,
+        validator: (value) => _validate(field, value),
       ),
     );
   }
 }
+
+const Duration _revealDuration = Duration(milliseconds: 300);
 
 String _outcomeMessage(MemberFormOutcome outcome) {
   return switch (outcome) {

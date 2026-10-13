@@ -51,6 +51,47 @@ void main() {
     await tester.enterText(fields.at(2), dni);
   }
 
+  Finder field(int index) => find.byType(TextFormField).at(index);
+
+  bool fieldHasFocus(WidgetTester tester, int index) {
+    final editable = find.descendant(
+      of: field(index),
+      matching: find.byType(EditableText),
+    );
+
+    return tester.widget<EditableText>(editable).focusNode.hasFocus;
+  }
+
+  bool fieldIsOnScreen(WidgetTester tester, int index) {
+    final viewport = tester.getRect(find.byType(SingleChildScrollView));
+    final fieldRect = tester.getRect(field(index));
+
+    return fieldRect.top >= viewport.top && fieldRect.bottom <= viewport.bottom;
+  }
+
+  Future<void> crampTheScreen(WidgetTester tester) async {
+    tester.view.physicalSize = const Size(360, 260);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> submitFromTheBottom(WidgetTester tester, String label) async {
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text(label),
+      100,
+      scrollable: find
+          .descendant(of: find.byType(Form), matching: find.byType(Scrollable))
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(label));
+    await tester.pumpAndSettle();
+  }
+
   group('creating a member', () {
     testWidgets('the blue action opens an empty form', (tester) async {
       await openCreationForm(tester);
@@ -132,6 +173,90 @@ void main() {
 
       expect(find.text(AppStrings.memberFormSaveCreation), findsOneWidget);
     });
+
+    testWidgets('discarding the changes leaves the form', (tester) async {
+      await openCreationForm(tester);
+
+      await tester.enterText(find.byType(TextFormField).first, 'Ana');
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppStrings.memberFormDiscardAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.memberFormSaveCreation), findsNothing);
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+    });
+
+    testWidgets('leaving an untouched form goes straight back', (
+      tester,
+    ) async {
+      await openCreationForm(tester);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.memberFormDiscardTitle), findsNothing);
+      expect(find.text(AppStrings.memberFormSaveCreation), findsNothing);
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+    });
+  });
+
+  group('the hybrid validation', () {
+    testWidgets('a field is judged when the admin leaves it, not while typing',
+        (tester) async {
+      await openCreationForm(tester);
+
+      await tester.enterText(field(2), '30.111');
+      await tester.pump();
+
+      expect(find.text(AppStrings.memberFormDniOnlyDigits), findsNothing);
+
+      await tester.tap(field(3));
+      await tester.pump();
+
+      expect(find.text(AppStrings.memberFormDniOnlyDigits), findsOneWidget);
+    });
+
+    testWidgets('an error clears as soon as the field becomes valid', (
+      tester,
+    ) async {
+      await openCreationForm(tester);
+
+      await tester.enterText(field(2), '30.111');
+      await tester.tap(field(3));
+      await tester.pump();
+      await tester.enterText(field(2), '30111');
+      await tester.pump();
+
+      expect(find.text(AppStrings.memberFormDniOnlyDigits), findsNothing);
+    });
+
+    Future<void> submitWithFirstNameOutOfSight(WidgetTester tester) async {
+      await openCreationForm(tester);
+      await tester.enterText(field(1), 'Álvarez');
+      await tester.enterText(field(2), '30111222');
+      await crampTheScreen(tester);
+
+      await submitFromTheBottom(tester, AppStrings.memberFormSaveCreation);
+    }
+
+    testWidgets('a field scrolled out of sight still blocks the save', (
+      tester,
+    ) async {
+      await submitWithFirstNameOutOfSight(tester);
+
+      expect(find.text(AppStrings.memberFormCreateTitle), findsWidgets);
+      expect(find.text(AppStrings.memberFormRequiredField), findsOneWidget);
+    });
+
+    testWidgets('submitting reveals and focuses the first field in error', (
+      tester,
+    ) async {
+      await submitWithFirstNameOutOfSight(tester);
+
+      expect(fieldIsOnScreen(tester, 0), isTrue);
+      expect(fieldHasFocus(tester, 0), isTrue);
+    });
   });
 
   group('editing a member', () {
@@ -144,6 +269,24 @@ void main() {
       expect(find.text(seededMember.firstName), findsOneWidget);
       expect(find.text(seededMember.dni), findsOneWidget);
       expect(find.text(AppStrings.memberFormSaveEdition), findsOneWidget);
+    });
+
+    testWidgets('saving an edit returns to the roster with the change', (
+      tester,
+    ) async {
+      await openEditionForm(tester);
+
+      await tester.enterText(field(0), 'Anabela');
+      await tester.tap(find.text(AppStrings.memberFormSaveEdition));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.memberFormSaveEdition), findsNothing);
+      expect(
+        find.text('Anabela ${seededMember.lastName}'),
+        findsOneWidget,
+      );
+
+      await tester.pump(const Duration(seconds: 5));
     });
 
     testWidgets('the logical delete names the member before running', (
