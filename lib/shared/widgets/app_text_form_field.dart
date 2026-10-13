@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 class AppTextFormField extends StatelessWidget {
   final String hintText;
   final TextEditingController controller;
+  final FocusNode? focusNode;
   final IconData prefixIcon;
   final bool isPassword;
   final String? Function(String?)? validator;
@@ -17,11 +18,14 @@ class AppTextFormField extends StatelessWidget {
   final Iterable<String>? autofillHints;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onFieldSubmitted;
+  final TextCapitalization textCapitalization;
+  final AutovalidateMode? autovalidateMode;
 
   const AppTextFormField({
     super.key,
     required this.hintText,
     required this.controller,
+    this.focusNode,
     required this.prefixIcon,
     this.isPassword = false,
     this.validator,
@@ -32,12 +36,15 @@ class AppTextFormField extends StatelessWidget {
     this.autofillHints,
     this.textInputAction,
     this.onFieldSubmitted,
+    this.textCapitalization = TextCapitalization.none,
+    this.autovalidateMode,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       validator: validator,
       keyboardType: keyboardType,
       obscureText: obscureText,
@@ -45,6 +52,8 @@ class AppTextFormField extends StatelessWidget {
       autofillHints: autofillHints,
       textInputAction: textInputAction,
       onFieldSubmitted: onFieldSubmitted,
+      textCapitalization: textCapitalization,
+      autovalidateMode: autovalidateMode,
       style: Theme.of(context).textTheme.bodyLarge,
       decoration: InputDecoration(
         hintText: hintText,

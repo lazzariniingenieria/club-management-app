@@ -9,6 +9,8 @@ class Member extends Equatable {
   final String dni;
   final MemberStatus status;
   final int daysOverdue;
+  final String? phone;
+  final String? email;
 
   const Member({
     required this.id,
@@ -17,6 +19,8 @@ class Member extends Equatable {
     required this.dni,
     required this.status,
     required this.daysOverdue,
+    this.phone,
+    this.email,
   });
 
   String get fullName => '$firstName $lastName';
@@ -38,7 +42,7 @@ class Member extends Equatable {
 
   @override
   List<Object?> get props =>
-      [id, firstName, lastName, dni, status, daysOverdue];
+      [id, firstName, lastName, dni, status, daysOverdue, phone, email];
 }
 
 const Map<String, String> _accentFolding = {

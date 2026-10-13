@@ -22,8 +22,12 @@ import '../../features/members/data/datasources/member_fake_data_source.dart';
 import '../../features/members/data/datasources/member_remote_data_source.dart';
 import '../../features/members/data/repositories/member_repository_impl.dart';
 import '../../features/members/domain/repositories/member_repository.dart';
+import '../../features/members/domain/usecases/create_member_use_case.dart';
 import '../../features/members/domain/usecases/load_members_use_case.dart';
+import '../../features/members/domain/usecases/set_member_active_use_case.dart';
+import '../../features/members/domain/usecases/update_member_use_case.dart';
 import '../../features/members/presentation/cubit/admin_payments_cubit.dart';
+import '../../features/members/presentation/cubit/member_form_cubit.dart';
 import '../config/app_environment.dart';
 import '../logging/app_logger.dart';
 import '../network/api_client.dart';
@@ -122,6 +126,9 @@ void _registerMemberDomain() {
   );
 
   sl.registerLazySingleton(() => LoadMembersUseCase(sl()));
+  sl.registerLazySingleton(() => CreateMemberUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateMemberUseCase(sl()));
+  sl.registerLazySingleton(() => SetMemberActiveUseCase(sl()));
 }
 
 void _registerPresentation() {
@@ -138,4 +145,11 @@ void _registerPresentation() {
   sl.registerFactory(() => LoginCubit(sl()));
   sl.registerFactory(() => AdminHomeCubit(sl()));
   sl.registerFactory(() => AdminPaymentsCubit(sl()));
+  sl.registerFactory(
+    () => MemberFormCubit(
+      createMember: sl(),
+      updateMember: sl(),
+      setMemberActive: sl(),
+    ),
+  );
 }

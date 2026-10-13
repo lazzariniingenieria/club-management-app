@@ -4,6 +4,7 @@ import '../../../../core/errors/failure_mapper.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../domain/entities/member.dart';
+import '../../domain/entities/member_draft.dart';
 import '../../domain/repositories/member_repository.dart';
 import '../datasources/member_remote_data_source.dart';
 
@@ -16,11 +17,51 @@ class MemberRepositoryImpl implements MemberRepository {
   static const String _logContext = 'MemberRepository';
 
   @override
-  Future<Either<Failure, List<Member>>> loadMembers() async {
+  Future<Either<Failure, List<Member>>> loadMembers() {
+    return _guard(
+      'loadMembers',
+      () async => Right(await remoteDataSource.fetchMembers()),
+    );
+  }
+
+  @override
+  Future<Either<Failure, void>> createMember(MemberDraft draft) {
+    return _guard('createMember', () async {
+      await remoteDataSource.createMember(draft);
+
+      return const Right(null);
+    });
+  }
+
+  @override
+  Future<Either<Failure, void>> updateMember(int memberId, MemberDraft draft) {
+    return _guard('updateMember', () async {
+      await remoteDataSource.updateMember(memberId, draft);
+
+      return const Right(null);
+    });
+  }
+
+  @override
+  Future<Either<Failure, void>> setMemberActive(
+    int memberId, {
+    required bool isActive,
+  }) {
+    return _guard('setMemberActive', () async {
+      await remoteDataSource.setMemberActive(memberId, isActive: isActive);
+
+      return const Right(null);
+    });
+  }
+
+  Future<Either<Failure, T>> _guard<T>(
+    String operation,
+    Future<Either<Failure, T>> Function() run,
+  ) async {
     try {
-      return Right(await remoteDataSource.fetchMembers());
+      return await run();
     } catch (error) {
-      logger.error('loadMembers failed', context: _logContext, cause: error);
+      logger.error('$operation failed', context: _logContext, cause: error);
 
       return Left(failureFromException(error));
     }
