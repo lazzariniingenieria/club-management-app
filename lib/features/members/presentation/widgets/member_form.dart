@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/formatters/argentine_phone_layout.dart';
 import '../../../../shared/formatters/digit_layout_formatter.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
@@ -55,14 +56,16 @@ class _MemberFormState extends State<MemberForm> {
   void initState() {
     super.initState();
     final member = widget.member;
-    _initialDraft = member == null
+    final stored = member == null
         ? const MemberDraft(firstName: '', lastName: '', dni: '')
         : MemberDraft.fromMember(member);
 
     for (final field in MemberField.values) {
-      _controllers[field] = TextEditingController(text: _initialTextOf(field));
+      final text = _displayTextOf(field, _valueIn(stored, field));
+      _controllers[field] = TextEditingController(text: text);
       _focusNodes[field] = FocusNode()..addListener(() => _markTouched(field));
     }
+    _initialDraft = _draft;
     _controllers[MemberField.dni]!.addListener(_clearTakenDniError);
     _anyFieldEdited = Listenable.merge(_controllers.values.toList());
   }
@@ -78,20 +81,19 @@ class _MemberFormState extends State<MemberForm> {
     super.dispose();
   }
 
-  String _initialTextOf(MemberField field) {
-    final value = _initialValueOf(field);
+  static String _displayTextOf(MemberField field, String value) {
     final layout = _MemberFieldStyle.of(field).digitLayout;
 
     return layout == null ? value : layout(DigitLayouts.digitsOf(value));
   }
 
-  String _initialValueOf(MemberField field) {
+  static String _valueIn(MemberDraft draft, MemberField field) {
     return switch (field) {
-      MemberField.firstName => _initialDraft.firstName,
-      MemberField.lastName => _initialDraft.lastName,
-      MemberField.dni => _initialDraft.dni,
-      MemberField.phone => _initialDraft.phone,
-      MemberField.email => _initialDraft.email,
+      MemberField.firstName => draft.firstName,
+      MemberField.lastName => draft.lastName,
+      MemberField.dni => draft.dni,
+      MemberField.phone => draft.phone,
+      MemberField.email => draft.email,
     };
   }
 
@@ -329,7 +331,7 @@ class _MemberFieldStyle {
           icon: Icons.phone_outlined,
           keyboardType: TextInputType.phone,
           maxLength: MemberDraftRules.maxPhoneLength,
-          digitLayout: DigitLayouts.hyphenBeforeLastFour,
+          digitLayout: ArgentinePhoneLayout.format,
         ),
       MemberField.email => const _MemberFieldStyle(
           hintText: AppStrings.memberFormEmail,

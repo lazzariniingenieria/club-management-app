@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../helpers/app_test_harness.dart';
+import '../../../../helpers/member_roster_data_source.dart';
 
 void main() {
   final seededMember = MemberFakeDataSource.roster.first;
@@ -120,11 +121,11 @@ void main() {
       await openCreationForm(tester);
 
       await tester.enterText(field(2), '30111222');
-      await tester.enterText(field(3), '1155667788');
+      await tester.enterText(field(3), '3498462578');
       await tester.pump();
 
       expect(find.text('30.111.222'), findsOneWidget);
-      expect(find.text('115566-7788'), findsOneWidget);
+      expect(find.text('3498-462578'), findsOneWidget);
     });
 
     testWidgets('the dni shown with dots is saved as plain digits', (
@@ -293,6 +294,27 @@ void main() {
       expect(find.text(AppStrings.memberFormSaveEdition), findsOneWidget);
     });
 
+    testWidgets('a member stored with a formatted phone opens unchanged', (
+      tester,
+    ) async {
+      await bootApp(
+        tester,
+        signedInAs: UserRole.admin,
+        memberSource: MemberRosterDataSource([
+          buildMember(id: 1, phone: '+54 3498 46-2578'),
+        ]),
+      );
+      await openPaymentsTab(tester);
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.pumpAndSettle();
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.memberFormDiscardTitle), findsNothing);
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+    });
+
     testWidgets('saving an edit returns to the roster with the change', (
       tester,
     ) async {
@@ -361,6 +383,8 @@ void main() {
       await openCreationForm(tester);
       await tester.enterText(field(0), 'Ana');
       await tester.pumpAndSettle();
+
+      expect(fieldHasFocus(tester, 0), isTrue);
 
       await swipeFromTheEdge(tester);
 

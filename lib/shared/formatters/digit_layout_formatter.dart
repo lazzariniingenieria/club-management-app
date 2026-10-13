@@ -20,13 +20,6 @@ abstract final class DigitLayouts {
 
     return buffer.toString();
   }
-
-  static String hyphenBeforeLastFour(String digits) {
-    if (digits.length <= 4) return digits;
-    final split = digits.length - 4;
-
-    return '${digits.substring(0, split)}-${digits.substring(split)}';
-  }
 }
 
 class DigitLayoutFormatter extends TextInputFormatter {
@@ -75,10 +68,14 @@ class _DigitEdit {
     final onlyRemovedASeparator = after.text.length < before.text.length &&
         digits == DigitLayouts.digitsOf(before.text);
 
-    final removesDigitBehindSeparator = onlyRemovedASeparator && cursor > 0;
-    if (!removesDigitBehindSeparator) return _DigitEdit(digits, cursor);
+    if (!onlyRemovedASeparator) return _DigitEdit(digits, cursor);
 
-    return _DigitEdit(digits.replaceRange(cursor - 1, cursor, ''), cursor - 1);
+    final deletedForward = after.selection.end == before.selection.end;
+    final target = deletedForward ? cursor : cursor - 1;
+    final targetExists = target >= 0 && target < digits.length;
+    if (!targetExists) return _DigitEdit(digits, cursor);
+
+    return _DigitEdit(digits.replaceRange(target, target + 1, ''), target);
   }
 
   _DigitEdit limitedTo(int maxDigits) {

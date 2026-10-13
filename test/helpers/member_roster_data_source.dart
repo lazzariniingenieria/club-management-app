@@ -44,6 +44,7 @@ MemberModel buildMember({
   String? dni,
   MemberStatus status = MemberStatus.active,
   int daysOverdue = 0,
+  String? phone,
 }) {
   return MemberModel(
     id: id,
@@ -52,6 +53,7 @@ MemberModel buildMember({
     dni: dni ?? '${30000000 + id}',
     status: status,
     daysOverdue: daysOverdue,
+    phone: phone,
   );
 }
 

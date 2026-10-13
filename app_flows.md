@@ -414,7 +414,7 @@ Las dos primeras pantallas de escritura de la app. El contrato está en [backend
 
 **Teclado y formato**: `TextInputType.number` para DNI, `TextInputType.phone` para teléfono, `emailAddress` para email, capitalización de palabras en nombre y apellido. Un admin cargando socios de a diez no debería cambiar de teclado a mano.
 
-**Formato mientras se escribe**: el DNI se agrupa con puntos (`30.111.222`) y el teléfono lleva un guion antes de los últimos cuatro dígitos (`115566-7788`), solo para leerlos mejor. Los dos campos aceptan únicamente dígitos y **viajan a la API sin separadores**: el DNI tiene que coincidir con el de la base para que la búsqueda y el `409` de duplicado funcionen, y el teléfono se guarda con el mismo criterio.
+**Formato mientras se escribe**: el DNI se agrupa con puntos (`30.111.222`) y el teléfono lleva un guion después de la característica (`3498-462578`, `342-4123456`, `11-55667788`), solo para leerlos mejor. La característica se detecta con las reglas del plan de numeración que publica `libphonenumber`, porque su largo (2, 3 o 4 dígitos) no se deduce de los primeros dígitos solos: el guion aparece recién cuando la característica queda definida. Los dos campos aceptan únicamente dígitos y **viajan a la API sin separadores**: el DNI tiene que coincidir con el de la base para que la búsqueda y el `409` de duplicado funcionen, y el teléfono se guarda con el mismo criterio.
 
 **Errores del servidor**: el 409 de DNI duplicado se mapea al campo `dni` **por el status code**, nunca por el texto del mensaje, porque la API no expone un código de error estable ([backend_api.md](backend_api.md) §4). En este endpoint alcanza: el DNI es la única restricción que puede chocar. El resto de los campos conserva lo cargado.
 

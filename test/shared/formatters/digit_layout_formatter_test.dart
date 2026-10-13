@@ -12,12 +12,6 @@ void main() {
       expect(DigitLayouts.groupedByThousands('30111222'), '30.111.222');
     });
 
-    test('a phone gets its hyphen before the last four digits', () {
-      expect(DigitLayouts.hyphenBeforeLastFour('5566'), '5566');
-      expect(DigitLayouts.hyphenBeforeLastFour('55667'), '5-5667');
-      expect(DigitLayouts.hyphenBeforeLastFour('1155667788'), '115566-7788');
-    });
-
     test('only the digits survive', () {
       expect(DigitLayouts.digitsOf('DNI 30.111.222'), '30111222');
       expect(DigitLayouts.digitsOf('+54 11 5566-7788'), '541155667788');
@@ -67,6 +61,16 @@ void main() {
 
       expect(result.text, '3.111');
       expect(result.selection.baseOffset, 1);
+    });
+
+    test('a forward delete on a separator deletes the digit after it', () {
+      final result = dniFormatter.formatEditUpdate(
+        valueAt('30.111', 2),
+        valueAt('30111', 2),
+      );
+
+      expect(result.text, '3.011');
+      expect(result.selection.baseOffset, 3);
     });
 
     test('ignores digits beyond the limit', () {
