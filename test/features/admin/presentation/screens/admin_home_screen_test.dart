@@ -78,8 +78,23 @@ void main() {
   testWidgets('offers the quick access cards of the club', (tester) async {
     await pumpHome(tester, ScriptedSummaryDataSource([summary]));
 
-    expect(find.text(AppStrings.adminHomeMembersAccess), findsOneWidget);
-    expect(find.text(AppStrings.adminHomeCourtsAccess), findsOneWidget);
+    expect(find.text(AppStrings.adminHomeNewMemberAccess), findsOneWidget);
+    expect(
+      find.text(AppStrings.adminHomeRegisterPaymentAccess),
+      findsOneWidget,
+    );
+    expect(find.text('Gestión de canchas'), findsNothing);
+  });
+
+  testWidgets('registering a payment explains it is not available yet', (
+    tester,
+  ) async {
+    await pumpHome(tester, ScriptedSummaryDataSource([summary]));
+
+    await tester.tap(find.text(AppStrings.adminHomeRegisterPaymentAccess));
+    await tester.pump();
+
+    expect(find.text(AppStrings.comingSoonRegisterPayment), findsOneWidget);
   });
 
   testWidgets('shows the skeleton first and the counters after the call', (
@@ -137,6 +152,6 @@ void main() {
       ScriptedSummaryDataSource([NetworkException('offline')]),
     );
 
-    expect(find.text(AppStrings.adminHomeMembersAccess), findsOneWidget);
+    expect(find.text(AppStrings.adminHomeNewMemberAccess), findsOneWidget);
   });
 }

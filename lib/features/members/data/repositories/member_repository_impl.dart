@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/errors/failure_mapper.dart';
@@ -16,6 +18,11 @@ class MemberRepositoryImpl implements MemberRepository {
 
   static const String _logContext = 'MemberRepository';
 
+  final _rosterChanges = StreamController<void>.broadcast();
+
+  @override
+  Stream<void> get rosterChanges => _rosterChanges.stream;
+
   @override
   Future<Either<Failure, List<Member>>> loadMembers() {
     return _guard(
@@ -29,7 +36,7 @@ class MemberRepositoryImpl implements MemberRepository {
     return _guard('createMember', () async {
       await remoteDataSource.createMember(draft);
 
-      return const Right(null);
+      return _announceRosterChange();
     });
   }
 
@@ -38,7 +45,7 @@ class MemberRepositoryImpl implements MemberRepository {
     return _guard('updateMember', () async {
       await remoteDataSource.updateMember(memberId, draft);
 
-      return const Right(null);
+      return _announceRosterChange();
     });
   }
 
@@ -50,8 +57,14 @@ class MemberRepositoryImpl implements MemberRepository {
     return _guard('setMemberActive', () async {
       await remoteDataSource.setMemberActive(memberId, isActive: isActive);
 
-      return const Right(null);
+      return _announceRosterChange();
     });
+  }
+
+  Either<Failure, void> _announceRosterChange() {
+    _rosterChanges.add(null);
+
+    return const Right(null);
   }
 
   Future<Either<Failure, T>> _guard<T>(

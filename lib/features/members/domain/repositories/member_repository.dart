@@ -5,6 +5,8 @@ import '../entities/member.dart';
 import '../entities/member_draft.dart';
 
 abstract class MemberRepository {
+  Stream<void> get rosterChanges;
+
   Future<Either<Failure, List<Member>>> loadMembers();
 
   Future<Either<Failure, void>> createMember(MemberDraft draft);

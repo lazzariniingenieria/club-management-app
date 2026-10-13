@@ -106,7 +106,11 @@ Rutas push, fuera de los tabs:
 | `OverdueMembersCard` | "SOCIOS EN MORA" + contador | Card azul claro, contador en rojo | → tab **Pagos** con el chip **En mora** |
 | `UpcomingSlotsCard` **(E9, sin construir)** | "PRÓXIMOS TURNOS" + cancha / horario | Card azul claro, horario en azul a la derecha | → agenda |
 
-**Accesos Rápidos** — dos cards lado a lado: *Gestión de Socios* (navy) → tab **Pagos** con el chip **Todos**, *Gestión de Canchas* (verde) → `/admin/courts`.
+**Accesos Rápidos** — dos cards lado a lado, cada una una **acción**, no un destino que ya está en otro lado: *Nuevo socio* (navy) → alta de socio (`/admin/members/new`), *Registrar pago* (verde) → registro de pago, **dibujada en gris hasta E6** y, al tocarla, explica que se habilita en una próxima entrega.
+
+Las dos cards de la primera versión salieron: *Gestión de Socios* abría exactamente lo mismo que el card "Socios activos" (tres caminos al mismo listado en una pantalla), y *Gestión de Canchas* abría un "próximamente" — el mismo tab muerto que §3.2 decidió evitar, en forma de card. Canchas vuelve al Inicio con la agenda (E9).
+
+**Aviso de cobranza (E10, sin construir)**: "Tenés N socios marcados para cobrar" → chip **A cobrar**. Entra con el reporte, que es cuando el aviso tiene un destino útil; además obliga a sacar la selección del listado a un estado compartido entre tabs.
 
 **Cada card lleva a lo que su título dice.** Un card que anuncia "SOCIOS EN MORA" con un número y abre el listado completo sin filtrar rompe la expectativa de manipulación directa en la primera pantalla que ve el admin, y le enseña a no confiar en que tocar algo específico devuelva algo específico. No es una mejora posterior: el filtro de mora ya se construye para los chips de §3.2.2, así que el costo es pasar un parámetro de ruta.
 
@@ -168,23 +172,23 @@ Ordenados por entrega: primero los del admin.
 ### 4.1 Gestión de socios — listado, alta y edición
 
 ```
-Inicio ──[Socios activos    ⇒ chip Todos   ]──►
-       ──[Socios en mora     ⇒ chip En mora ]──►  tab Pagos
-       ──[Gestión de Socios  ⇒ chip Todos   ]──►
-                                         │
-                    ┌────────────────────┼────────────────────┐
-                    ▼                    ▼                    ▼
-              [FAB + ]             [lápiz fila]        [buscar / chips]
-                    │                    │
-              Alta de socio       Edición de socio
-                    └──────────┬─────────┘
-                               ▼
-                        Confirmar ──► Listado actualizado
+Inicio ──[Socios activos ⇒ chip Todos  ]──►
+       ──[Socios en mora ⇒ chip En mora]──►  tab Pagos
+       ──[Nuevo socio]──────┐                   │
+                            │        ┌──────────┼───────────────┐
+                            │        ▼          ▼               ▼
+                            │    [FAB + ]   [lápiz fila]  [buscar / chips]
+                            │        │          │
+                            └──► Alta de socio  Edición de socio
+                                     └────┬─────┘
+                                          ▼
+                                 Confirmar ──► Listado actualizado
 ```
 
 - La búsqueda y el filtrado hoy los resuelve el cliente sobre el padrón completo, porque la API devuelve la lista entera sin paginar ni filtrar. Sirve con los ~245 socios del club; cuando el backend exponga paginación, el listado pasa a "cargando más" al pie y el mapeo no cambia.
 - El DNI duplicado lo valida el backend y se muestra en el campo, no en un snackbar genérico (E5).
 - Al volver de un alta exitosa el listado refresca y hace scroll al socio creado.
+- El listado se recarga solo cuando el padrón cambia (alta, edición, baja o reactivación), venga el cambio de donde venga: un alta hecha desde el Inicio ya aparece al abrir Pagos, sin pull-to-refresh. La recarga conserva búsqueda, chip y selección.
 - Abandonar un formulario con cambios pide confirmación, también con el gesto de deslizar desde el borde en iOS. Sin cambios, el gesto vuelve directo. La búsqueda y el filtro sobreviven a la ida y vuelta.
 
 ### 4.2 Registrar un pago

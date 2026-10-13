@@ -1,18 +1,37 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure_messages.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/member.dart';
 import '../../domain/usecases/load_members_use_case.dart';
+import '../../domain/usecases/watch_roster_changes_use_case.dart';
 import 'admin_payments_state.dart';
 
 class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
   final LoadMembersUseCase _loadMembers;
+  late final StreamSubscription<void> _rosterChangesSubscription;
 
-  AdminPaymentsCubit(this._loadMembers) : super(const AdminPaymentsLoading());
+  AdminPaymentsCubit({
+    required LoadMembersUseCase loadMembers,
+    required WatchRosterChangesUseCase watchRosterChanges,
+  })  : _loadMembers = loadMembers,
+        super(const AdminPaymentsLoading()) {
+    _rosterChangesSubscription =
+        watchRosterChanges().listen((_) => _reloadChangedRoster());
+  }
 
   bool _isLoading = false;
+  bool _rosterChangedWhileLoading = false;
   int _failedAttempts = 0;
+
+  @override
+  Future<void> close() async {
+    await _rosterChangesSubscription.cancel();
+
+    return super.close();
+  }
 
   Future<void> load() async {
     if (_isLoading) return;
@@ -28,6 +47,14 @@ class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
     final AdminPaymentsState next = result.fold(_failureFrom, _readyFrom);
 
     emit(next);
+    if (_rosterChangedWhileLoading) await _reloadChangedRoster();
+  }
+
+  Future<void> _reloadChangedRoster() async {
+    _rosterChangedWhileLoading = _isLoading;
+    if (_isLoading) return;
+
+    await load();
   }
 
   void search(String query) {

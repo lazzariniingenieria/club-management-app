@@ -51,8 +51,8 @@ class AppStrings {
   static const String adminHomeSummaryErrorTitle =
       'No pudimos cargar el resumen del club';
   static const String adminHomeQuickAccessTitle = 'Accesos rápidos';
-  static const String adminHomeMembersAccess = 'Gestión de socios';
-  static const String adminHomeCourtsAccess = 'Gestión de canchas';
+  static const String adminHomeNewMemberAccess = 'Nuevo socio';
+  static const String adminHomeRegisterPaymentAccess = 'Registrar pago';
 
   static const String adminPaymentsTitle = 'Pagos';
   static const String adminPaymentsSearchHint =
@@ -122,6 +122,8 @@ class AppStrings {
 
   static const String comingSoonGenerateReport =
       'La generación del reporte se habilita en una próxima entrega.';
+  static const String comingSoonRegisterPayment =
+      'El registro de pagos se habilita en una próxima entrega.';
 
   static const String adminCourtsTitle = 'Canchas';
   static const String adminCourtsPending =
