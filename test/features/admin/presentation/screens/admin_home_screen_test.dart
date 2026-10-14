@@ -5,6 +5,7 @@ import 'package:club_management_app/features/admin/data/datasources/admin_summar
 import 'package:club_management_app/features/admin/data/datasources/admin_summary_remote_data_source.dart';
 import 'package:club_management_app/features/admin/data/models/admin_summary_model.dart';
 import 'package:club_management_app/features/admin/presentation/screens/admin_home_screen.dart';
+import 'package:club_management_app/features/admin/presentation/widgets/quick_access_card.dart';
 import 'package:club_management_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -86,15 +87,19 @@ void main() {
     expect(find.text('Gestión de canchas'), findsNothing);
   });
 
-  testWidgets('registering a payment explains it is not available yet', (
+  testWidgets('registering a payment is available from the home', (
     tester,
   ) async {
     await pumpHome(tester, ScriptedSummaryDataSource([summary]));
 
-    await tester.tap(find.text(AppStrings.adminHomeRegisterPaymentAccess));
-    await tester.pump();
+    final card = tester.widget<QuickAccessCard>(
+      find.ancestor(
+        of: find.text(AppStrings.adminHomeRegisterPaymentAccess),
+        matching: find.byType(QuickAccessCard),
+      ),
+    );
 
-    expect(find.text(AppStrings.comingSoonRegisterPayment), findsOneWidget);
+    expect(card.isEnabled, isTrue);
   });
 
   testWidgets('shows the skeleton first and the counters after the call', (

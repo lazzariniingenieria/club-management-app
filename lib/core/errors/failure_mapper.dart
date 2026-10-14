@@ -8,6 +8,8 @@ Failure failureFromException(Object error) {
     ValidationException() =>
       ValidationFailure(error.message ?? 'The request was rejected'),
     ConflictException() => ConflictFailure(error.message ?? 'Conflict'),
+    NotFoundException() =>
+      NotFoundFailure(error.message ?? 'The resource does not exist'),
     NetworkException() =>
       NetworkFailure(error.message ?? 'No internet connection'),
     ServerException() => ServerFailure(error.message ?? 'Server error'),

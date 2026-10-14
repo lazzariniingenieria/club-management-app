@@ -11,6 +11,8 @@ class MemberModel extends Member {
     required super.daysOverdue,
     super.phone,
     super.email,
+    super.familyGroupId,
+    super.joinedAt,
   });
 
   static const String _idKey = 'id';
@@ -20,6 +22,8 @@ class MemberModel extends Member {
   static const String _phoneKey = 'phone';
   static const String _emailKey = 'email';
   static const String _statusKey = 'status';
+  static const String _familyGroupIdKey = 'familyGroupId';
+  static const String _joinedAtKey = 'joinedAt';
   static const String _memberIdKey = 'memberId';
   static const String _daysOverdueKey = 'daysOverdue';
   static const String _activeStatus = 'ACTIVE';
@@ -63,8 +67,13 @@ class MemberModel extends Member {
       daysOverdue: daysOverdueByMemberId[id] ?? 0,
       phone: row[_phoneKey] as String?,
       email: row[_emailKey] as String?,
+      familyGroupId: (row[_familyGroupIdKey] as num?)?.toInt(),
+      joinedAt: _dayFrom(row[_joinedAtKey] as String?),
     );
   }
+
+  static DateTime? _dayFrom(String? isoDay) =>
+      isoDay == null ? null : DateTime.parse(isoDay);
 
   static Map<int, int> _daysOverdueByMemberId(List<dynamic> delinquency) {
     return {

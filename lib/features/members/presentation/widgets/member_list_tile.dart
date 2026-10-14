@@ -10,29 +10,60 @@ import 'member_status_badge.dart';
 
 class MemberListTile extends StatelessWidget {
   final Member member;
+  final VoidCallback onOpen;
   final VoidCallback onEdit;
 
-  const MemberListTile({super.key, required this.member, required this.onEdit});
+  const MemberListTile({
+    super.key,
+    required this.member,
+    required this.onOpen,
+    required this.onEdit,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.md,
-        AppSpacing.sm,
-        AppSpacing.md,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
+    return Material(
+      color: AppColors.surface,
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
         borderRadius: AppRadius.mdAll,
-        border: Border.all(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
       ),
       child: Row(
         children: [
-          Expanded(child: _MemberIdentity(member: member)),
-          _EditAction(onPressed: onEdit),
+          Expanded(child: _OpenLedgerArea(member: member, onOpen: onOpen)),
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.sm),
+            child: _EditAction(onPressed: onEdit),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _OpenLedgerArea extends StatelessWidget {
+  final Member member;
+  final VoidCallback onOpen;
+
+  const _OpenLedgerArea({required this.member, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      hint: AppStrings.memberOpenLedgerHint,
+      child: InkWell(
+        onTap: onOpen,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+          ),
+          child: _MemberIdentity(member: member),
+        ),
       ),
     );
   }

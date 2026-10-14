@@ -157,6 +157,7 @@ class _MemberList extends StatelessWidget {
   Widget _tileFor(BuildContext context, Member member) {
     return MemberListTile(
       member: member,
+      onOpen: () => context.push(AppRoutes.adminMemberLedger(member.id)),
       onEdit: () => context.push(
         AppRoutes.adminMemberEdition(member.id),
         extra: member,

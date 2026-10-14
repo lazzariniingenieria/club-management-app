@@ -32,3 +32,7 @@ class ValidationFailure extends Failure {
 class ConflictFailure extends Failure {
   const ConflictFailure([super.message = 'Conflicting data']);
 }
+
+class NotFoundFailure extends Failure {
+  const NotFoundFailure([super.message = 'The resource does not exist']);
+}

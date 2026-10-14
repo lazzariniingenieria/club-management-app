@@ -19,6 +19,7 @@ Exception apiExceptionFrom(
   if (_isConnectivityIssue(error)) {
     return NetworkException('Could not reach the server');
   }
+  if (statusCode == 404) return NotFoundException('Resource not found');
   if (statusCode == 409) return ConflictException('Conflicting data');
   if (statusCode == 400) return ValidationException('Request rejected');
 

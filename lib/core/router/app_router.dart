@@ -17,6 +17,10 @@ import '../../features/members/domain/entities/member.dart';
 import '../../features/members/domain/entities/member_collection_filter.dart';
 import '../../features/members/presentation/screens/admin_payments_screen.dart';
 import '../../features/members/presentation/screens/member_form_screen.dart';
+import '../../features/payments/domain/entities/payment_receipt.dart';
+import '../../features/payments/presentation/screens/member_ledger_screen.dart';
+import '../../features/payments/presentation/screens/payment_member_picker_screen.dart';
+import '../../features/payments/presentation/screens/register_payment_screen.dart';
 import '../constants/app_strings.dart';
 import 'app_routes.dart';
 import 'go_router_refresh_stream.dart';
@@ -122,6 +126,26 @@ class AppRouter {
           MemberFormScreen(member: state.extra as Member),
     ),
     GoRoute(
+      path: AppRoutes.adminPaymentMemberPicker,
+      builder: (context, state) => const PaymentMemberPickerScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.adminMemberLedgerPattern,
+      redirect: _requireMemberId,
+      builder: (context, state) => MemberLedgerScreen(
+        memberId: _memberIdOf(state)!,
+        receipt: state.extra is PaymentReceipt
+            ? state.extra as PaymentReceipt
+            : null,
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.adminPaymentRegistrationPattern,
+      redirect: _requireMemberId,
+      builder: (context, state) =>
+          RegisterPaymentScreen(memberId: _memberIdOf(state)!),
+    ),
+    GoRoute(
       path: AppRoutes.adminCourts,
       builder: (context, state) => const AdminPendingScreen(
         title: AppStrings.adminCourtsTitle,
@@ -138,4 +162,14 @@ class AppRouter {
       ),
     ),
   ];
+
+  static int? _memberIdOf(GoRouterState state) => int.tryParse(
+        state.pathParameters[AppRoutes.memberIdPathParameter] ?? '',
+      );
+
+  static String? _requireMemberId(
+    BuildContext context,
+    GoRouterState state,
+  ) =>
+      _memberIdOf(state) == null ? AppRoutes.adminPayments : null;
 }
