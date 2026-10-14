@@ -59,27 +59,20 @@ class AppStrings {
       'Buscar socio por nombre o DNI...';
   static const String adminPaymentsFilterAll = 'Todos';
   static const String adminPaymentsFilterOverdue = 'En mora';
-  static const String adminPaymentsFilterToCollect = 'A cobrar';
   static const String adminPaymentsErrorTitle =
       'No pudimos cargar el listado de socios';
   static const String adminPaymentsEmptyRoster =
       'Todavía no hay socios cargados en el club.';
   static const String adminPaymentsEmptyOverdue =
       'Ningún socio está en mora. Todas las cuotas están al día.';
-  static const String adminPaymentsEmptyToCollect =
-      'Todavía no marcaste socios para el reporte. Usá el ícono de documento '
-      'de cada fila para sumarlos.';
   static const String adminPaymentsEmptySearch =
       'Ningún socio coincide con la búsqueda.';
   static const String adminPaymentsClearSearch = 'Limpiar búsqueda';
-  static const String adminPaymentsGenerateReport = 'Generar reporte';
   static const String adminPaymentsCreateMember = 'Crear socio';
 
   static const String memberStatusActive = 'Activo';
   static const String memberStatusInactive = 'Inactivo';
   static const String memberEditAction = 'Editar socio';
-  static const String memberAddToReportAction = 'Agregar al reporte';
-  static const String memberRemoveFromReportAction = 'Quitar del reporte';
 
   static const String memberFormCreateTitle = 'Nuevo socio';
   static const String memberFormEditTitle = 'Editar socio';
@@ -120,8 +113,6 @@ class AppStrings {
   static String memberReactivateConfirmTitle(String fullName) =>
       '¿Reactivar a $fullName?';
 
-  static const String comingSoonGenerateReport =
-      'La generación del reporte se habilita en una próxima entrega.';
   static const String comingSoonRegisterPayment =
       'El registro de pagos se habilita en una próxima entrega.';
 

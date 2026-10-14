@@ -66,16 +66,6 @@ class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
 
   void clearSearch() => search('');
 
-  void toggleReportSelection(int memberId) {
-    final roster = _lastLoadedRoster;
-    if (roster == null) return;
-
-    final selection = Set<int>.from(roster.selectedMemberIds);
-    if (!selection.remove(memberId)) selection.add(memberId);
-
-    _emitRoster(roster.copyWith(selectedMemberIds: selection));
-  }
-
   AdminPaymentsReady? get _lastLoadedRoster {
     final current = state;
     if (current is AdminPaymentsReady) return current;
@@ -101,14 +91,9 @@ class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
   }
 
   AdminPaymentsReady _readyFrom(List<Member> members) {
-    final previous = _lastLoadedRoster;
-    final knownIds = members.map((member) => member.id).toSet();
-
     return AdminPaymentsReady(
       members: _sortedByName(members),
-      selectedMemberIds:
-          previous?.selectedMemberIds.intersection(knownIds) ?? const {},
-      searchQuery: previous?.searchQuery ?? '',
+      searchQuery: _lastLoadedRoster?.searchQuery ?? '',
     );
   }
 

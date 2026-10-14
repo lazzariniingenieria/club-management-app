@@ -10,17 +10,9 @@ import 'member_status_badge.dart';
 
 class MemberListTile extends StatelessWidget {
   final Member member;
-  final bool isSelectedForReport;
   final VoidCallback onEdit;
-  final VoidCallback onToggleReport;
 
-  const MemberListTile({
-    super.key,
-    required this.member,
-    required this.isSelectedForReport,
-    required this.onEdit,
-    required this.onToggleReport,
-  });
+  const MemberListTile({super.key, required this.member, required this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -40,10 +32,6 @@ class MemberListTile extends StatelessWidget {
         children: [
           Expanded(child: _MemberIdentity(member: member)),
           _EditAction(onPressed: onEdit),
-          _ReportAction(
-            isSelected: isSelectedForReport,
-            onPressed: onToggleReport,
-          ),
         ],
       ),
     );
@@ -81,27 +69,6 @@ class _EditAction extends StatelessWidget {
       onPressed: onPressed,
       tooltip: AppStrings.memberEditAction,
       icon: const Icon(Icons.edit_outlined, color: AppColors.textSecondary),
-    );
-  }
-}
-
-class _ReportAction extends StatelessWidget {
-  final bool isSelected;
-  final VoidCallback onPressed;
-
-  const _ReportAction({required this.isSelected, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onPressed,
-      tooltip: isSelected
-          ? AppStrings.memberRemoveFromReportAction
-          : AppStrings.memberAddToReportAction,
-      icon: Icon(
-        isSelected ? Icons.description_rounded : Icons.description_outlined,
-        color: isSelected ? AppColors.accentBlue : AppColors.brandNavy,
-      ),
     );
   }
 }

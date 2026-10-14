@@ -148,7 +148,6 @@ String _labelFor(MemberCollectionFilter filter) {
   return switch (filter) {
     MemberCollectionFilter.all => AppStrings.adminPaymentsFilterAll,
     MemberCollectionFilter.overdue => AppStrings.adminPaymentsFilterOverdue,
-    MemberCollectionFilter.toCollect => AppStrings.adminPaymentsFilterToCollect,
   };
 }
 

@@ -16,43 +16,31 @@ class AdminPaymentsLoading extends AdminPaymentsState {
 
 class AdminPaymentsReady extends AdminPaymentsState {
   final List<Member> members;
-  final Set<int> selectedMemberIds;
   final String searchQuery;
 
-  const AdminPaymentsReady({
-    required this.members,
-    this.selectedMemberIds = const {},
-    this.searchQuery = '',
-  });
+  const AdminPaymentsReady({required this.members, this.searchQuery = ''});
 
-  int countFor(MemberCollectionFilter filter) => members
-      .where((member) => filter.matches(member, selectedMemberIds))
-      .length;
+  int countFor(MemberCollectionFilter filter) =>
+      members.where(filter.matches).length;
 
   List<Member> visibleMembers(MemberCollectionFilter filter) {
     return members
-        .where((member) => filter.matches(member, selectedMemberIds))
+        .where(filter.matches)
         .where((member) => member.matches(searchQuery))
         .toList();
   }
 
-  bool isSelected(Member member) => selectedMemberIds.contains(member.id);
-
   bool get hasSearchQuery => searchQuery.trim().isNotEmpty;
 
-  AdminPaymentsReady copyWith({
-    Set<int>? selectedMemberIds,
-    String? searchQuery,
-  }) {
+  AdminPaymentsReady copyWith({String? searchQuery}) {
     return AdminPaymentsReady(
       members: members,
-      selectedMemberIds: selectedMemberIds ?? this.selectedMemberIds,
       searchQuery: searchQuery ?? this.searchQuery,
     );
   }
 
   @override
-  List<Object?> get props => [members, selectedMemberIds, searchQuery];
+  List<Object?> get props => [members, searchQuery];
 }
 
 class AdminPaymentsFailure extends AdminPaymentsState {

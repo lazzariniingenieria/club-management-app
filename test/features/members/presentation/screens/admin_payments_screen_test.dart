@@ -63,14 +63,26 @@ void main() {
       expect(find.text(AppStrings.memberStatusInactive), findsOneWidget);
     });
 
-    testWidgets('opens on the three filter chips with their counters', (
+    testWidgets('opens on the two filter chips with their counters', (
       tester,
     ) async {
       await bootPayments(tester);
 
       expect(chip(AppStrings.adminPaymentsFilterAll, 3), findsOneWidget);
       expect(chip(AppStrings.adminPaymentsFilterOverdue, 1), findsOneWidget);
-      expect(chip(AppStrings.adminPaymentsFilterToCollect, 0), findsOneWidget);
+      expect(find.byType(ChoiceChip), findsNWidgets(2));
+    });
+
+    testWidgets('a row offers editing and nothing else', (tester) async {
+      await bootPayments(tester, members: [roster[1]]);
+
+      expect(
+        find.descendant(
+          of: find.byType(MemberListTile),
+          matching: find.byType(IconButton),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('orders the rows by last name ignoring accents', (
@@ -106,60 +118,6 @@ void main() {
       await tapChip(tester, AppStrings.adminPaymentsFilterOverdue, 0);
 
       expect(find.text(AppStrings.adminPaymentsEmptyOverdue), findsOneWidget);
-    });
-
-    testWidgets('a cobrar starts empty and explains how to fill it', (
-      tester,
-    ) async {
-      await bootPayments(tester);
-
-      await tapChip(tester, AppStrings.adminPaymentsFilterToCollect, 0);
-
-      expect(find.text(AppStrings.adminPaymentsEmptyToCollect), findsOneWidget);
-      expect(find.byType(MemberListTile), findsNothing);
-    });
-  });
-
-  group('report selection', () {
-    testWidgets('the row action moves the member into a cobrar', (
-      tester,
-    ) async {
-      await bootPayments(tester);
-
-      await tester.tap(find.byIcon(Icons.description_outlined).first);
-      await settleSession(tester);
-
-      expect(chip(AppStrings.adminPaymentsFilterToCollect, 1), findsOneWidget);
-      expect(find.byIcon(Icons.description_rounded), findsOneWidget);
-    });
-
-    testWidgets('a cobrar lists what the admin marked and offers the report', (
-      tester,
-    ) async {
-      await bootPayments(tester);
-
-      await tester.tap(find.byIcon(Icons.description_outlined).first);
-      await settleSession(tester);
-      await tapChip(tester, AppStrings.adminPaymentsFilterToCollect, 1);
-
-      expect(find.byType(MemberListTile), findsOneWidget);
-      expect(find.text('Ana Álvarez'), findsOneWidget);
-      expect(
-        find.text(
-            AppStrings.withCount(AppStrings.adminPaymentsGenerateReport, 1)),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('the selection survives switching chips', (tester) async {
-      await bootPayments(tester);
-
-      await tester.tap(find.byIcon(Icons.description_outlined).first);
-      await settleSession(tester);
-      await tapChip(tester, AppStrings.adminPaymentsFilterOverdue, 1);
-      await tapChip(tester, AppStrings.adminPaymentsFilterAll, 3);
-
-      expect(chip(AppStrings.adminPaymentsFilterToCollect, 1), findsOneWidget);
     });
   });
 
@@ -234,22 +192,6 @@ void main() {
     });
   });
 
-  group('actions still pending', () {
-    testWidgets('generating the report announces the next delivery', (
-      tester,
-    ) async {
-      await bootPayments(tester);
-
-      await tester.tap(find.byIcon(Icons.description_outlined).first);
-      await settleSession(tester);
-      await tapChip(tester, AppStrings.adminPaymentsFilterToCollect, 1);
-      await tester.tap(find.byType(ElevatedButton));
-      await settleSession(tester);
-
-      expect(find.text(AppStrings.comingSoonGenerateReport), findsOneWidget);
-    });
-  });
-
   group('the filter row', () {
     testWidgets('labels the selected chip in white, not in grey on navy', (
       tester,
@@ -312,24 +254,15 @@ void main() {
     });
   });
 
-  group('the create button yields to the report bar', () {
-    testWidgets('it is there while there is nothing to report', (tester) async {
+  group('the create button', () {
+    testWidgets('stays on screen on every chip', (tester) async {
       await bootPayments(tester);
 
       expect(find.byType(FloatingActionButton), findsOneWidget);
-    });
 
-    testWidgets('it steps aside so it cannot sit on the report button', (
-      tester,
-    ) async {
-      await bootPayments(tester);
+      await tapChip(tester, AppStrings.adminPaymentsFilterOverdue, 1);
 
-      await tester.tap(find.byIcon(Icons.description_outlined).first);
-      await settleSession(tester);
-      await tapChip(tester, AppStrings.adminPaymentsFilterToCollect, 1);
-
-      expect(find.byType(ElevatedButton), findsOneWidget);
-      expect(find.byType(FloatingActionButton), findsNothing);
+      expect(find.byType(FloatingActionButton), findsOneWidget);
     });
 
     testWidgets('it clears the last row once the list is scrolled home', (
@@ -362,15 +295,12 @@ void main() {
       );
       await openPaymentsTab(tester);
 
-      await tester.tap(find.byIcon(Icons.description_outlined).first);
-      await settleSession(tester);
-
       source.failsNext = true;
       await tester.fling(find.byType(ListView), const Offset(0, 400), 1000);
       await tester.pumpAndSettle();
 
       expect(find.byType(MemberListTile), findsNWidgets(3));
-      expect(chip(AppStrings.adminPaymentsFilterToCollect, 1), findsOneWidget);
+      expect(chip(AppStrings.adminPaymentsFilterAll, 3), findsOneWidget);
       expect(find.text(AppStrings.loginNetworkError), findsOneWidget);
     });
 
@@ -389,10 +319,10 @@ void main() {
       await tester.fling(find.byType(ListView), const Offset(0, 400), 1000);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.description_outlined).first);
+      await tester.tap(find.byIcon(Icons.edit_outlined).first);
       await tester.pumpAndSettle();
 
-      expect(chip(AppStrings.adminPaymentsFilterToCollect, 1), findsOneWidget);
+      expect(find.text(AppStrings.memberFormEditTitle), findsWidgets);
     });
   });
 

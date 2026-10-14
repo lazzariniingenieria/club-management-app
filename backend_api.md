@@ -308,14 +308,13 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Contadores por estado para los chips del listado | E4 |
 | Cargar el último mes pagado en el alta de socio | E6 — el socio recién creado nace en mora desde el 1° del mes (§7) |
 | `code` estable y `fieldErrors` en el envelope de error | Mapear un error al campo del formulario (E5, E8) |
-| `GET /api/payments` con filtro por estado y por socio | E6 — hoy solo hay historial por socio |
+| `GET /api/payments` con todos los pagos del club en un rango de fechas | E10 — el PDF de pagos por período lo arma la app con este listado; hoy solo hay historial de a un socio |
 | Anulación o corrección de un pago | E6 — un pago mal cargado no se deshace por API |
 | Monto de referencia de la cuota del club | E6 — el importe lo tipea el admin en cada pago |
 | Días de gracia configurables | El umbral de "en mora" |
 | Cambio de contraseña del usuario logueado | E7 |
 | Reset de contraseña de un tercero por un ADMIN / SUPER_ADMIN | E11 |
 | Flag de "debe cambiar la contraseña en el próximo ingreso" | Primer ingreso (E11) |
-| Endpoint de reporte de pagos (formato, binario o URL) | E10 |
 | `court`, `court_block`, `recurring_slot`, `reservation` — ni tabla, ni endpoint | **E9 completa**, y "Próximos turnos" del Inicio |
 | Cualquier endpoint que acepte un token `MEMBER` (§4) | **E12+ completa** |
 | `POST /api/auth/logout` con revocación | Nada: el logout es local, y el refresh descartado vence solo |

@@ -38,31 +38,28 @@ void main() {
         MemberCollectionFilter.all,
       );
     });
+
+    test('a link to the retired a cobrar chip opens every member', () {
+      expect(
+        MemberCollectionFilter.fromQueryValue('to-collect'),
+        MemberCollectionFilter.all,
+      );
+    });
   });
 
   group('matching', () {
     test('all keeps active and inactive members alike', () {
       const filter = MemberCollectionFilter.all;
 
-      expect(filter.matches(buildMember(), const {}), isTrue);
-      expect(
-        filter.matches(buildMember(status: MemberStatus.inactive), const {}),
-        isTrue,
-      );
+      expect(filter.matches(buildMember()), isTrue);
+      expect(filter.matches(buildMember(status: MemberStatus.inactive)), isTrue);
     });
 
     test('overdue keeps only members behind on the fee', () {
       const filter = MemberCollectionFilter.overdue;
 
-      expect(filter.matches(buildMember(daysOverdue: 12), const {}), isTrue);
-      expect(filter.matches(buildMember(), const {}), isFalse);
-    });
-
-    test('toCollect keeps only the members marked for the report', () {
-      const filter = MemberCollectionFilter.toCollect;
-
-      expect(filter.matches(buildMember(id: 7), const {7}), isTrue);
-      expect(filter.matches(buildMember(id: 8), const {7}), isFalse);
+      expect(filter.matches(buildMember(daysOverdue: 12)), isTrue);
+      expect(filter.matches(buildMember()), isFalse);
     });
   });
 }

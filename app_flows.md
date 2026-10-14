@@ -78,7 +78,7 @@ Bottom navigation navy, 3 items con ícono **y** etiqueta. Badge `RoleBadge` ("A
 | Tab | Ruta | Contenido |
 | :--- | :--- | :--- |
 | **Inicio** | `/admin` | Resumen General + Accesos Rápidos (§3.2.1) |
-| **Pagos** | `/admin/payments` | Listado de socios con buscador y chips Todos / En mora / A cobrar (§3.2.2) |
+| **Pagos** | `/admin/payments` | Listado de socios con buscador y chips Todos / En mora (§3.2.2) |
 | **Perfil** | `/admin/profile` | Datos, cambiar contraseña, logout, y acceso a Administradores si `canManageAdmins` |
 
 **Reservas entra como cuarto tab recién en E9**, cuando la agenda exista. Un tab que no hace nada, tocado varias veces por semana durante varios sprints, se lee como app rota, no como app simple: el costo de que la barra cambie de forma una vez es menor que el de sostener un tab muerto. Hasta entonces la agenda no tiene presencia en ninguna superficie: el `UpcomingSlotsCard` de §3.2.1 se diseñó y quedó **sin construir**, porque un card que no puede mostrar ni un turno real es un hueco anunciado, no una pista útil. Entra con la agenda.
@@ -106,26 +106,23 @@ Rutas push, fuera de los tabs:
 | `OverdueMembersCard` | "SOCIOS EN MORA" + contador | Card azul claro, contador en rojo | → tab **Pagos** con el chip **En mora** |
 | `UpcomingSlotsCard` **(E9, sin construir)** | "PRÓXIMOS TURNOS" + cancha / horario | Card azul claro, horario en azul a la derecha | → agenda |
 
-**Accesos Rápidos** — dos cards lado a lado, cada una una **acción**, no un destino que ya está en otro lado: *Nuevo socio* (navy) → alta de socio (`/admin/members/new`), *Registrar pago* (verde) → registro de pago, **dibujada en gris hasta E6** y, al tocarla, explica que se habilita en una próxima entrega.
+**Accesos Rápidos** — dos cards lado a lado, cada una una **acción**, no un destino que ya está en otro lado: *Nuevo socio* (navy) → alta de socio (`/admin/members/new`), *Registrar pago* (verde) → elegir socio → registro de pago (§4.2), **dibujada en gris hasta E6** y, al tocarla, explica que se habilita en una próxima entrega.
 
 Las dos cards de la primera versión salieron: *Gestión de Socios* abría exactamente lo mismo que el card "Socios activos" (tres caminos al mismo listado en una pantalla), y *Gestión de Canchas* abría un "próximamente" — el mismo tab muerto que §3.2 decidió evitar, en forma de card. Canchas vuelve al Inicio con la agenda (E9).
-
-**Aviso de cobranza (E10, sin construir)**: "Tenés N socios marcados para cobrar" → chip **A cobrar**. Entra con el reporte, que es cuando el aviso tiene un destino útil; además obliga a sacar la selección del listado a un estado compartido entre tabs.
 
 **Cada card lleva a lo que su título dice.** Un card que anuncia "SOCIOS EN MORA" con un número y abre el listado completo sin filtrar rompe la expectativa de manipulación directa en la primera pantalla que ve el admin, y le enseña a no confiar en que tocar algo específico devuelva algo específico. No es una mejora posterior: el filtro de mora ya se construye para los chips de §3.2.2, así que el costo es pasar un parámetro de ruta.
 
 El filtro viaja como query param (`/admin/payments?filter=overdue`), no como estado global ni como estado interno del listado: así el listado es enlazable y, sobre todo, cada card vuelve a imponer *su* filtro. Si el chip activo viviera solo en el Cubit, un admin que cambió de chip a mano y después tocara "Socios activos" se encontraría con el filtro anterior, porque la URL del branch no habría cambiado y no habría nada que avisara al listado.
 
-Los tres contadores de los chips (§3.2.2) salen del mismo listado que ya está en memoria, así que cambiar de chip no vuelve a pegarle a la API.
+Los contadores de los chips (§3.2.2) salen del mismo listado que ya está en memoria, así que cambiar de chip no vuelve a pegarle a la API.
 
 #### 3.2.2 Pagos — listado de socios y cobranza
 
 1. **Header**: "Pagos" + `RoleBadge`.
 2. **Buscador**: placeholder "Buscar socio por nombre o DNI...". Lo resuelve el cliente sobre el padrón ya cargado, porque la API no expone búsqueda; ignora mayúsculas y acentos, así que "alvarez" encuentra a "Álvarez".
-3. **Filtros**: tres chips con contador — "Todos (n)", "En mora (n)", "A cobrar (n)". Seleccionado en navy sólido.
-4. **Listado**: `ListView.builder` de `MemberListTile`, ordenado por apellido. Cada fila: nombre, badge **Activo / Inactivo**, acción **lápiz** → edición, acción **documento** → agrega o quita del reporte, con estado visual propio.
-5. **Botón "Generar reporte (n)"** al pie, visible solo con el chip "A cobrar" seleccionado y una selección no vacía.
-6. **FAB azul, abajo derecha**: crear socio. Es el único FAB de la pantalla.
+3. **Filtros**: dos chips con contador — "Todos (n)" y "En mora (n)". Seleccionado en navy sólido.
+4. **Listado**: `ListView.builder` de `MemberListTile`, ordenado por apellido. Cada fila: nombre, badge **Activo / Inactivo** y acción **lápiz** → edición.
+5. **FAB azul, abajo derecha**: crear socio. Es el único FAB de la pantalla.
 
 **Qué filtra cada chip**:
 
@@ -133,11 +130,8 @@ Los tres contadores de los chips (§3.2.2) salen del mismo listado que ya está 
 | :--- | :--- |
 | **Todos** | Todo el padrón, activos e inactivos |
 | **En mora** | Socios con la cuota vencida (`daysOverdue > 0`) |
-| **A cobrar** | Los socios que el admin fue marcando con el ícono de documento, y que alimentan el reporte |
 
-**"A cobrar" no es un filtro de estado, es una canasta.** Los otros dos chips se llenan solos con lo que devuelve la API; este se llena a mano, fila por fila. Reemplaza al botón flotante con badge que las capturas tenían abajo a la izquierda: dos FABs en la misma pantalla diluyen cuál es la acción primaria, y el reporte no es una acción de creación sino un estado acumulado — que es exactamente lo que un chip con contador comunica. Así queda un solo FAB real, crear socio.
-
-**La selección vive mientras la app esté abierta.** Sobrevive a cambiar de chip, a buscar, a ir al Inicio y volver, y a un pull-to-refresh — donde un socio que ya no está en el padrón se cae de la selección en lugar de quedar colgado. No se persiste en el dispositivo: el reporte cierra una jornada de cobranza, no es un estado de largo plazo.
+**Sin chip "A cobrar".** E4 lo construyó como una canasta de socios marcados a mano con un ícono de documento en cada fila, para alimentar el reporte. Se quitó en E6, cuando el reporte se redefinió como un PDF de los pagos registrados en un período (§4.6): ese reporte no sale de una selección de socios, así que la canasta, la marca de cada fila y el botón "Generar reporte" del pie quedaron sin uso. La fila queda con una sola acción.
 
 **El badge de la fila muestra un solo eje: Activo / Inactivo.**
 
@@ -148,9 +142,9 @@ Los tres contadores de los chips (§3.2.2) salen del mismo listado que ya está 
 
 Los dos ejes de estado siguen siendo independientes en el dominio (§9): `activo/inactivo` dice si sigue siendo socio, `al día/en mora` dice si la cuota está paga, y un socio puede estar activo y en mora a la vez. Lo que cambió es cómo se muestran: la mora se consulta entrando al chip "En mora", no leyendo fila por fila. **Consecuencia asumida**: en "Todos" no se distingue a simple vista quién debe. Si molesta en uso real, el badge combinado ("Activo · En mora") ya está diseñado y es un cambio de una sola función.
 
-**Cuatro vacíos distintos, no uno** (§5): padrón sin socios, "ningún socio está en mora", "todavía no marcaste socios para el reporte" y búsqueda sin resultados con acción "Limpiar búsqueda". El tercero es el que más trabaja: es donde el admin descubre cómo se arma el reporte.
+**Tres vacíos distintos, no uno** (§5): padrón sin socios, "ningún socio está en mora" y búsqueda sin resultados con acción "Limpiar búsqueda".
 
-**Acciones todavía deshabilitadas**: el FAB de alta (E5), el lápiz de edición (E5) y el botón de reporte (E10) se dibujan en gris y, al tocarlos, explican en qué entrega se habilitan. Dibujarlos apagados en vez de ocultarlos deja la pantalla con su forma definitiva y evita que las filas y el pie cambien de layout en cada entrega.
+**Acciones todavía no disponibles**: se dibujan en gris y, al tocarlas, explican en qué entrega se habilitan, en lugar de ocultarse. Así la pantalla tiene su forma definitiva y las filas no cambian de layout en cada entrega. Así se hizo con el FAB de alta y el lápiz hasta E5.
 
 ### 3.3 Shell del Socio
 
@@ -188,14 +182,23 @@ Inicio ──[Socios activos ⇒ chip Todos  ]──►
 - La búsqueda y el filtrado hoy los resuelve el cliente sobre el padrón completo, porque la API devuelve la lista entera sin paginar ni filtrar. Sirve con los ~245 socios del club; cuando el backend exponga paginación, el listado pasa a "cargando más" al pie y el mapeo no cambia.
 - El DNI duplicado lo valida el backend y se muestra en el campo, no en un snackbar genérico (E5).
 - Al volver de un alta exitosa el listado refresca y hace scroll al socio creado.
-- El listado se recarga solo cuando el padrón cambia (alta, edición, baja o reactivación), venga el cambio de donde venga: un alta hecha desde el Inicio ya aparece al abrir Pagos, sin pull-to-refresh. La recarga conserva búsqueda, chip y selección.
+- El listado se recarga solo cuando el padrón cambia (alta, edición, baja o reactivación), venga el cambio de donde venga: un alta hecha desde el Inicio ya aparece al abrir Pagos, sin pull-to-refresh. La recarga conserva búsqueda y chip.
 - Abandonar un formulario con cambios pide confirmación, también con el gesto de deslizar desde el borde en iOS. Sin cambios, el gesto vuelve directo. La búsqueda y el filtro sobreviven a la ida y vuelta.
 
 ### 4.2 Registrar un pago
 
-`Pagos → filtro "vencidas" → socio → Registrar pago → Confirmar → Listado actualizado`
+Dos entradas: la card **Registrar pago** del Inicio (primero se elige el socio) y el socio desde el tab Pagos.
 
-Impacta en dinero: confirmación con resumen (socio, período, monto, medio) antes de escribir.
+`Socio → meses → importe por mes → medio → quién pagó → Confirmar → Listado actualizado`
+
+- **Uno o varios meses** en el mismo pago, sin repetir.
+- **El importe es por mes**: la app muestra el total (importe × meses) mientras se carga y en la confirmación, porque pagar dos meses a 15 000 registra 30 000 ([backend_api.md](backend_api.md) §6).
+- **Medio de pago**: Efectivo, Transferencia u Otro.
+- **Quién pagó**: el propio socio por defecto, u otro integrante de su grupo familiar. Si el socio no tiene grupo, la opción no aparece.
+- **Impacta en dinero y no se puede deshacer** (la API no anula pagos): confirmación con resumen (socio, meses, importe por mes, total, medio, quién pagó) antes de escribir.
+- Después del pago, Pagos y los contadores de mora se actualizan solos.
+
+Pantallas, entrada desde la fila y detalle de cuotas del socio: pendientes del diseño de E6.
 
 ### 4.3 ABM de administradores (solo superAdmin)
 
@@ -222,9 +225,9 @@ Si el bloqueo pisa reservas existentes, la confirmación **debe listar las reser
 
 ### 4.6 Reporte de pagos
 
-`Pagos → [ícono documento en n filas] → chip "A cobrar" → Generar reporte`
+`Generar reporte → período (un mes o un rango de fechas) → PDF`
 
-La selección vive en el estado del listado y se envía recién al pedir el reporte, que lo genera el backend. Un error de generación **no** borra la selección: si un error pierde 20 socios elegidos a mano, el admin no vuelve a usar la función.
+Un PDF con **todos los pagos registrados en el período**: fecha, socio, mes cubierto, importe, medio y quién pagó, con el total al pie. Lo arma la app con el listado de pagos del período, que el backend todavía no expone ([backend_api.md](backend_api.md) §10). La entrada al reporte se define con el diseño de E10.
 
 ---
 
@@ -241,7 +244,7 @@ Toda pantalla con datos remotos maneja estos casos. No se agregan "después".
 | **Sin conexión** | Mensaje propio. La conectividad dentro del predio es un caso real. |
 | **Cargando más** | En listados paginados: indicador al pie, sin tapar lo ya cargado. |
 
-**Cuatro vacíos distintos en el listado de socios**, error clásico tratarlos igual: padrón sin socios, ningún socio en mora (que es una buena noticia, no un error), reporte sin marcar (que tiene que explicar cómo se marca) y búsqueda sin resultados → "Limpiar búsqueda".
+**Tres vacíos distintos en el listado de socios**, error clásico tratarlos igual: padrón sin socios, ningún socio en mora (que es una buena noticia, no un error) y búsqueda sin resultados → "Limpiar búsqueda".
 
 **Consecuencia técnica**: un `AsyncStateBuilder` compartido en `shared/widgets/` que reciba el estado del Cubit y los builders de cada caso, para no reimplementar el árbol de estados por pantalla.
 
@@ -342,11 +345,11 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E3 | Inicio del Administrador | — | ✅ Entregada |
 | E4 | Pagos: padrón de socios, búsqueda, chips y selección para el reporte | — | ✅ Entregada |
 | E5 | Alta y edición de socio | No bloquea | ✅ Entregada — sin el scroll al socio recién creado (§4.1) |
-| E6 | Registrar un pago y detalle de cuotas, sobre el listado de E4 | **Sí** | — |
+| E6 | Registrar un pago y detalle de cuotas, sobre el listado de E4 | No bloquea | 🚧 En curso |
 | E7 | Perfil del admin + cambiar contraseña + logout | **Sí** | — |
 | E8 | ABM de administradores (superAdmin) | No bloquea | — |
 | E9 | Agenda / Reservas + canchas + bloqueos | **Bloqueada** | — |
-| E10 | Reporte de pagos | **Bloqueada** | — |
+| E10 | Reporte de pagos en PDF, por período | **Bloqueada** | — |
 | E11 | Recuperar contraseña (informativa) + primer ingreso | **Sí** | — |
 | E12+ | Superficie del socio completa | **Bloqueada** | — |
 
@@ -403,6 +406,7 @@ El listado de socios deja de ser una pantalla aparte y pasa a ser **el contenido
 - **Sin endpoint nuevo**: el padrón se arma con `GET /api/members` y `GET /api/payments/delinquency` en paralelo, las mismas dos llamadas que ya usa el Inicio. Búsqueda, filtrado y orden se resuelven en el cliente porque la API no los expone.
 - Fake data source con 40 socios (34 activos, 6 inactivos, 5 en mora), chico a propósito para poder recorrerlo de punta a punta mientras se desarrolla. **El fake del Inicio deriva sus contadores de ese mismo padrón**, así que los dos números del mismo concepto no pueden contradecirse ni aunque alguien toque el generador; un test lo fija.
 - Alta, edición y generación del reporte quedan **dibujadas y deshabilitadas**, con aviso de en qué entrega se habilitan.
+- *(E6 quitó el chip "A cobrar", la marca de cada fila y el botón de reporte — §3.2.2.)*
 
 **Terminado cuando**: las tres entradas del Inicio abren Pagos con el chip correcto, la búsqueda ignora acentos, la selección de "A cobrar" sobrevive a cambiar de chip y a un refresh, los cuatro vacíos se explican, y la pantalla renderiza sin overflow a 130% y 200% de escala de texto.
 
@@ -424,7 +428,7 @@ Las dos primeras pantallas de escritura de la app. El contrato está en [backend
 
 **Terminado cuando**: alta y edición funcionan contra fakes y contra la API, el DNI duplicado se muestra en el campo, abandonar con cambios pide confirmación, y hay tests de widget de la validación y unitarios del mapeo DTO ↔ dominio.
 
-El orden E4 → E5 → E10 es intencional: listado antes de escrituras, y el reporte al final porque depende del listado y de un contrato todavía abierto.
+El orden E4 → E5 → E6 → E10 es intencional: listado antes de escrituras, y el reporte al final porque lista los pagos que E6 registra y depende de un endpoint que el backend todavía no tiene.
 
 ---
 
