@@ -8,6 +8,7 @@ import 'package:club_management_app/features/members/data/models/member_model.da
 import 'package:club_management_app/features/members/data/datasources/member_remote_data_source.dart';
 import 'package:club_management_app/features/members/domain/entities/member.dart';
 import 'package:club_management_app/features/payments/domain/entities/payment_draft.dart';
+import 'package:club_management_app/features/payments/presentation/widgets/payment_history_tile.dart';
 import 'package:club_management_app/features/payments/data/datasources/payment_fake_data_source.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -309,6 +310,98 @@ void main() {
         findsOneWidget,
       );
       expect(find.text(AppStrings.confirmPaymentTitle), findsNothing);
+    });
+  });
+
+  group('voiding a payment from the ledger', () {
+    Future<void> openVoidSheetOfLastPayment(WidgetTester tester) async {
+      await bootClub(tester);
+      await openLedgerOf(tester, 'Juan Zárate');
+
+      await tester.tap(find.byType(PaymentHistoryTile).first);
+      await tester.pumpAndSettle();
+      expect(
+        find.text(AppStrings.paymentDetailTitle('agosto 2026')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text(AppStrings.paymentDetailVoidAction));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('asks to confirm and explains it cannot be undone', (
+      tester,
+    ) async {
+      await openVoidSheetOfLastPayment(tester);
+
+      expect(
+        find.text(AppStrings.voidPaymentTitle('agosto 2026')),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(AppStrings.voidPaymentEffect, findRichText: true),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('keeps the payment struck through with its reason', (
+      tester,
+    ) async {
+      await openVoidSheetOfLastPayment(tester);
+
+      await tester.enterText(find.byType(TextField), 'Socio equivocado');
+      await tester.tap(find.text(AppStrings.voidPaymentConfirmAction));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(AppStrings.voidPaymentDone('agosto 2026')),
+        findsOneWidget,
+      );
+      expect(find.text(AppStrings.paymentVoidedTag), findsOneWidget);
+      expect(
+        find.text(AppStrings.paymentVoidReason('Socio equivocado')),
+        findsOneWidget,
+      );
+      expect(find.text(AppStrings.ledgerLastPaid('julio 2026')), findsWidgets);
+
+      await tester.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('cancelling leaves the payment as it was', (tester) async {
+      await openVoidSheetOfLastPayment(tester);
+
+      await tester.tap(find.text(AppStrings.cancelAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.paymentVoidedTag), findsNothing);
+      expect(
+        find.text(AppStrings.ledgerLastPaid('agosto 2026')),
+        findsWidgets,
+      );
+    });
+  });
+
+  group('the ledger of an inactive member', () {
+    testWidgets('explains why it cannot be charged and offers to edit', (
+      tester,
+    ) async {
+      await bootClub(tester);
+      await openLedgerOf(tester, 'Luis Gómez');
+
+      expect(find.text(AppStrings.ledgerInactive), findsOneWidget);
+      expect(find.text(AppStrings.ledgerInactiveHint), findsOneWidget);
+      expect(find.text(AppStrings.ledgerRegisterAction), findsNothing);
+      expect(find.text(AppStrings.ledgerRegisterFirstAction), findsNothing);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(SafeArea),
+          matching: find.text(AppStrings.memberEditAction),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(currentLocation(), AppRoutes.adminMemberEdition(3));
     });
   });
 }
