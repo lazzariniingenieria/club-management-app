@@ -16,6 +16,9 @@ Exception apiExceptionFrom(
     cause: error,
   );
 
+  if (_responseNeverArrived(error)) {
+    return ResponseTimeoutException('The server did not answer in time');
+  }
   if (_isConnectivityIssue(error)) {
     return NetworkException('Could not reach the server');
   }
@@ -26,11 +29,16 @@ Exception apiExceptionFrom(
   return ServerException(error.message ?? 'Unknown server error');
 }
 
+bool _responseNeverArrived(DioException error) {
+  return const {
+    DioExceptionType.receiveTimeout,
+    DioExceptionType.sendTimeout,
+  }.contains(error.type);
+}
+
 bool _isConnectivityIssue(DioException error) {
   return const {
     DioExceptionType.connectionError,
     DioExceptionType.connectionTimeout,
-    DioExceptionType.receiveTimeout,
-    DioExceptionType.sendTimeout,
   }.contains(error.type);
 }

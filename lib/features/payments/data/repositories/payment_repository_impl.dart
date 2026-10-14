@@ -33,26 +33,39 @@ class PaymentRepositoryImpl implements PaymentRepository {
 
   @override
   Future<Either<Failure, void>> recordPayment(PaymentDraft draft) {
-    return _guard('recordPayment', () async {
-      await remoteDataSource.recordPayment(draft);
-
-      return _announcePaymentChange();
-    });
+    return _write(
+      'recordPayment',
+      () => remoteDataSource.recordPayment(draft),
+    );
   }
 
   @override
   Future<Either<Failure, void>> voidPayment(int paymentId, {String? reason}) {
-    return _guard('voidPayment', () async {
-      await remoteDataSource.voidPayment(paymentId, reason: reason);
-
-      return _announcePaymentChange();
-    });
+    return _write(
+      'voidPayment',
+      () => remoteDataSource.voidPayment(paymentId, reason: reason),
+    );
   }
 
-  Either<Failure, void> _announcePaymentChange() {
-    _paymentChanges.add(null);
+  Future<Either<Failure, void>> _write(
+    String operation,
+    Future<void> Function() send,
+  ) async {
+    final result = await _guard<void>(operation, () async {
+      await send();
 
-    return const Right(null);
+      return const Right(null);
+    });
+    if (_mayHaveChangedPayments(result)) _paymentChanges.add(null);
+
+    return result;
+  }
+
+  static bool _mayHaveChangedPayments(Either<Failure, void> result) {
+    return result.fold(
+      (failure) => failure is ResponseTimeoutFailure,
+      (_) => true,
+    );
   }
 
   Future<Either<Failure, T>> _guard<T>(

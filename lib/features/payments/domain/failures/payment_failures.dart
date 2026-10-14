@@ -10,3 +10,7 @@ class AlreadyPaidMonthsFailure extends Failure {
   @override
   List<Object?> get props => [message, months];
 }
+
+class InactiveMemberFailure extends Failure {
+  const InactiveMemberFailure() : super('The member is no longer active');
+}

@@ -71,6 +71,7 @@ class _RegisterPaymentBody extends StatelessWidget {
     RegisterPaymentUnavailable state,
   ) {
     if (state.isMissing) return PaymentUnavailableKind.missing;
+    if (state.isInactive) return PaymentUnavailableKind.inactive;
 
     return state.isOffline
         ? PaymentUnavailableKind.offline
@@ -94,7 +95,7 @@ class _RegisterPaymentForm extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
               if (state.notice != null) ...[
-                _TopNotice(notice: state.notice!),
+                _TopNotice(notice: state.notice!, form: form),
                 const SizedBox(height: AppSpacing.lg),
               ],
               MemberHeaderCard(
@@ -158,25 +159,27 @@ class _StandingLine extends StatelessWidget {
 
 class _TopNotice extends StatelessWidget {
   final RegisterPaymentNotice notice;
+  final PaymentForm form;
 
-  const _TopNotice({required this.notice});
+  const _TopNotice({required this.notice, required this.form});
 
   @override
   Widget build(BuildContext context) {
     return switch (notice) {
-      OfflineNotice() => PaymentNotice(
+      OfflineNotice() => _RetryNotice(
           title: AppStrings.registerPaymentOfflineTitle,
           message: AppStrings.registerPaymentOfflineMessage,
-          tone: PaymentNoticeTone.danger,
-          action: OutlinedButton(
-            onPressed: context.read<RegisterPaymentCubit>().submit,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.dangerText,
-              side: const BorderSide(color: AppColors.dangerText),
-              minimumSize: const Size(0, 48),
-            ),
-            child: const Text(AppStrings.retryAction),
-          ),
+          form: form,
+        ),
+      PaymentTimedOutNotice() => _RetryNotice(
+          title: AppStrings.registerPaymentTimedOutTitle,
+          message: AppStrings.registerPaymentTimedOutMessage,
+          form: form,
+        ),
+      PaymentUnconfirmedNotice() => _RetryNotice(
+          title: AppStrings.registerPaymentUnconfirmedTitle,
+          message: AppStrings.registerPaymentUnconfirmedMessage,
+          form: form,
         ),
       SubmitFailedNotice(:final message) => PaymentNotice(
           message: message,
@@ -186,6 +189,37 @@ class _TopNotice extends StatelessWidget {
       PayerLeftGroupNotice() =>
         const SizedBox.shrink(),
     };
+  }
+}
+
+class _RetryNotice extends StatelessWidget {
+  final String title;
+  final String message;
+  final PaymentForm form;
+
+  const _RetryNotice({
+    required this.title,
+    required this.message,
+    required this.form,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PaymentNotice(
+      title: title,
+      message: message,
+      tone: PaymentNoticeTone.danger,
+      action: OutlinedButton(
+        onPressed:
+            form.canReview ? () => _reviewAndSubmit(context, form) : null,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.dangerText,
+          side: const BorderSide(color: AppColors.dangerText),
+          minimumSize: const Size(0, 48),
+        ),
+        child: const Text(AppStrings.retryAction),
+      ),
+    );
   }
 }
 
@@ -262,7 +296,6 @@ class _AmountSection extends StatelessWidget {
       children: [
         PaymentAmountField(
           initialCents: form.amountCents,
-          maxDigits: RegisterPaymentCubit.maxAmountDigits,
           onChanged: context.read<RegisterPaymentCubit>().changeAmount,
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -342,13 +375,6 @@ class _ReviewBar extends StatelessWidget {
 
   const _ReviewBar({required this.form, required this.isSubmitting});
 
-  Future<void> _review(BuildContext context) async {
-    final cubit = context.read<RegisterPaymentCubit>();
-    final confirmed = await PaymentConfirmationSheet.show(context, form);
-
-    if (confirmed) await cubit.submit();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -373,11 +399,9 @@ class _ReviewBar extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
               ElevatedButton(
                 onPressed: form.canReview && !isSubmitting
-                    ? () => _review(context)
+                    ? () => _reviewAndSubmit(context, form)
                     : null,
-                child: isSubmitting
-                    ? const _ButtonSpinner()
-                    : Text(_label),
+                child: isSubmitting ? const _ButtonSpinner() : Text(_label),
               ),
             ],
           ),
@@ -391,6 +415,13 @@ class _ReviewBar extends StatelessWidget {
           PaymentFormats.pesos(form.totalCents),
         )
       : AppStrings.registerPaymentReviewAction;
+}
+
+Future<void> _reviewAndSubmit(BuildContext context, PaymentForm form) async {
+  final cubit = context.read<RegisterPaymentCubit>();
+  final confirmed = await PaymentConfirmationSheet.show(context, form);
+
+  if (confirmed) await cubit.submit();
 }
 
 class _ButtonSpinner extends StatelessWidget {

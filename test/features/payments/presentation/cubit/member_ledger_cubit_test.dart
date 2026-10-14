@@ -1,4 +1,10 @@
+import 'dart:async';
+
 import 'package:club_management_app/core/errors/failures.dart';
+import 'package:club_management_app/features/members/domain/usecases/watch_member_changes_use_case.dart';
+import 'package:club_management_app/features/members/domain/entities/member.dart';
+import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
+import 'package:club_management_app/features/payments/domain/entities/member_ledger.dart';
 import 'package:club_management_app/features/payments/domain/usecases/load_member_ledger_use_case.dart';
 import 'package:club_management_app/features/payments/domain/usecases/void_payment_use_case.dart';
 import 'package:club_management_app/features/payments/presentation/cubit/member_ledger_cubit.dart';
@@ -14,9 +20,13 @@ class MockLoadMemberLedgerUseCase extends Mock
 
 class MockVoidPaymentUseCase extends Mock implements VoidPaymentUseCase {}
 
+class MockWatchMemberChangesUseCase extends Mock
+    implements WatchMemberChangesUseCase {}
+
 void main() {
   late MockLoadMemberLedgerUseCase loadLedger;
   late MockVoidPaymentUseCase voidPayment;
+  late StreamController<void> memberChanges;
   late MemberLedgerCubit cubit;
 
   final ledger = buildLedger();
@@ -25,10 +35,22 @@ void main() {
     loadLedger = MockLoadMemberLedgerUseCase();
     voidPayment = MockVoidPaymentUseCase();
     when(() => loadLedger(any())).thenAnswer((_) async => Right(ledger));
-    cubit = MemberLedgerCubit(loadLedger: loadLedger, voidPayment: voidPayment);
+    memberChanges = StreamController<void>.broadcast();
+    final watchMemberChanges = MockWatchMemberChangesUseCase();
+    when(() => watchMemberChanges()).thenAnswer((_) => memberChanges.stream);
+    cubit = MemberLedgerCubit(
+      loadLedger: loadLedger,
+      voidPayment: voidPayment,
+      watchMemberChanges: watchMemberChanges,
+    );
   });
 
-  tearDown(() => cubit.close());
+  tearDown(() async {
+    await cubit.close();
+    await memberChanges.close();
+  });
+
+  Future<void> settle() => Future<void>.delayed(Duration.zero);
 
   void stubVoid(Either<Failure, void> result) {
     when(() => voidPayment(any(), reason: any(named: 'reason')))
@@ -101,5 +123,73 @@ void main() {
     expect(failure, isA<NetworkFailure>());
     verify(() => loadLedger(1)).called(1);
     expect(cubit.state, MemberLedgerReady(ledger));
+  });
+
+  test('a void the server never answered is settled by the reload', () async {
+    final voided = buildLedger(
+      payments: [
+        buildPayment(
+          id: 2,
+          month: const BillingMonth(2026, 8),
+          voidedAt: DateTime.utc(2026, 10, 14),
+        ),
+        buildPayment(id: 1, month: const BillingMonth(2026, 7)),
+      ],
+    );
+    stubVoid(const Left(ResponseTimeoutFailure()));
+    await cubit.load(1);
+    when(() => loadLedger(any())).thenAnswer((_) async => Right(voided));
+
+    final failure = await cubit.voidPayment(ledger.payments.first);
+
+    expect(failure, isNull);
+    expect(cubit.state, MemberLedgerReady(voided));
+  });
+
+  test('a void the server never answered and did not apply is reported',
+      () async {
+    stubVoid(const Left(ResponseTimeoutFailure()));
+    await cubit.load(1);
+
+    final failure = await cubit.voidPayment(ledger.payments.first);
+
+    expect(failure, isA<ResponseTimeoutFailure>());
+    verify(() => loadLedger(1)).called(2);
+  });
+
+  group('a change to the member made elsewhere', () {
+    test('reloads the ledger, so a member deactivated meanwhile shows it',
+        () async {
+      await cubit.load(1);
+      final inactive = buildLedger(
+        member: buildLedgerMember(status: MemberStatus.inactive),
+      );
+      when(() => loadLedger(any())).thenAnswer((_) async => Right(inactive));
+
+      memberChanges.add(null);
+      await settle();
+
+      expect(cubit.state, MemberLedgerReady(inactive));
+    });
+
+    test('arriving during a load is not lost: one more load follows', () async {
+      final firstLoad = Completer<Either<Failure, MemberLedger>>();
+      when(() => loadLedger(any())).thenAnswer((_) => firstLoad.future);
+
+      final loading = cubit.load(1);
+      memberChanges.add(null);
+      await settle();
+      when(() => loadLedger(any())).thenAnswer((_) async => Right(ledger));
+      firstLoad.complete(Right(ledger));
+      await loading;
+
+      verify(() => loadLedger(1)).called(2);
+    });
+
+    test('is no longer heard once the screen closes', () async {
+      await cubit.close();
+
+      expect(memberChanges.hasListener, isFalse);
+    });
   });
 }

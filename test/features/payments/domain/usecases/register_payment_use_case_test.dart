@@ -1,4 +1,5 @@
 import 'package:club_management_app/core/errors/failures.dart';
+import 'package:club_management_app/features/members/domain/entities/member.dart';
 import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
 import 'package:club_management_app/features/payments/domain/entities/payment_draft.dart';
 import 'package:club_management_app/features/payments/domain/entities/payment_method.dart';
@@ -71,6 +72,21 @@ void main() {
     );
 
     expect(result, const Left<Failure, void>(NetworkFailure()));
+    verifyNever(() => repository.recordPayment(any()));
+  });
+
+  test('never charges a member who is no longer active', () async {
+    when(() => repository.loadLedger(any())).thenAnswer(
+      (_) async => Right(
+        buildLedger(member: buildLedgerMember(status: MemberStatus.inactive)),
+      ),
+    );
+
+    final result = await registerPayment(
+      draftFor(const [BillingMonth(2026, 9)]),
+    );
+
+    expect(result, const Left<Failure, void>(InactiveMemberFailure()));
     verifyNever(() => repository.recordPayment(any()));
   });
 }

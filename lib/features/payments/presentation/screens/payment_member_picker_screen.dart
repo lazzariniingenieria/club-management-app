@@ -72,8 +72,7 @@ class _PickerContent extends StatelessWidget {
     final candidates = _candidates;
     final overdue = candidates.where((member) => member.isOverdue).toList()
       ..sort((a, b) => b.daysOverdue.compareTo(a.daysOverdue));
-    final upToDate =
-        candidates.where((member) => !member.isOverdue).toList();
+    final upToDate = candidates.where((member) => !member.isOverdue).toList();
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -198,9 +197,9 @@ class PaymentMemberPickerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.surface,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: AppRadius.mdAll,
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
       ),
       child: InkWell(
         onTap: () => _pick(context),

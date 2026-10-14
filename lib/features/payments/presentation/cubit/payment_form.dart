@@ -29,7 +29,6 @@ class PaymentForm extends Equatable {
 
   factory PaymentForm.start(MemberLedger ledger, DateTime today) {
     final suggested = ledger.suggestedMonth(today);
-    final fee = ledger.monthlyFeeCents;
 
     return PaymentForm(
       ledger: ledger,
@@ -37,7 +36,7 @@ class PaymentForm extends Equatable {
       suggestedMonth: suggested,
       visibleYear: suggested.year,
       method: PaymentMethod.cash,
-      amountCents: fee != null && fee % 100 == 0 ? fee : null,
+      amountCents: ledger.monthlyFeeCents,
     );
   }
 
@@ -105,8 +104,8 @@ class PaymentForm extends Equatable {
     final stillUnpaid = selectedMonths
         .where((month) => !refreshed.paidMonths.contains(month))
         .toSet();
-    final payerStillInGroup = refreshed.familyMembers
-        .any((relative) => relative.id == payerId);
+    final payerStillInGroup =
+        refreshed.familyMembers.any((relative) => relative.id == payerId);
 
     return PaymentForm(
       ledger: refreshed,

@@ -46,9 +46,8 @@ abstract final class PaymentFormats {
     final sorted = BillingMonth.sorted(months);
     if (sorted.isEmpty) return AppStrings.registerPaymentNoMonths;
 
-    final summary = sorted.length > _longListThreshold
-        ? _range(sorted)
-        : _listed(sorted);
+    final summary =
+        sorted.length > _longListThreshold ? _range(sorted) : _listed(sorted);
 
     return capitalized(summary);
   }

@@ -270,14 +270,31 @@ void main() {
     ) async {
       await bootPayments(
         tester,
-        members: [for (var id = 1; id <= 20; id++) buildMember(id: id)],
+        members: [
+          for (var id = 1; id <= 20; id++)
+            buildMember(
+                id: id, lastName: 'Socio ${id.toString().padLeft(2, '0')}'),
+        ],
       );
 
-      await tester.drag(find.byType(ListView), const Offset(0, -4000));
+      await tester.scrollUntilVisible(
+        find.text('Juan Socio 20'),
+        200,
+        scrollable: find.descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.drag(find.byType(ListView), const Offset(0, -400));
       await tester.pumpAndSettle();
 
       final createButton = tester.getRect(find.byType(FloatingActionButton));
-      final lastRow = tester.getRect(find.byType(MemberListTile).last);
+      final lastRow = tester.getRect(
+        find.ancestor(
+          of: find.text('Juan Socio 20'),
+          matching: find.byType(MemberListTile),
+        ),
+      );
 
       expect(createButton.overlaps(lastRow), isFalse);
     });

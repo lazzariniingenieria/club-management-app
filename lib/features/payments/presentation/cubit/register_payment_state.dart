@@ -18,14 +18,16 @@ class RegisterPaymentLoading extends RegisterPaymentState {
 class RegisterPaymentUnavailable extends RegisterPaymentState {
   final bool isOffline;
   final bool isMissing;
+  final bool isInactive;
 
   const RegisterPaymentUnavailable({
     this.isOffline = false,
     this.isMissing = false,
+    this.isInactive = false,
   });
 
   @override
-  List<Object?> get props => [isOffline, isMissing];
+  List<Object?> get props => [isOffline, isMissing, isInactive];
 }
 
 class RegisterPaymentEditing extends RegisterPaymentState {
@@ -61,6 +63,14 @@ sealed class RegisterPaymentNotice extends Equatable {
 
 class OfflineNotice extends RegisterPaymentNotice {
   const OfflineNotice();
+}
+
+class PaymentTimedOutNotice extends RegisterPaymentNotice {
+  const PaymentTimedOutNotice();
+}
+
+class PaymentUnconfirmedNotice extends RegisterPaymentNotice {
+  const PaymentUnconfirmedNotice();
 }
 
 class MonthsAlreadyPaidNotice extends RegisterPaymentNotice {

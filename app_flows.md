@@ -204,7 +204,7 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 
 - **Encabezado** con el socio, su DNI y su situación (al día, días de mora, o sin pagos).
 - **Meses**: grilla de 12 meses (4 × 3) con selector de año. Cada mes está *libre*, *Elegido* o *Pagado*; los pagados no se pueden tocar. Arranca con **un mes sugerido** — el que sigue al último pago, o el del alta si nunca pagó — y un texto que dice por qué. Se pueden sumar meses futuros sin límite y meses viejos sueltos que hayan quedado sin pagar.
-- **Importe por mes**, precargado con la cuota de referencia del club cuando existe; si el club no la tiene cargada, el campo arranca vacío y lo dice. Debajo, el **total** (importe × meses) se actualiza mientras se elige, porque la API registra el importe por mes ([backend_api.md](backend_api.md) §6).
+- **Importe por mes**, precargado con la cuota de referencia del club cuando existe; si el club no la tiene cargada, el campo arranca vacío y lo dice. Acepta lo mismo que la API: hasta 8 enteros y 2 decimales, con coma decimal (`15.000,50`); un punto tipeado a mano también abre los decimales, porque los puntos de miles los pone el campo. Debajo, el **total** (importe × meses) se actualiza mientras se elige, porque la API registra el importe por mes ([backend_api.md](backend_api.md) §6).
 - **Medio de pago**: Efectivo (por defecto), Transferencia u Otro.
 - **¿Quién pagó?**: el socio, o un integrante de su grupo familiar. Si el socio no tiene grupo, la sección no aparece.
 - **Barra inferior** con el resumen y *Revisar y confirmar*, que se habilita con al menos un mes y un importe.
@@ -219,15 +219,19 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 
 | Caso | Qué ve el admin |
 | :--- | :--- |
-| Sin conexión al confirmar | Aviso arriba del formulario; todo lo elegido queda como estaba para reintentar |
+| Sin conexión al confirmar | Aviso arriba del formulario; todo lo elegido queda como estaba. El pedido no salió, así que el pago seguro no se registró |
+| El servidor no respondió a tiempo | El pago pudo haberse registrado, así que la app relee el historial: si los meses figuran, termina como registrado; si no, avisa que no se registró. Si tampoco puede leer el historial, dice que no sabe si se registró, y el reintento revisa el historial antes de enviar |
 | Uno de los meses ya figura pago (otro admin lo cobró mientras tanto) | Aviso con los meses en cuestión; se quitan de la selección y la grilla los muestra como *Pagado* |
 | El familiar elegido ya no está en el grupo | Aviso; quién pagó vuelve al socio |
 | El socio ya no existe | Pantalla de "No encontramos a este socio" con *Volver a Pagos* |
+| El socio fue dado de baja mientras tanto | Pantalla de "Este socio está dado de baja" con *Volver* |
 | Otro error del servidor | Aviso con el mensaje; el formulario sigue editable |
+
+**Reintentar siempre vuelve a la confirmación**: entre el error y el reintento el admin pudo haber cambiado el importe o los meses, y un pago no se manda sin ver el resumen que se va a registrar.
 
 **Un mes ya pago no se puede volver a cobrar.** La API hoy no lo impide ([backend_api.md](backend_api.md) §6), así que la app relee el historial justo antes de enviar y frena el pago si alguno de los meses ya figura. Eso cubre el doble toque y el reintento después de un timeout; lo que queda abierto — dos admins cobrando el mismo mes en el mismo segundo — se cierra cuando el backend lo rechace.
 
-**Un socio inactivo no puede pagar.** No aparece al elegir socio, y en sus cuotas el botón se reemplaza por una nota que explica por qué y un acceso a *Editar socio* para reactivarlo.
+**Un socio inactivo no puede pagar.** No aparece al elegir socio, y en sus cuotas el botón se reemplaza por una nota que explica por qué y un acceso a *Editar socio* para reactivarlo. La API no lo impide, así que la app lo controla en tres lugares: al abrir el registro, al releer el historial antes de enviar, y en las cuotas, que se recargan cuando el socio cambia (una baja o una reactivación hecha desde *Editar socio* se ve al volver).
 
 #### 4.2.1 Cuotas del socio y anulación
 
@@ -486,7 +490,8 @@ La primera escritura que mueve plata. Las pantallas y sus decisiones están en �
 
 - **Feature `payments`** con sus tres capas. El dominio modela el mes como `BillingMonth` (año + mes), no como `DateTime`: la API habla de "primer día del mes" y comparar fechas con hora trae errores de zona horaria en los bordes.
 - **Las cuotas del socio se arman con cuatro llamadas**: padrón, mora, historial con anulados y cuota del club. Si la cuota del club falla, la pantalla sigue y el importe arranca vacío: es una comodidad, no un dato necesario.
-- **Control de mes ya pago en el cliente** (`RegisterPaymentUseCase`): relee el historial antes de enviar, porque la API no lo rechaza.
+- **Control de mes ya pago y de socio activo en el cliente** (`RegisterPaymentUseCase`): relee el historial antes de enviar, porque la API no rechaza ninguno de los dos.
+- **Un timeout no es una falta de conexión** (`ResponseTimeoutFailure`, subtipo de `NetworkFailure`): sin respuesta, la escritura pudo haber llegado, así que el registro y la anulación lo resuelven releyendo el historial en lugar de afirmar que no se guardó.
 - **El padrón se recarga cuando cambia un pago**, igual que cuando cambia un socio, así que Pagos y sus contadores de mora no quedan viejos después de cobrar o anular.
 - **Fake de pagos** coherente con el de socios: cada socio arranca con seis meses de historial que cierran con sus días de mora, valida duplicados, familiar fuera de grupo, socio inexistente y doble anulación, y al cobrar o anular le recalcula la mora al socio en el fake del padrón.
 - Se quitan el chip "A cobrar", la marca de cada fila y el botón de reporte del pie (§3.2.2).

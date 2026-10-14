@@ -10,6 +10,9 @@ Failure failureFromException(Object error) {
     ConflictException() => ConflictFailure(error.message ?? 'Conflict'),
     NotFoundException() =>
       NotFoundFailure(error.message ?? 'The resource does not exist'),
+    ResponseTimeoutException() => ResponseTimeoutFailure(
+        error.message ?? 'The server did not answer in time',
+      ),
     NetworkException() =>
       NetworkFailure(error.message ?? 'No internet connection'),
     ServerException() => ServerFailure(error.message ?? 'Server error'),

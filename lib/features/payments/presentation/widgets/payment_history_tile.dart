@@ -37,9 +37,9 @@ class PaymentHistoryTile extends StatelessWidget {
       excludeSemantics: true,
       child: Material(
         color: AppColors.surface,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: AppRadius.mdAll,
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: AppColors.border),
         ),
         child: InkWell(
           onTap: onOpen,

@@ -7,7 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 
-enum PaymentUnavailableKind { offline, server, missing }
+enum PaymentUnavailableKind { offline, server, missing, inactive }
 
 class PaymentUnavailableView extends StatelessWidget {
   final PaymentUnavailableKind kind;
@@ -70,6 +70,12 @@ class _UnavailableMessage extends StatelessWidget {
   }
 
   Widget _action(BuildContext context) {
+    if (kind == PaymentUnavailableKind.inactive) {
+      return ElevatedButton(
+        onPressed: () => _leave(context),
+        child: const Text(AppStrings.backAction),
+      );
+    }
     if (kind == PaymentUnavailableKind.missing || onRetry == null) {
       return ElevatedButton(
         onPressed: () => context.go(AppRoutes.adminPayments),
@@ -81,6 +87,14 @@ class _UnavailableMessage extends StatelessWidget {
       onPressed: onRetry,
       child: const Text(AppStrings.retryAction),
     );
+  }
+}
+
+void _leave(BuildContext context) {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    context.go(AppRoutes.adminPayments);
   }
 }
 
@@ -105,6 +119,12 @@ class _UnavailableCopy {
           AppStrings.ledgerServerErrorMessage,
           Icons.dns_outlined,
           AppColors.dangerText,
+        ),
+      PaymentUnavailableKind.inactive => const _UnavailableCopy(
+          AppStrings.registerPaymentInactiveTitle,
+          AppStrings.ledgerInactiveHint,
+          Icons.block_rounded,
+          AppColors.textSecondary,
         ),
       PaymentUnavailableKind.missing => const _UnavailableCopy(
           AppStrings.ledgerMissingTitle,

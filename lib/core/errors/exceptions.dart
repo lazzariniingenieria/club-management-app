@@ -53,3 +53,10 @@ class NotFoundException implements Exception {
   @override
   String toString() => message ?? 'NotFoundException';
 }
+
+class ResponseTimeoutException extends NetworkException {
+  ResponseTimeoutException([super.message]);
+
+  @override
+  String toString() => message ?? 'ResponseTimeoutException';
+}

@@ -36,3 +36,9 @@ class ConflictFailure extends Failure {
 class NotFoundFailure extends Failure {
   const NotFoundFailure([super.message = 'The resource does not exist']);
 }
+
+class ResponseTimeoutFailure extends NetworkFailure {
+  const ResponseTimeoutFailure([
+    super.message = 'The server did not answer in time',
+  ]);
+}

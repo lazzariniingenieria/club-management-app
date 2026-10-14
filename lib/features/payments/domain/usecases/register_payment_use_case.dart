@@ -24,6 +24,8 @@ class RegisterPaymentUseCase {
     PaymentDraft draft,
     MemberLedger ledger,
   ) async {
+    if (!ledger.canRecordPayments) return const Left(InactiveMemberFailure());
+
     final alreadyPaid = draft.monthsAlreadyIn(ledger.paidMonths);
     if (alreadyPaid.isNotEmpty) {
       return Left(AlreadyPaidMonthsFailure(alreadyPaid));

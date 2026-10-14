@@ -20,17 +20,22 @@ void main() {
     'voidReason': null,
   };
 
+  Map<String, dynamic> rowWith(Map<String, dynamic> changes) =>
+      {...row, ...changes};
+
   group('reading a payment', () {
     test('keeps the amount in cents, never as a double', () {
       final payment = PaymentModel.fromJson(row);
 
       expect(payment.amountCents, 1500000);
-      expect(PaymentModel.fromJson({...row, 'amount': 14999.9}).amountCents,
+      expect(
+          PaymentModel.fromJson(rowWith(const {'amount': 14999.9})).amountCents,
           1499990);
     });
 
     test('maps the month, the method and who paid', () {
-      final payment = PaymentModel.fromJson({...row, 'paidByMemberId': 35});
+      final payment =
+          PaymentModel.fromJson(rowWith(const {'paidByMemberId': 35}));
 
       expect(payment.month, const BillingMonth(2026, 7));
       expect(payment.method, PaymentMethod.transfer);
@@ -38,12 +43,11 @@ void main() {
     });
 
     test('reads a voided payment with its reason', () {
-      final payment = PaymentModel.fromJson({
-        ...row,
+      final payment = PaymentModel.fromJson(rowWith(const {
         'voidedAt': '2026-10-14T15:00:00Z',
         'voidedByUserId': 12,
         'voidReason': 'Se cargó en el socio equivocado',
-      });
+      }));
 
       expect(payment.isVoided, isTrue);
       expect(payment.voidReason, 'Se cargó en el socio equivocado');

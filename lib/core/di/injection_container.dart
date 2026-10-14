@@ -26,6 +26,7 @@ import '../../features/members/domain/usecases/create_member_use_case.dart';
 import '../../features/members/domain/usecases/load_members_use_case.dart';
 import '../../features/members/domain/usecases/set_member_active_use_case.dart';
 import '../../features/members/domain/usecases/update_member_use_case.dart';
+import '../../features/members/domain/usecases/watch_member_changes_use_case.dart';
 import '../../features/members/domain/usecases/watch_roster_changes_use_case.dart';
 import '../../features/members/presentation/cubit/admin_payments_cubit.dart';
 import '../../features/members/presentation/cubit/member_form_cubit.dart';
@@ -142,6 +143,7 @@ void _registerMemberDomain() {
   sl.registerLazySingleton(() => UpdateMemberUseCase(sl()));
   sl.registerLazySingleton(() => SetMemberActiveUseCase(sl()));
   sl.registerLazySingleton(() => WatchRosterChangesUseCase(sl(), sl()));
+  sl.registerLazySingleton(() => WatchMemberChangesUseCase(sl()));
 }
 
 void _registerPaymentDataSources() {
@@ -189,7 +191,11 @@ void _registerPresentation() {
     () => AdminPaymentsCubit(loadMembers: sl(), watchRosterChanges: sl()),
   );
   sl.registerFactory(
-    () => MemberLedgerCubit(loadLedger: sl(), voidPayment: sl()),
+    () => MemberLedgerCubit(
+      loadLedger: sl(),
+      voidPayment: sl(),
+      watchMemberChanges: sl(),
+    ),
   );
   sl.registerFactory(
     () => RegisterPaymentCubit(loadLedger: sl(), registerPayment: sl()),

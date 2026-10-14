@@ -37,8 +37,7 @@ void main() {
     expect(ledger.suggestedMonth(today).firstDay.isAfter(today), isFalse);
   });
 
-  test('paying up to the current month leaves the member up to date',
-      () async {
+  test('paying up to the current month leaves the member up to date', () async {
     final ledger = await payments.fetchLedger(overdueMember.id);
     final months = <BillingMonth>[];
     for (var month = ledger.suggestedMonth(today);

@@ -1,5 +1,7 @@
 import 'package:club_management_app/core/errors/failures.dart';
+import 'package:club_management_app/features/members/domain/entities/member.dart';
 import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
+import 'package:club_management_app/features/payments/domain/entities/member_ledger.dart';
 import 'package:club_management_app/features/payments/domain/entities/payment_draft.dart';
 import 'package:club_management_app/features/payments/domain/entities/payment_method.dart';
 import 'package:club_management_app/features/payments/domain/entities/payment_receipt.dart';
@@ -93,6 +95,30 @@ void main() {
       expect(form().canReview, isFalse);
     });
 
+    test('takes a fee with cents as it comes', () async {
+      when(() => loadLedger(any())).thenAnswer(
+        (_) async => Right(buildLedger(monthlyFeeCents: 1500050)),
+      );
+
+      await cubit.open(1);
+
+      expect(form().amountCents, 1500050);
+    });
+
+    test('refuses an inactive member, who cannot pay', () async {
+      when(() => loadLedger(any())).thenAnswer(
+        (_) async => Right(
+          buildLedger(
+            member: buildLedgerMember(status: MemberStatus.inactive),
+          ),
+        ),
+      );
+
+      await cubit.open(1);
+
+      expect(cubit.state, const RegisterPaymentUnavailable(isInactive: true));
+    });
+
     test('explains a member that is no longer in the club', () async {
       when(() => loadLedger(any()))
           .thenAnswer((_) async => const Left(NotFoundFailure()));
@@ -112,6 +138,14 @@ void main() {
 
       expect(form().selectedMonths, hasLength(2));
       expect(form().totalCents, 2400000);
+    });
+
+    test('takes an amount with cents, as the API does', () async {
+      await cubit.open(1);
+
+      cubit.changeAmount('12.000,5');
+
+      expect(form().amountCents, 1200050);
     });
 
     test('a month already paid cannot be chosen', () async {
@@ -219,5 +253,83 @@ void main() {
 
       verify(() => registerPayment(any())).called(1);
     });
+  });
+
+  group('a submit the server never answered', () {
+    MemberLedger ledgerPaying(List<BillingMonth> months) => buildLedger(
+          payments: [
+            for (final (index, month) in months.indexed)
+              buildPayment(id: 10 + index, month: month),
+            buildPayment(id: 2, month: const BillingMonth(2026, 8)),
+          ],
+        );
+
+    Future<void> submitTimingOut() async {
+      stubRegister(const Left(ResponseTimeoutFailure()));
+      await cubit.open(1);
+    }
+
+    test('ends as registered when the history shows it went through', () async {
+      await submitTimingOut();
+      when(() => loadLedger(any())).thenAnswer(
+        (_) async => Right(ledgerPaying(const [BillingMonth(2026, 9)])),
+      );
+
+      await cubit.submit();
+
+      expect(cubit.state, isA<RegisterPaymentRegistered>());
+    });
+
+    test('says it was not registered when the history does not show it',
+        () async {
+      await submitTimingOut();
+
+      await cubit.submit();
+
+      expect(notice(), const PaymentTimedOutNotice());
+      expect(form().selectedMonths, {const BillingMonth(2026, 9)});
+    });
+
+    test('admits it does not know when the history cannot be read', () async {
+      await submitTimingOut();
+      when(() => loadLedger(any()))
+          .thenAnswer((_) async => const Left(NetworkFailure()));
+
+      await cubit.submit();
+
+      expect(notice(), const PaymentUnconfirmedNotice());
+    });
+
+    test('a retry that finds those months paid ends as registered', () async {
+      await submitTimingOut();
+      when(() => loadLedger(any()))
+          .thenAnswer((_) async => const Left(NetworkFailure()));
+      await cubit.submit();
+      stubRegister(
+        const Left(AlreadyPaidMonthsFailure([BillingMonth(2026, 9)])),
+      );
+
+      await cubit.submit();
+
+      expect(cubit.state, isA<RegisterPaymentRegistered>());
+    });
+
+    test('a lost connection is still told apart from a timeout', () async {
+      stubRegister(const Left(NetworkFailure()));
+      await cubit.open(1);
+
+      await cubit.submit();
+
+      expect(notice(), const OfflineNotice());
+    });
+  });
+
+  test('a member deactivated meanwhile ends the form', () async {
+    stubRegister(const Left(InactiveMemberFailure()));
+    await cubit.open(1);
+
+    await cubit.submit();
+
+    expect(cubit.state, const RegisterPaymentUnavailable(isInactive: true));
   });
 }

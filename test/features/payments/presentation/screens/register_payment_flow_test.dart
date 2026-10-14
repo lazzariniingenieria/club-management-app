@@ -1,16 +1,59 @@
 import 'package:club_management_app/core/constants/app_strings.dart';
+import 'package:club_management_app/core/errors/exceptions.dart';
 import 'package:club_management_app/core/di/injection_container.dart' as di;
 import 'package:club_management_app/core/router/app_router.dart';
 import 'package:club_management_app/core/router/app_routes.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
 import 'package:club_management_app/features/members/data/models/member_model.dart';
+import 'package:club_management_app/features/members/data/datasources/member_remote_data_source.dart';
 import 'package:club_management_app/features/members/domain/entities/member.dart';
+import 'package:club_management_app/features/payments/domain/entities/payment_draft.dart';
 import 'package:club_management_app/features/payments/data/datasources/payment_fake_data_source.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../helpers/app_test_harness.dart';
 import '../../../../helpers/member_roster_data_source.dart';
+
+class DroppingPaymentSource extends PaymentFakeDataSource {
+  int dropsLeft;
+  int recorded = 0;
+
+  DroppingPaymentSource({
+    required super.members,
+    this.dropsLeft = 1,
+  }) : super(
+          latency: Duration.zero,
+          clock: () => DateTime(2026, 10, 14),
+        );
+
+  @override
+  Future<void> recordPayment(PaymentDraft draft) async {
+    if (dropsLeft > 0) {
+      dropsLeft--;
+      throw NetworkException('offline');
+    }
+    recorded++;
+    await super.recordPayment(draft);
+  }
+}
+
+class DeactivatableRosterSource extends MemberRosterDataSource {
+  DeactivatableRosterSource(super.roster);
+
+  @override
+  Future<void> setMemberActive(int memberId, {required bool isActive}) async {
+    final index = roster.indexWhere((member) => member.id == memberId);
+    final current = roster[index];
+
+    roster[index] = buildMember(
+      id: current.id,
+      firstName: current.firstName,
+      lastName: current.lastName,
+      status: isActive ? MemberStatus.active : MemberStatus.inactive,
+    );
+  }
+}
 
 void main() {
   final roster = <MemberModel>[
@@ -32,21 +75,26 @@ void main() {
       .last
       .matchedLocation;
 
-  Future<void> bootClub(WidgetTester tester) async {
+  Future<void> bootClub(
+    WidgetTester tester, {
+    PaymentFakeDataSource Function(MemberRemoteDataSource members)? payments,
+    MemberRosterDataSource? memberSource,
+  }) async {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
-    final members = MemberRosterDataSource(roster);
+    final members = memberSource ?? MemberRosterDataSource(roster);
     await bootApp(
       tester,
       signedInAs: UserRole.admin,
       memberSource: members,
-      paymentSource: PaymentFakeDataSource(
-        members: members,
-        latency: Duration.zero,
-        clock: () => DateTime(2026, 10, 14),
-      ),
+      paymentSource: payments?.call(members) ??
+          PaymentFakeDataSource(
+            members: members,
+            latency: Duration.zero,
+            clock: () => DateTime(2026, 10, 14),
+          ),
     );
   }
 
@@ -58,6 +106,12 @@ void main() {
       ),
     );
     await settleSession(tester);
+  }
+
+  Future<void> openLedgerOf(WidgetTester tester, String name) async {
+    await openPaymentsTab(tester);
+    await tester.tap(find.text(name));
+    await tester.pumpAndSettle();
   }
 
   Future<void> reviewAndConfirm(WidgetTester tester, String total) async {
@@ -171,6 +225,90 @@ void main() {
       di.sl<AppRouter>().router.pop();
       await settleSession(tester);
       expect(currentLocation(), AppRoutes.adminHome);
+    });
+  });
+
+  group('recovering from a failed attempt', () {
+    testWidgets('retrying after losing the connection asks to confirm again', (
+      tester,
+    ) async {
+      late DroppingPaymentSource source;
+      await bootClub(
+        tester,
+        payments: (members) => source = DroppingPaymentSource(members: members),
+      );
+      await openLedgerOf(tester, 'Juan Zárate');
+      await tester.tap(find.text(AppStrings.ledgerRegisterAction));
+      await tester.pumpAndSettle();
+      await reviewAndConfirm(tester, r'$15.000');
+
+      expect(
+        find.textContaining(
+          AppStrings.registerPaymentOfflineTitle,
+          findRichText: true,
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text(AppStrings.retryAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.confirmPaymentTitle), findsOneWidget);
+      expect(source.recorded, 0);
+
+      await tester.tap(find.text(AppStrings.confirmPaymentAction(r'$15.000')));
+      await tester.pumpAndSettle();
+
+      expect(source.recorded, 1);
+      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
+    });
+  });
+
+  group('a member deactivated from their ledger', () {
+    testWidgets('can no longer be charged when the admin comes back', (
+      tester,
+    ) async {
+      await bootClub(
+        tester,
+        memberSource: DeactivatableRosterSource([...roster]),
+      );
+      await openLedgerOf(tester, 'Ana Álvarez');
+
+      await tester.tap(find.byTooltip(AppStrings.memberEditAction));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(AppStrings.memberDeactivateAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppStrings.memberDeactivateAction));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(AppStrings.memberDeactivateAction),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(currentLocation(), AppRoutes.adminMemberLedger(2));
+      expect(find.text(AppStrings.ledgerInactiveHint), findsOneWidget);
+      expect(find.text(AppStrings.ledgerRegisterAction), findsNothing);
+
+      await tester.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('cannot be charged by opening the payment screen directly', (
+      tester,
+    ) async {
+      await bootClub(tester);
+      await openPaymentsTab(tester);
+
+      di.sl<AppRouter>().router.push(AppRoutes.adminPaymentRegistration(3));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(AppStrings.registerPaymentInactiveTitle),
+        findsOneWidget,
+      );
+      expect(find.text(AppStrings.confirmPaymentTitle), findsNothing);
     });
   });
 }
