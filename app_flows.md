@@ -106,7 +106,9 @@ Rutas push, fuera de los tabs:
 | `OverdueMembersCard` | "SOCIOS EN MORA" + contador | Card azul claro, contador en rojo | → tab **Pagos** con el chip **En mora** |
 | `UpcomingSlotsCard` **(E9, sin construir)** | "PRÓXIMOS TURNOS" + cancha / horario | Card azul claro, horario en azul a la derecha | → agenda |
 
-**Accesos Rápidos** — dos cards lado a lado, cada una una **acción**, no un destino que ya está en otro lado: *Nuevo socio* (navy) → alta de socio (`/admin/members/new`), *Registrar pago* (verde) → elegir socio → registro de pago (§4.2), **dibujada en gris hasta E6** y, al tocarla, explica que se habilita en una próxima entrega.
+**Accesos Rápidos** — dos cards lado a lado, cada una una **acción**, no un destino que ya está en otro lado: *Nuevo socio* (navy) → alta de socio (`/admin/members/new`), *Registrar pago* (verde) → elegir socio → registro de pago (§4.2). Hasta E6 estuvo dibujada en gris.
+
+**Sin card de socios marcados para cobrar.** Se diseñó sobre la canasta "A cobrar" de §3.2.2 y se descartó con ella en E6, antes de construirse.
 
 Las dos cards de la primera versión salieron: *Gestión de Socios* abría exactamente lo mismo que el card "Socios activos" (tres caminos al mismo listado en una pantalla), y *Gestión de Canchas* abría un "próximamente" — el mismo tab muerto que §3.2 decidió evitar, en forma de card. Canchas vuelve al Inicio con la agenda (E9).
 
@@ -121,7 +123,7 @@ Los contadores de los chips (§3.2.2) salen del mismo listado que ya está en me
 1. **Header**: "Pagos" + `RoleBadge`.
 2. **Buscador**: placeholder "Buscar socio por nombre o DNI...". Lo resuelve el cliente sobre el padrón ya cargado, porque la API no expone búsqueda; ignora mayúsculas y acentos, así que "alvarez" encuentra a "Álvarez".
 3. **Filtros**: dos chips con contador — "Todos (n)" y "En mora (n)". Seleccionado en navy sólido.
-4. **Listado**: `ListView.builder` de `MemberListTile`, ordenado por apellido. Cada fila: nombre, badge **Activo / Inactivo** y acción **lápiz** → edición.
+4. **Listado**: `ListView.builder` de `MemberListTile`, ordenado por apellido. Cada fila: nombre, badge **Activo / Inactivo** y acción **lápiz** → edición. **Tocar el resto de la fila abre las cuotas del socio** (§4.2.1); el lápiz sigue siendo un target propio de 48×48.
 5. **FAB azul, abajo derecha**: crear socio. Es el único FAB de la pantalla.
 
 **Qué filtra cada chip**:
@@ -131,7 +133,7 @@ Los contadores de los chips (§3.2.2) salen del mismo listado que ya está en me
 | **Todos** | Todo el padrón, activos e inactivos |
 | **En mora** | Socios con la cuota vencida (`daysOverdue > 0`) |
 
-**Sin chip "A cobrar".** E4 lo construyó como una canasta de socios marcados a mano con un ícono de documento en cada fila, para alimentar el reporte. Se quitó en E6, cuando el reporte se redefinió como un PDF de los pagos registrados en un período (§4.6): ese reporte no sale de una selección de socios, así que la canasta, la marca de cada fila y el botón "Generar reporte" del pie quedaron sin uso. La fila queda con una sola acción.
+**Sin chip "A cobrar".** E4 lo construyó como una canasta de socios marcados a mano con un ícono de documento en cada fila, para alimentar el reporte. Se quitó en E6, cuando el reporte se redefinió como un PDF de los pagos registrados en un período (§4.6): ese reporte no sale de una selección de socios, así que la canasta, la marca de cada fila y el botón "Generar reporte" del pie quedaron sin uso. La fila queda con dos destinos: sus cuotas y su edición.
 
 **El badge de la fila muestra un solo eje: Activo / Inactivo.**
 
@@ -187,18 +189,64 @@ Inicio ──[Socios activos ⇒ chip Todos  ]──►
 
 ### 4.2 Registrar un pago
 
-Dos entradas: la card **Registrar pago** del Inicio (primero se elige el socio) y el socio desde el tab Pagos.
+```
+Inicio ──[Registrar pago]──► Elegir socio ──┐
+Pagos ──[fila]──► Cuotas del socio ─────────┼──► Registrar pago ──► Confirmar ──► Cuotas del socio
+                        ▲  [Registrar pago] ┘                                    (meses nuevos marcados)
+                        └── [historial] ──► Detalle del pago ──► Anular
+```
 
-`Socio → meses → importe por mes → medio → quién pagó → Confirmar → Listado actualizado`
+**Cuatro toques desde el Inicio** para el caso común — un socio que paga el mes siguiente al último, en efectivo y a la cuota del club: *Registrar pago* → socio → *Revisar y confirmar* → *Confirmar*. El tope de tres no alcanza sin sacrificar la confirmación, que en un pago no se negocia.
 
-- **Uno o varios meses** en el mismo pago, sin repetir.
-- **El importe es por mes**: la app muestra el total (importe × meses) mientras se carga y en la confirmación, porque pagar dos meses a 15 000 registra 30 000 ([backend_api.md](backend_api.md) §6).
-- **Medio de pago**: Efectivo, Transferencia u Otro.
-- **Quién pagó**: el propio socio por defecto, u otro integrante de su grupo familiar. Si el socio no tiene grupo, la opción no aparece.
-- **Impacta en dinero y no se puede deshacer** (la API no anula pagos): confirmación con resumen (socio, meses, importe por mes, total, medio, quién pagó) antes de escribir.
-- Después del pago, Pagos y los contadores de mora se actualizan solos.
+**Elegir socio** (`/admin/payments/new`): buscador con foco al entrar y solo socios activos, en dos grupos: **en mora** primero, de más días a menos, y **al día** de la A a la Z. Quien viene a pagar suele ser el que debe. Elegir un socio abre el registro; al confirmar, la pantalla de elegir se reemplaza por las cuotas de ese socio, así que "volver" lleva al Inicio y no a una lista que ya no sirve.
 
-Pantallas, entrada desde la fila y detalle de cuotas del socio: pendientes del diseño de E6.
+**Registrar pago** (`/admin/members/:memberId/payments/new`), de arriba abajo:
+
+- **Encabezado** con el socio, su DNI y su situación (al día, días de mora, o sin pagos).
+- **Meses**: grilla de 12 meses (4 × 3) con selector de año. Cada mes está *libre*, *Elegido* o *Pagado*; los pagados no se pueden tocar. Arranca con **un mes sugerido** — el que sigue al último pago, o el del alta si nunca pagó — y un texto que dice por qué. Se pueden sumar meses futuros sin límite y meses viejos sueltos que hayan quedado sin pagar.
+- **Importe por mes**, precargado con la cuota de referencia del club cuando existe; si el club no la tiene cargada, el campo arranca vacío y lo dice. Debajo, el **total** (importe × meses) se actualiza mientras se elige, porque la API registra el importe por mes ([backend_api.md](backend_api.md) §6).
+- **Medio de pago**: Efectivo (por defecto), Transferencia u Otro.
+- **¿Quién pagó?**: el socio, o un integrante de su grupo familiar. Si el socio no tiene grupo, la sección no aparece.
+- **Barra inferior** con el resumen y *Revisar y confirmar*, que se habilita con al menos un mes y un importe.
+
+**Los meses se resumen** cuando son muchos: hasta tres se listan ("Octubre, noviembre y diciembre de 2026"); más de tres se muestran como rango ("6 meses, de octubre 2026 a marzo 2027") o, si no son seguidos, como "entre" uno y otro.
+
+**Confirmación** en una hoja inferior: socio, meses, importe por mes, total, medio y quién pagó, con el aviso *"Un pago registrado no se edita: si hay un error, hay que anularlo desde el historial del socio y cargarlo de nuevo."* y dos acciones, *Confirmar* y *Volver a editar*.
+
+**Después de confirmar** se vuelve a las cuotas del socio con un snackbar ("Pago registrado …") y los meses recién pagos marcados como *NUEVO* en el historial. Pagos, sus contadores de mora y el Inicio se actualizan solos.
+
+**Lo que puede salir mal, sin perder lo cargado**:
+
+| Caso | Qué ve el admin |
+| :--- | :--- |
+| Sin conexión al confirmar | Aviso arriba del formulario; todo lo elegido queda como estaba para reintentar |
+| Uno de los meses ya figura pago (otro admin lo cobró mientras tanto) | Aviso con los meses en cuestión; se quitan de la selección y la grilla los muestra como *Pagado* |
+| El familiar elegido ya no está en el grupo | Aviso; quién pagó vuelve al socio |
+| El socio ya no existe | Pantalla de "No encontramos a este socio" con *Volver a Pagos* |
+| Otro error del servidor | Aviso con el mensaje; el formulario sigue editable |
+
+**Un mes ya pago no se puede volver a cobrar.** La API hoy no lo impide ([backend_api.md](backend_api.md) §6), así que la app relee el historial justo antes de enviar y frena el pago si alguno de los meses ya figura. Eso cubre el doble toque y el reintento después de un timeout; lo que queda abierto — dos admins cobrando el mismo mes en el mismo segundo — se cierra cuando el backend lo rechace.
+
+**Un socio inactivo no puede pagar.** No aparece al elegir socio, y en sus cuotas el botón se reemplaza por una nota que explica por qué y un acceso a *Editar socio* para reactivarlo.
+
+#### 4.2.1 Cuotas del socio y anulación
+
+`/admin/members/:memberId/payments` — se llega desde la fila de Pagos o después de registrar.
+
+- **Encabezado** del socio y **card de situación**: al día, *n* días de mora o inactivo, con el último mes pago (o "Todavía no tiene pagos", con la fecha de alta, para quien recién se sumó).
+- **Historial**, del mes más nuevo al más viejo: mes, importe, medio, fecha de carga y quién pagó cuando no fue el socio. Vacío con mensaje propio si nunca pagó.
+- **Pie fijo** con *Registrar pago* (*Registrar primer pago* si no tiene ninguno).
+- Estados de §5: skeleton, sin conexión y error del servidor con *Reintentar*, y socio inexistente.
+
+**Anular un pago**: tocar una fila del historial abre el **detalle** (los mismos datos y quién lo cargó) con la acción *Anular pago*, que pide confirmación en una segunda hoja:
+
+- Dice el efecto: *"Ese mes vuelve a figurar impago y la mora se recalcula. La anulación queda registrada y no se puede revertir: si fue un error, vas a tener que cargar el pago de nuevo."*
+- **Motivo opcional**, hasta 150 caracteres.
+- Cualquier admin puede anular, no solo quien registró el pago.
+- Se anula **un mes por vez**: un pago de tres meses son tres filas.
+- Si otro admin ya lo había anulado, se avisa y el historial se refresca.
+
+**Los pagos anulados siguen en el historial**, tachados, con la marca *ANULADO*, la fecha y el motivo. Desaparecer sin rastro haría creer que nunca se cobró. Un pago anulado no se puede tocar ni des-anular.
 
 ### 4.3 ABM de administradores (solo superAdmin)
 
@@ -227,7 +275,7 @@ Si el bloqueo pisa reservas existentes, la confirmación **debe listar las reser
 
 `Generar reporte → período (un mes o un rango de fechas) → PDF`
 
-Un PDF con **todos los pagos registrados en el período**: fecha, socio, mes cubierto, importe, medio y quién pagó, con el total al pie. Lo arma la app con el listado de pagos del período, que el backend todavía no expone ([backend_api.md](backend_api.md) §10). La entrada al reporte se define con el diseño de E10.
+Un PDF con **todos los pagos registrados en el período**: fecha, socio, mes cubierto, importe, medio y quién pagó, con el total al pie. Lo arma la app con la búsqueda de pagos, que existe pero filtra por mes cubierto y no por fecha de cobro ([backend_api.md](backend_api.md) §6 y §10). Los pagos anulados no entran. La entrada al reporte se define con el diseño de E10.
 
 ---
 
@@ -261,11 +309,13 @@ GoRouter
 ├── /member                         → superficie del socio en preparación
 ├── StatefulShellRoute (admin + superAdmin)
 │   ├── branch: /admin              → Inicio
-│   ├── branch: /admin/payments      → Pagos   ?filter=all|overdue|to-collect
+│   ├── branch: /admin/payments      → Pagos   ?filter=all|overdue
 │   ├── branch: /admin/profile       → Perfil
 │   └── branch: /admin/reservations  → Agenda        ← se suma en E9
 ├── rutas push del admin
 │   ├── /admin/members/new, /admin/members/:memberId/edit  ← se suman en E5
+│   ├── /admin/payments/new                            ← elegir socio (E6)
+│   ├── /admin/members/:memberId/payments  (+ /new)    ← cuotas y registro (E6)
 │   ├── /admin/payments/report                        ← se suma en E10
 │   ├── /admin/courts
 │   └── /admin/admins   (+ /new, /:adminId/edit)      ← solo superAdmin
@@ -286,6 +336,8 @@ GoRouter
 4. `member` intentando `/admin/*` → fuera de la superficie admin.
 5. `admin` intentando `/admin/admins` → fuera; solo `superAdmin`.
 6. Sesión expirada (401 no recuperable del interceptor) → `/login` con mensaje de sesión vencida.
+
+Las rutas con `:memberId` que no es un número vuelven a Pagos en lugar de abrir una pantalla rota.
 
 Esto requiere un `AuthBloc` de sesión, separado del `LoginCubit` de formulario que ya existe. Ambos existen desde E2; los seis guards se testean por rol.
 
@@ -345,7 +397,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E3 | Inicio del Administrador | — | ✅ Entregada |
 | E4 | Pagos: padrón de socios, búsqueda, chips y selección para el reporte | — | ✅ Entregada |
 | E5 | Alta y edición de socio | No bloquea | ✅ Entregada — sin el scroll al socio recién creado (§4.1) |
-| E6 | Registrar un pago y detalle de cuotas, sobre el listado de E4 | No bloquea | 🚧 En curso |
+| E6 | Registrar un pago, cuotas del socio y anulación, sobre el listado de E4 | No bloquea | 🚧 En revisión |
 | E7 | Perfil del admin + cambiar contraseña + logout | **Sí** | — |
 | E8 | ABM de administradores (superAdmin) | No bloquea | — |
 | E9 | Agenda / Reservas + canchas + bloqueos | **Bloqueada** | — |
@@ -428,7 +480,21 @@ Las dos primeras pantallas de escritura de la app. El contrato está en [backend
 
 **Terminado cuando**: alta y edición funcionan contra fakes y contra la API, el DNI duplicado se muestra en el campo, abandonar con cambios pide confirmación, y hay tests de widget de la validación y unitarios del mapeo DTO ↔ dominio.
 
-El orden E4 → E5 → E6 → E10 es intencional: listado antes de escrituras, y el reporte al final porque lista los pagos que E6 registra y depende de un endpoint que el backend todavía no tiene.
+### E6 — Registrar un pago, cuotas del socio y anulación
+
+La primera escritura que mueve plata. Las pantallas y sus decisiones están en §4.2; el contrato, en [backend_api.md](backend_api.md) §6.
+
+- **Feature `payments`** con sus tres capas. El dominio modela el mes como `BillingMonth` (año + mes), no como `DateTime`: la API habla de "primer día del mes" y comparar fechas con hora trae errores de zona horaria en los bordes.
+- **Las cuotas del socio se arman con cuatro llamadas**: padrón, mora, historial con anulados y cuota del club. Si la cuota del club falla, la pantalla sigue y el importe arranca vacío: es una comodidad, no un dato necesario.
+- **Control de mes ya pago en el cliente** (`RegisterPaymentUseCase`): relee el historial antes de enviar, porque la API no lo rechaza.
+- **El padrón se recarga cuando cambia un pago**, igual que cuando cambia un socio, así que Pagos y sus contadores de mora no quedan viejos después de cobrar o anular.
+- **Fake de pagos** coherente con el de socios: cada socio arranca con seis meses de historial que cierran con sus días de mora, valida duplicados, familiar fuera de grupo, socio inexistente y doble anulación, y al cobrar o anular le recalcula la mora al socio en el fake del padrón.
+- Se quitan el chip "A cobrar", la marca de cada fila y el botón de reporte del pie (§3.2.2).
+- El `404` de la API pasa a tener su propia falla (`NotFoundFailure`) en lugar de caer como error genérico del servidor.
+
+**Terminado cuando**: se puede cobrar desde el Inicio en cuatro toques y desde la fila del socio, anular un pago desde su historial, los cinco casos de error de §4.2 conservan lo cargado, un mes ya pago no se cobra dos veces, Pagos refleja la mora nueva al volver, y hay tests de dominio, del mapeo DTO ↔ dominio, de los dos Cubits y del flujo completo en pantalla.
+
+El orden E4 → E5 → E6 → E10 es intencional: listado antes de escrituras, y el reporte al final porque lista los pagos que E6 registra y depende de un filtro que el backend todavía no tiene.
 
 ---
 
@@ -444,5 +510,6 @@ El orden E4 → E5 → E6 → E10 es intencional: listado antes de escrituras, y
 | El umbral de "en mora" lo define el backend, no el cliente | La app toma `daysOverdue > 0` y no inventa días de gracia |
 | El alta de socio crea solo `member`, nunca `user_account` | Ya es así |
 | Un error de formulario se muestra en su campo | Se usa el status code donde alcanza (E5) y un mensaje genérico donde no (E8), hasta que el envelope traiga un `code` estable |
+| Un mes ya pago no se cobra dos veces | La app relee el historial antes de enviar (§4.2). Dos admins cobrando el mismo mes a la vez todavía pueden duplicarlo |
 
 **Lo único que no se puede averiguar leyendo el repo del backend**: las URLs de los dos entornos de Railway, que son variables del dashboard. Hay que pedirlas.
