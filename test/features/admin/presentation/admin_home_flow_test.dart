@@ -135,20 +135,13 @@ void main() {
     expect(find.text('Ana Álvarez'), findsNothing);
   });
 
-  testWidgets('the member quick access card opens Pagos on every member', (
-    tester,
-  ) async {
+  testWidgets('the new member card opens the creation form', (tester) async {
     await bootHome(tester);
 
-    await tester.tap(find.byType(QuickAccessCard).first);
+    await tester.tap(find.text(AppStrings.adminHomeNewMemberAccess));
     await settleSession(tester);
 
-    expect(
-      currentUri(),
-      AppRoutes.adminPaymentsWithFilter(MemberCollectionFilter.all),
-    );
-    expect(
-        isChipSelected(tester, AppStrings.adminPaymentsFilterAll, 3), isTrue);
+    expect(currentLocation(), AppRoutes.adminMemberCreation);
   });
 
   testWidgets('a card tap moves the bottom navigation onto Pagos', (
@@ -181,13 +174,43 @@ void main() {
         isChipSelected(tester, AppStrings.adminPaymentsFilterAll, 3), isTrue);
   });
 
-  testWidgets('the quick access card opens court management', (tester) async {
+  testWidgets('the register payment card stays on the home', (tester) async {
     await bootHome(tester);
 
-    await tester.tap(find.byType(QuickAccessCard).last);
+    await tester.tap(find.text(AppStrings.adminHomeRegisterPaymentAccess));
     await settleSession(tester);
 
-    expect(currentLocation(), AppRoutes.adminCourts);
+    expect(currentLocation(), AppRoutes.adminHome);
+  });
+
+  testWidgets('a member created from the home already shows up in Pagos', (
+    tester,
+  ) async {
+    await bootApp(tester, signedInAs: UserRole.admin);
+    await tapTab(tester, AppStrings.adminTabPayments);
+    await tapTab(tester, AppStrings.adminTabHome);
+
+    await tester.tap(find.text(AppStrings.adminHomeNewMemberAccess));
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), 'Ana');
+    await tester.enterText(fields.at(1), 'Álvarez');
+    await tester.enterText(fields.at(2), '45999888');
+    await tester.tap(find.text(AppStrings.memberFormSaveCreation));
+    await tester.pumpAndSettle();
+    await tapTab(tester, AppStrings.adminTabPayments);
+
+    expect(
+      find.text(
+        AppStrings.withCount(
+          AppStrings.adminPaymentsFilterAll,
+          MemberFakeDataSource.totalMembers + 1,
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.pump(const Duration(seconds: 5));
   });
 
   testWidgets('a super admin sees the same home surface', (tester) async {
@@ -204,7 +227,7 @@ void main() {
     final dataSource = GrowingClubDataSource();
     await bootHome(tester, summarySource: dataSource);
 
-    await tester.tap(find.byType(QuickAccessCard).last);
+    await tester.tap(find.byType(QuickAccessCard).first);
     await settleSession(tester);
     di.sl<AppRouter>().router.pop();
     await settleSession(tester);

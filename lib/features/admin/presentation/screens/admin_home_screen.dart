@@ -8,6 +8,7 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/error_retry_view.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../members/domain/entities/member_collection_filter.dart';
@@ -190,19 +191,21 @@ class _QuickAccessRow extends StatelessWidget {
         children: [
           Expanded(
             child: QuickAccessCard(
-              label: AppStrings.adminHomeMembersAccess,
-              variant: QuickAccessVariant.members,
-              onTap: () => context.go(
-                AppRoutes.adminPaymentsWithFilter(MemberCollectionFilter.all),
-              ),
+              label: AppStrings.adminHomeNewMemberAccess,
+              variant: QuickAccessVariant.newMember,
+              onTap: () => context.push(AppRoutes.adminMemberCreation),
             ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: QuickAccessCard(
-              label: AppStrings.adminHomeCourtsAccess,
-              variant: QuickAccessVariant.courts,
-              onTap: () => context.push(AppRoutes.adminCourts),
+              label: AppStrings.adminHomeRegisterPaymentAccess,
+              variant: QuickAccessVariant.registerPayment,
+              isEnabled: false,
+              onTap: () => showAppSnackBar(
+                context,
+                AppStrings.comingSoonRegisterPayment,
+              ),
             ),
           ),
         ],

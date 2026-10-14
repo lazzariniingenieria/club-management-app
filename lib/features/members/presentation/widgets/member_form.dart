@@ -178,7 +178,7 @@ class _MemberFormState extends State<MemberForm> {
     switch (state) {
       case MemberFormSaved(:final outcome):
         showAppSnackBar(context, _outcomeMessage(outcome));
-        context.pop(true);
+        context.pop();
       case MemberFormDuplicatedDni():
         setState(() => _takenDniError = AppStrings.memberFormDniTaken);
         _formKey.currentState?.validate();

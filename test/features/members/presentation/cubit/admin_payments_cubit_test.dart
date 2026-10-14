@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:club_management_app/core/constants/app_strings.dart';
 import 'package:club_management_app/core/errors/failures.dart';
 import 'package:club_management_app/features/members/domain/entities/member.dart';
 import 'package:club_management_app/features/members/domain/entities/member_collection_filter.dart';
 import 'package:club_management_app/features/members/domain/usecases/load_members_use_case.dart';
+import 'package:club_management_app/features/members/domain/usecases/watch_roster_changes_use_case.dart';
 import 'package:club_management_app/features/members/presentation/cubit/admin_payments_cubit.dart';
 import 'package:club_management_app/features/members/presentation/cubit/admin_payments_state.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,8 +16,12 @@ import '../../../../helpers/member_roster_data_source.dart';
 
 class MockLoadMembersUseCase extends Mock implements LoadMembersUseCase {}
 
+class MockWatchRosterChangesUseCase extends Mock
+    implements WatchRosterChangesUseCase {}
+
 void main() {
   late MockLoadMembersUseCase useCase;
+  late StreamController<void> rosterChanges;
   late AdminPaymentsCubit cubit;
 
   final overdueMember = buildMember(
@@ -45,10 +52,19 @@ void main() {
 
   setUp(() {
     useCase = MockLoadMembersUseCase();
-    cubit = AdminPaymentsCubit(useCase);
+    rosterChanges = StreamController<void>.broadcast();
+    final watchRosterChanges = MockWatchRosterChangesUseCase();
+    when(() => watchRosterChanges()).thenAnswer((_) => rosterChanges.stream);
+    cubit = AdminPaymentsCubit(
+      loadMembers: useCase,
+      watchRosterChanges: watchRosterChanges,
+    );
   });
 
-  tearDown(() => cubit.close());
+  tearDown(() async {
+    await cubit.close();
+    await rosterChanges.close();
+  });
 
   test('starts loading so the list never opens on an empty roster', () {
     expect(cubit.state, const AdminPaymentsLoading());
@@ -268,7 +284,6 @@ void main() {
     expect((cubit.state as AdminPaymentsFailure).previous, isNull);
   });
 
-
   test('keeps a selection the admin made while the reload was in flight',
       () async {
     stub(Right(roster()));
@@ -298,5 +313,43 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(states.whereType<AdminPaymentsLoading>(), isEmpty);
+  });
+
+  group('a change to the roster made elsewhere', () {
+    Future<void> settle() => Future<void>.delayed(Duration.zero);
+
+    test('reloads the list on its own, keeping search and selection', () async {
+      stub(Right(roster()));
+      await cubit.load();
+      cubit.search('ana');
+      cubit.toggleReportSelection(upToDateMember.id);
+
+      rosterChanges.add(null);
+      await settle();
+
+      verify(() => useCase()).called(2);
+      expect(readyState().searchQuery, 'ana');
+      expect(readyState().selectedMemberIds, {upToDateMember.id});
+    });
+
+    test('arriving during a load is not lost: one more load follows', () async {
+      final firstLoad = Completer<Either<Failure, List<Member>>>();
+      when(() => useCase()).thenAnswer((_) => firstLoad.future);
+
+      final loading = cubit.load();
+      rosterChanges.add(null);
+      await settle();
+      stub(Right(roster()));
+      firstLoad.complete(Right(roster()));
+      await loading;
+
+      verify(() => useCase()).called(2);
+    });
+
+    test('is no longer heard once the list is closed', () async {
+      await cubit.close();
+
+      expect(rosterChanges.hasListener, isFalse);
+    });
   });
 }

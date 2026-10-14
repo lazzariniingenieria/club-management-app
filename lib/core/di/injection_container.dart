@@ -26,6 +26,7 @@ import '../../features/members/domain/usecases/create_member_use_case.dart';
 import '../../features/members/domain/usecases/load_members_use_case.dart';
 import '../../features/members/domain/usecases/set_member_active_use_case.dart';
 import '../../features/members/domain/usecases/update_member_use_case.dart';
+import '../../features/members/domain/usecases/watch_roster_changes_use_case.dart';
 import '../../features/members/presentation/cubit/admin_payments_cubit.dart';
 import '../../features/members/presentation/cubit/member_form_cubit.dart';
 import '../config/app_environment.dart';
@@ -129,6 +130,7 @@ void _registerMemberDomain() {
   sl.registerLazySingleton(() => CreateMemberUseCase(sl()));
   sl.registerLazySingleton(() => UpdateMemberUseCase(sl()));
   sl.registerLazySingleton(() => SetMemberActiveUseCase(sl()));
+  sl.registerLazySingleton(() => WatchRosterChangesUseCase(sl()));
 }
 
 void _registerPresentation() {
@@ -144,7 +146,9 @@ void _registerPresentation() {
 
   sl.registerFactory(() => LoginCubit(sl()));
   sl.registerFactory(() => AdminHomeCubit(sl()));
-  sl.registerFactory(() => AdminPaymentsCubit(sl()));
+  sl.registerFactory(
+    () => AdminPaymentsCubit(loadMembers: sl(), watchRosterChanges: sl()),
+  );
   sl.registerFactory(
     () => MemberFormCubit(
       createMember: sl(),
