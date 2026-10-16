@@ -56,10 +56,7 @@ class PaymentFakeDataSource implements PaymentRemoteDataSource {
 
     return PaymentPrecheckModel(
       isActive: _memberIn(roster, memberId).isActive,
-      paidMonths: {
-        for (final payment in _paymentsOf(memberId))
-          if (!payment.isVoided) payment.month,
-      },
+      paidMonths: _paidMonthsOf(memberId),
     );
   }
 
@@ -100,6 +97,11 @@ class PaymentFakeDataSource implements PaymentRemoteDataSource {
   List<Payment> _paymentsOf(int memberId) =>
       _payments.where((payment) => payment.memberId == memberId).toList();
 
+  Set<BillingMonth> _paidMonthsOf(int memberId) => {
+        for (final payment in _paymentsOf(memberId))
+          if (!payment.isVoided) payment.month,
+      };
+
   Member _memberIn(List<Member> roster, int memberId) {
     for (final member in roster) {
       if (member.id == memberId) return member;
@@ -111,6 +113,9 @@ class PaymentFakeDataSource implements PaymentRemoteDataSource {
   void _rejectInvalid(PaymentDraft draft, Member member, List<Member> roster) {
     if (draft.months.toSet().length != draft.months.length) {
       throw ValidationException('periodsCovered has duplicates');
+    }
+    if (draft.months.any(_paidMonthsOf(member.id).contains)) {
+      throw ConflictException('A period is already paid');
     }
 
     final payerId = draft.paidByMemberId;

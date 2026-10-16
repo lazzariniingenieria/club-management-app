@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/errors/failures.dart';
+import '../entities/billing_month.dart';
 import '../entities/payment_draft.dart';
 import '../entities/payment_precheck.dart';
 import '../failures/payment_failures.dart';
@@ -33,6 +34,23 @@ class RegisterPaymentUseCase {
       return Left(AlreadyPaidMonthsFailure(alreadyPaid));
     }
 
-    return repository.recordPayment(draft);
+    final recorded = await repository.recordPayment(draft);
+    final failure = recorded.getLeft().toNullable();
+    if (failure is ConflictFailure) return _paidMeanwhile(draft, failure);
+
+    return recorded;
+  }
+
+  Future<Either<Failure, void>> _paidMeanwhile(
+    PaymentDraft draft,
+    ConflictFailure conflict,
+  ) async {
+    final reread = await repository.loadPrecheck(draft.memberId);
+    final paid = reread.fold(
+      (_) => const <BillingMonth>[],
+      (current) => draft.monthsAlreadyIn(current.paidMonths),
+    );
+
+    return Left(paid.isEmpty ? conflict : AlreadyPaidMonthsFailure(paid));
   }
 }

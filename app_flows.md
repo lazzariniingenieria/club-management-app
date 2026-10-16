@@ -229,7 +229,7 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 
 **Reintentar siempre vuelve a la confirmación**: entre el error y el reintento el admin pudo haber cambiado el importe o los meses, y un pago no se manda sin ver el resumen que se va a registrar.
 
-**Un mes ya pago no se puede volver a cobrar.** La API hoy no lo impide ([backend_api.md](backend_api.md) §6), así que la app relee el historial justo antes de enviar y frena el pago si alguno de los meses ya figura. Eso cubre el doble toque y la mayoría de los reintentos después de un timeout; lo que queda abierto — dos admins cobrando el mismo mes en el mismo segundo, o un primer envío que commitea recién después de la relectura del reintento — se cierra cuando el backend lo rechace, no con esperas ni reintentos en el cliente.
+**Un mes ya pago no se puede volver a cobrar.** La API lo rechaza con `409`, también cuando dos pedidos llegan a la vez ([backend_api.md](backend_api.md) §6). La app igual relee el historial justo antes de enviar, para frenar el caso común sin un viaje de más; y si el `409` llega igual (otro admin cobró en el mismo segundo, o el primer envío de un timeout terminó de guardarse después de esa relectura), relee el historial y lo trata como *meses ya pagos*: si era el propio envío sin confirmar, termina como registrado; si no, quita esos meses y avisa.
 
 **Un socio inactivo no puede pagar.** No aparece al elegir socio, y en sus cuotas el botón se reemplaza por una nota que explica por qué y un acceso a *Editar socio* para reactivarlo. La API no lo impide, así que la app lo controla en tres lugares: al abrir el registro, al releer el historial antes de enviar, y en las cuotas, que se recargan cuando el socio cambia (una baja o una reactivación hecha desde *Editar socio* se ve al volver) y cuando un pago pudo haber cambiado (un registro que no respondió a tiempo pero entró se ve al volver atrás).
 
@@ -490,10 +490,10 @@ La primera escritura que mueve plata. Las pantallas y sus decisiones están en �
 
 - **Feature `payments`** con sus tres capas. El dominio modela el mes como `BillingMonth` (año + mes), no como `DateTime`: la API habla de "primer día del mes" y comparar fechas con hora trae errores de zona horaria en los bordes.
 - **Las cuotas del socio se arman con cuatro llamadas**: padrón, mora, historial con anulados y cuota del club. Si la cuota del club falla, la pantalla sigue y el importe arranca vacío: es una comodidad, no un dato necesario.
-- **Control de mes ya pago y de socio activo en el cliente** (`RegisterPaymentUseCase`): antes de enviar relee el socio y su historial — solo esas dos llamadas, no el ledger completo —, porque la API no rechaza ninguno de los dos.
+- **Control de mes ya pago y de socio activo en el cliente** (`RegisterPaymentUseCase`): antes de enviar relee el socio y su historial — solo esas dos llamadas, no el ledger completo. El socio inactivo solo lo controla la app (la API no lo rechaza); el mes ya pago lo rechaza también la API, y su `409` se traduce a los meses que el historial muestra pagos.
 - **Un timeout no es una falta de conexión** (`ResponseTimeoutFailure`, subtipo de `NetworkFailure`): sin respuesta, la escritura pudo haber llegado, así que el registro y la anulación lo resuelven releyendo el historial en lugar de afirmar que no se guardó.
 - **El padrón se recarga cuando cambia un pago**, igual que cuando cambia un socio, así que Pagos y sus contadores de mora no quedan viejos después de cobrar o anular.
-- **Fake de pagos** coherente con el de socios: cada socio arranca con seis meses de historial que cierran con sus días de mora, valida duplicados, familiar fuera de grupo, socio inexistente y doble anulación, y al cobrar o anular le recalcula la mora al socio en el fake del padrón.
+- **Fake de pagos** coherente con el de socios: cada socio arranca con seis meses de historial que cierran con sus días de mora, valida duplicados, mes ya pago, familiar fuera de grupo, socio inexistente y doble anulación, y al cobrar o anular le recalcula la mora al socio en el fake del padrón.
 - Se quitan el chip "A cobrar", la marca de cada fila y el botón de reporte del pie (§3.2.2).
 - El `404` de la API pasa a tener su propia falla (`NotFoundFailure`) en lugar de caer como error genérico del servidor.
 
@@ -515,6 +515,6 @@ El orden E4 → E5 → E6 → E10 es intencional: listado antes de escrituras, y
 | El umbral de "en mora" lo define el backend, no el cliente | La app toma `daysOverdue > 0` y no inventa días de gracia |
 | El alta de socio crea solo `member`, nunca `user_account` | Ya es así |
 | Un error de formulario se muestra en su campo | Se usa el status code donde alcanza (E5) y un mensaje genérico donde no (E8), hasta que el envelope traiga un `code` estable |
-| Un mes ya pago no se cobra dos veces | La app relee el historial antes de enviar (§4.2). Dos admins cobrando el mismo mes a la vez todavía pueden duplicarlo |
+| Un mes ya pago no se cobra dos veces | Ya es así: la API lo rechaza con `409`, con un índice único que cubre los pedidos simultáneos |
 
 **Lo único que no se puede averiguar leyendo el repo del backend**: las URLs de los dos entornos de Railway, que son variables del dashboard. Hay que pedirlas.

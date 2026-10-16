@@ -2,7 +2,7 @@
 
 Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, shapes, errores o reglas del servidor, se contesta acá y no leyendo el repo del backend.
 
-**Verificado contra** [`club-management-api`](https://github.com/lazzariniingenieria/club-management-api) `develop`, commit `a00886d` — 2026-10-13.
+**Verificado contra** [`club-management-api`](https://github.com/lazzariniingenieria/club-management-api) `develop`, commit `02ff70e` — 2026-10-15.
 
 **Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/`, `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
@@ -125,7 +125,7 @@ Todo lo demás sale con este envelope:
 | :--- | :--- |
 | `400` | Validación fallida (`details` por campo), body ilegible, `paidByMemberId` fuera del grupo familiar, `periodsCovered` con repetidos, rango `from` > `to` en la búsqueda de pagos, query param con un valor que no se puede parsear |
 | `404` | El recurso no existe **en tu club** — indistinguible de uno de otro club, porque todo filtra por el `clubId` del token. Aplica a socios, pagos y admins |
-| `409` | DNI ya usado en el club, un pago que ya estaba anulado, o cualquier otra violación de constraint |
+| `409` | DNI ya usado en el club, un período que el socio ya tiene pago, un pago que ya estaba anulado, o cualquier otra violación de constraint |
 | `500` | Excepción no manejada |
 
 ---
@@ -217,7 +217,7 @@ Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistingui
 
 | Verbo | Ruta | Respuesta |
 | :--- | :--- | :--- |
-| `POST` | `/api/payments` | `201` + `PaymentResponse[]` · `400` · `404` |
+| `POST` | `/api/payments` | `201` + `PaymentResponse[]` · `400` · `404` · `409` |
 | `GET` | `/api/payments` | `200` + `PaymentResponse[]` · `400` |
 | `GET` | `/api/payments/members/{memberId}` | `200` + `PaymentResponse[]` · `404` |
 | `PATCH` | `/api/payments/{paymentId}/void` | `200` + `PaymentResponse` · `404` · `409` |
@@ -233,7 +233,7 @@ Convención de `periodsCovered`: el **primer día del mes** que se paga — `"20
 
 **`paidByMemberId`**: nulo o igual a `memberId` se guarda como `null` ("pagó el propio socio" se representa con `null`). Si viene otro socio, tiene que **compartir un `familyGroupId` no nulo** con el socio de la cuota, o `400`; dos socios los dos sin grupo no cuentan como el mismo grupo. No hay cuota familiar compartida: siempre se paga la cuota de un socio.
 
-**No rechaza un período que ya está pago.** Solo valida que no haya repetidos *dentro* del pedido; contra los pagos que ya existen no compara nada, y en base tampoco hay `UNIQUE (member_id, period_covered)`. Mandar septiembre a un socio que ya tiene septiembre registra un segundo pago de septiembre (§9).
+**Rechaza un período que ya está pago → `409`**, y rechaza el pedido entero: si uno solo de los meses ya tiene un pago no anulado, no se registra ninguno. Lo controla dos veces: el servicio compara contra los pagos vigentes antes de guardar (el `message` lista los períodos, pero sin `code` estable, §4), y un índice único parcial en base (§8) frena los dos pedidos simultáneos que pasan juntos ese control — ese `409` llega con el mensaje genérico de constraint. Un período **anulado** sí se puede volver a pagar.
 
 ```json
 { "id": 88, "memberId": 34, "paidByMemberId": null, "amount": 15000.00,
@@ -296,7 +296,7 @@ daysOverdue       = max(0, días entre coverageStart y hoy)
 
 ## 8. Modelo de datos
 
-**Seis tablas** (migraciones `V1`–`V11`): `user_account`, `member`, `family_group`, `refresh_token`, `payment` y `club`. El diseño de nueve tablas del `README` del backend es el plan, no el estado.
+**Seis tablas** (migraciones `V1`–`V12`): `user_account`, `member`, `family_group`, `refresh_token`, `payment` y `club`. El diseño de nueve tablas del `README` del backend es el plan, no el estado.
 
 **`club`** tiene `name`, `address`, `courts_enabled`, `member_app_enabled` y `monthly_fee_amount` (la cuota de referencia, nullable y > 0). `member.club_id` y `user_account.club_id` ya tienen FK a esa tabla; cada query sigue filtrando por el `clubId` del token, y las hojas quedan alcanzadas vía `member_id` / `user_account_id`. **Los flags `courts_enabled` y `member_app_enabled` existen en la tabla pero ningún endpoint los expone.**
 
@@ -310,7 +310,7 @@ Constraints que el cliente ve como comportamiento HTTP:
 | `user_account UNIQUE (member_id)` | Un socio no puede tener dos cuentas — el segundo `409` de `/api/admins`. Varios `NULL` sí se permiten |
 | `CHECK (role <> 'SUPER_ADMIN' OR member_id IS NULL)` | El `memberId` del super admin es siempre `null` |
 | `CHECK (amount > 0)` en `payment` | Refuerza la validación del `POST` |
-| **No** hay `UNIQUE (member_id, period_covered)` | Nada impide pagar dos veces el mismo período (§9) |
+| `UNIQUE (member_id, period_covered) WHERE voided_at IS NULL` (`V12`) | Un período tiene a lo sumo un pago vigente: el segundo da `409`, aun si los dos pedidos llegan a la vez. Anular libera el período |
 
 `user_account`, `member` y `family_group` llevan `created_at`, `updated_at`, `created_by_user_id` y `updated_by_user_id`, todas expuestas en las respuestas, por si hace falta mostrar "cargado por".
 
@@ -329,7 +329,6 @@ Lo que es fácil codear mal porque el contrato dice otra cosa de la que uno espe
 | `PATCH /api/admins/{id}` sin `memberId` | El admin pierde el vínculo con su socio | 5 |
 | Un socio recién creado figura en mora | El alta "funciona" y el socio aparece en rojo al instante | 7 |
 | `/delinquency` trae a todos los activos | Contar filas da los activos, no los morosos | 6 |
-| Nada impide pagar dos veces el mismo período | El duplicado entra: la protección es del cliente, que relee el historial antes de enviar | 6, 8 |
 | El historial oculta los anulados por defecto | Sin `?includeVoided=true` un pago anulado desaparece sin rastro | 6 |
 | Anular no se revierte | Un toque de más deja un mes impago que hay que volver a registrar | 6 |
 | La búsqueda de pagos filtra por mes cubierto | Un rango "de octubre" trae lo que cubre octubre, no lo cobrado en octubre | 6 |
@@ -351,7 +350,6 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Cargar el último mes pagado en el alta de socio | E6 — el socio recién creado nace en mora desde el 1° del mes (§7) |
 | `code` estable y `fieldErrors` en el envelope de error | Mapear un error al campo del formulario (E5, E8) |
 | Filtro de `GET /api/payments` por fecha de carga (`paidAt`) | E10 — la búsqueda existe pero filtra por mes cubierto; el PDF de lo cobrado en un período necesita filtrar por la fecha del pago |
-| Rechazo de un período que el socio ya tiene pago (`409`) | E6 — hoy la app relee el historial antes de enviar; dos admins cobrando el mismo mes a la vez todavía pueden duplicarlo, y también un reintento después de un timeout si el primer `POST` commitea después de esa relectura. Solo se cierra del lado del servidor |
 | Mora de un socio y padrón de su grupo familiar sin bajar todo el club (filtro por `memberId` en `GET /api/payments/delinquency`, por `familyGroupId` en `GET /api/members`) | Cuotas del socio a escala — hoy cada apertura del ledger trae el padrón entero y la mora de todo el club para mostrar a un socio. La verificación previa al registrar ya no lo necesita: usa `GET /api/members/{id}` y el historial del socio |
 | Edición de un pago | Corregir un pago es anularlo y registrarlo de nuevo |
 | Días de gracia configurables | El umbral de "en mora" |

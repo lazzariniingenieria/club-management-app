@@ -99,4 +99,65 @@ void main() {
     expect(result, const Left<Failure, void>(InactiveMemberFailure()));
     verifyNever(() => repository.recordPayment(any()));
   });
+
+  group('a payment the server rejects as already paid', () {
+    void stubConflict() {
+      when(() => repository.recordPayment(any()))
+          .thenAnswer((_) async => const Left(ConflictFailure()));
+    }
+
+    void stubRereadPaid(Set<BillingMonth> paidMonths) {
+      when(() => repository.loadPrecheck(any())).thenAnswer(
+        (_) async => Right(
+          PaymentPrecheck(isActive: true, paidMonths: paidMonths),
+        ),
+      );
+    }
+
+    test('reports the months the reread finds paid', () async {
+      final draft = draftFor(
+        const [BillingMonth(2026, 9), BillingMonth(2026, 10)],
+      );
+      when(() => repository.recordPayment(any())).thenAnswer((_) async {
+        stubRereadPaid({const BillingMonth(2026, 9)});
+
+        return const Left(ConflictFailure());
+      });
+
+      final result = await registerPayment(draft);
+
+      expect(
+        result,
+        const Left<Failure, void>(
+          AlreadyPaidMonthsFailure([BillingMonth(2026, 9)]),
+        ),
+      );
+    });
+
+    test('keeps the conflict when the reread finds none of the months',
+        () async {
+      stubConflict();
+
+      final result = await registerPayment(
+        draftFor(const [BillingMonth(2026, 9)]),
+      );
+
+      expect(result, const Left<Failure, void>(ConflictFailure()));
+    });
+
+    test('keeps the conflict when the reread fails', () async {
+      when(() => repository.recordPayment(any())).thenAnswer((_) async {
+        when(() => repository.loadPrecheck(any()))
+            .thenAnswer((_) async => const Left(NetworkFailure()));
+
+        return const Left(ConflictFailure());
+      });
+
+      final result = await registerPayment(
+        draftFor(const [BillingMonth(2026, 9)]),
+      );
+
+      expect(result, const Left<Failure, void>(ConflictFailure()));
+    });
+  });
 }

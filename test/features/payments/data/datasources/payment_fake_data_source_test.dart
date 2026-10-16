@@ -80,6 +80,33 @@ void main() {
     );
   });
 
+  PaymentDraft draftOf(BillingMonth month) => PaymentDraft(
+        memberId: overdueMember.id,
+        months: [month],
+        amountCents: PaymentFakeDataSource.defaultMonthlyFeeCents,
+        method: PaymentMethod.cash,
+      );
+
+  test('paying a month already paid is a conflict, as the API does', () async {
+    final ledger = await payments.fetchLedger(overdueMember.id);
+
+    expect(
+      payments.recordPayment(draftOf(ledger.lastPaidMonth!)),
+      throwsA(isA<ConflictException>()),
+    );
+  });
+
+  test('a voided month can be paid again', () async {
+    final ledger = await payments.fetchLedger(overdueMember.id);
+    final last = ledger.livePayments.first;
+    await payments.voidPayment(last.id);
+
+    await payments.recordPayment(draftOf(last.month));
+
+    final reread = await payments.fetchLedger(overdueMember.id);
+    expect(reread.paidMonths, contains(last.month));
+  });
+
   test('voiding twice is a conflict, as the API does', () async {
     final ledger = await payments.fetchLedger(overdueMember.id);
     final paymentId = ledger.payments.first.id;
