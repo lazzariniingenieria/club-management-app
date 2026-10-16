@@ -3,6 +3,7 @@ import 'package:club_management_app/core/errors/failures.dart';
 import 'package:club_management_app/core/logging/app_logger.dart';
 import 'package:club_management_app/features/payments/data/datasources/payment_remote_data_source.dart';
 import 'package:club_management_app/features/payments/data/models/member_ledger_model.dart';
+import 'package:club_management_app/features/payments/data/models/payment_precheck_model.dart';
 import 'package:club_management_app/features/payments/data/repositories/payment_repository_impl.dart';
 import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
 import 'package:club_management_app/features/payments/domain/entities/payment_draft.dart';
@@ -34,6 +35,10 @@ class FailingWrites implements PaymentRemoteDataSource {
 
   @override
   Future<MemberLedgerModel> fetchLedger(int memberId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<PaymentPrecheckModel> fetchPrecheck(int memberId) =>
       throw UnimplementedError();
 
   @override

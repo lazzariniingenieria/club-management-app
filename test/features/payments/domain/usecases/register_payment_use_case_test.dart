@@ -1,8 +1,8 @@
 import 'package:club_management_app/core/errors/failures.dart';
-import 'package:club_management_app/features/members/domain/entities/member.dart';
 import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
 import 'package:club_management_app/features/payments/domain/entities/payment_draft.dart';
 import 'package:club_management_app/features/payments/domain/entities/payment_method.dart';
+import 'package:club_management_app/features/payments/domain/entities/payment_precheck.dart';
 import 'package:club_management_app/features/payments/domain/failures/payment_failures.dart';
 import 'package:club_management_app/features/payments/domain/repositories/payment_repository.dart';
 import 'package:club_management_app/features/payments/domain/usecases/register_payment_use_case.dart';
@@ -32,8 +32,11 @@ void main() {
   setUp(() {
     repository = MockPaymentRepository();
     registerPayment = RegisterPaymentUseCase(repository);
-    when(() => repository.loadLedger(any()))
-        .thenAnswer((_) async => Right(buildLedger()));
+    when(() => repository.loadPrecheck(any())).thenAnswer(
+      (_) async => Right(
+        PaymentPrecheck(isActive: true, paidMonths: buildLedger().paidMonths),
+      ),
+    );
     when(() => repository.recordPayment(any()))
         .thenAnswer((_) async => const Right(null));
   });
@@ -47,6 +50,14 @@ void main() {
 
     expect(result.isRight(), isTrue);
     verify(() => repository.recordPayment(draft)).called(1);
+  });
+
+  test('checks the member with the focused precheck, not the whole ledger',
+      () async {
+    await registerPayment(draftFor(const [BillingMonth(2026, 9)]));
+
+    verify(() => repository.loadPrecheck(1)).called(1);
+    verifyNever(() => repository.loadLedger(any()));
   });
 
   test('never sends a month that another payment already covers', () async {
@@ -63,8 +74,8 @@ void main() {
     verifyNever(() => repository.recordPayment(any()));
   });
 
-  test('a ledger that cannot be read stops the payment too', () async {
-    when(() => repository.loadLedger(any()))
+  test('a precheck that cannot be read stops the payment too', () async {
+    when(() => repository.loadPrecheck(any()))
         .thenAnswer((_) async => const Left(NetworkFailure()));
 
     final result = await registerPayment(
@@ -76,10 +87,9 @@ void main() {
   });
 
   test('never charges a member who is no longer active', () async {
-    when(() => repository.loadLedger(any())).thenAnswer(
-      (_) async => Right(
-        buildLedger(member: buildLedgerMember(status: MemberStatus.inactive)),
-      ),
+    when(() => repository.loadPrecheck(any())).thenAnswer(
+      (_) async =>
+          const Right(PaymentPrecheck(isActive: false, paidMonths: {})),
     );
 
     final result = await registerPayment(

@@ -9,6 +9,7 @@ import '../../domain/entities/payment_draft.dart';
 import '../../domain/entities/payment_method.dart';
 import '../models/member_ledger_model.dart';
 import '../models/payment_model.dart';
+import '../models/payment_precheck_model.dart';
 import 'payment_remote_data_source.dart';
 
 typedef DelinquencyListener = void Function(int memberId, int daysOverdue);
@@ -46,6 +47,19 @@ class PaymentFakeDataSource implements PaymentRemoteDataSource {
       roster: roster,
       payments: _paymentsOf(memberId),
       monthlyFeeCents: monthlyFeeCents,
+    );
+  }
+
+  @override
+  Future<PaymentPrecheckModel> fetchPrecheck(int memberId) async {
+    final roster = await _seededRoster();
+
+    return PaymentPrecheckModel(
+      isActive: _memberIn(roster, memberId).isActive,
+      paidMonths: {
+        for (final payment in _paymentsOf(memberId))
+          if (!payment.isVoided) payment.month,
+      },
     );
   }
 

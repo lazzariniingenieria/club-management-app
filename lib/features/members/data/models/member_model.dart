@@ -28,6 +28,9 @@ class MemberModel extends Member {
   static const String _daysOverdueKey = 'daysOverdue';
   static const String _activeStatus = 'ACTIVE';
 
+  factory MemberModel.fromJson(Map<String, dynamic> json) =>
+      _fromRow(json, const {});
+
   static List<MemberModel> listFromResponses({
     required List<dynamic> members,
     required List<dynamic> delinquency,

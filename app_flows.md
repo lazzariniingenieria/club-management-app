@@ -490,7 +490,7 @@ La primera escritura que mueve plata. Las pantallas y sus decisiones están en �
 
 - **Feature `payments`** con sus tres capas. El dominio modela el mes como `BillingMonth` (año + mes), no como `DateTime`: la API habla de "primer día del mes" y comparar fechas con hora trae errores de zona horaria en los bordes.
 - **Las cuotas del socio se arman con cuatro llamadas**: padrón, mora, historial con anulados y cuota del club. Si la cuota del club falla, la pantalla sigue y el importe arranca vacío: es una comodidad, no un dato necesario.
-- **Control de mes ya pago y de socio activo en el cliente** (`RegisterPaymentUseCase`): relee el historial antes de enviar, porque la API no rechaza ninguno de los dos.
+- **Control de mes ya pago y de socio activo en el cliente** (`RegisterPaymentUseCase`): antes de enviar relee el socio y su historial — solo esas dos llamadas, no el ledger completo —, porque la API no rechaza ninguno de los dos.
 - **Un timeout no es una falta de conexión** (`ResponseTimeoutFailure`, subtipo de `NetworkFailure`): sin respuesta, la escritura pudo haber llegado, así que el registro y la anulación lo resuelven releyendo el historial en lugar de afirmar que no se guardó.
 - **El padrón se recarga cuando cambia un pago**, igual que cuando cambia un socio, así que Pagos y sus contadores de mora no quedan viejos después de cobrar o anular.
 - **Fake de pagos** coherente con el de socios: cada socio arranca con seis meses de historial que cierran con sus días de mora, valida duplicados, familiar fuera de grupo, socio inexistente y doble anulación, y al cobrar o anular le recalcula la mora al socio en el fake del padrón.

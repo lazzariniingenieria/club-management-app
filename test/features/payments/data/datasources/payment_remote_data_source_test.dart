@@ -60,6 +60,37 @@ const List<dynamic> _delinquency = [
   {'memberId': 2, 'daysOverdue': 0, 'lastPeriodCovered': '2026-10-01'},
 ];
 
+const Map<String, dynamic> _inactiveMember = {
+  'id': 3,
+  'firstName': 'Luis',
+  'lastName': 'Gómez',
+  'dni': '31444555',
+  'status': 'INACTIVE',
+};
+
+const List<dynamic> _historyWithVoided = [
+  {
+    'id': 11,
+    'memberId': 1,
+    'amount': 15000.00,
+    'paidAt': '2026-09-05T13:00:00Z',
+    'periodCovered': '2026-09-01',
+    'paymentMethod': 'CASH',
+    'voidedAt': '2026-09-06T13:00:00Z',
+    'voidReason': 'Error',
+  },
+  {
+    'id': 10,
+    'memberId': 1,
+    'amount': 15000.00,
+    'paidAt': '2026-08-05T13:00:00Z',
+    'periodCovered': '2026-08-01',
+    'paymentMethod': 'CASH',
+    'voidedAt': null,
+    'voidReason': null,
+  },
+];
+
 const List<dynamic> _history = [
   {
     'id': 10,
@@ -185,6 +216,69 @@ void main() {
       });
 
       expect(dataSource.fetchLedger(1), throwsA(isA<NetworkException>()));
+    });
+  });
+
+  group('checking a member before a payment', () {
+    ResponseBody respondWithPrecheck(
+      RequestOptions options, {
+      Map<String, dynamic>? member,
+    }) {
+      final path = options.path;
+      if (path == ApiConstants.member(1)) {
+        return jsonResponse(
+          200,
+          member ?? _members.first as Map<String, dynamic>,
+        );
+      }
+      if (path == ApiConstants.memberPaymentHistory(1)) {
+        return jsonListResponse(200, _historyWithVoided);
+      }
+
+      return emptyResponse(404);
+    }
+
+    test('asks only for the member and their history', () async {
+      final dataSource = buildDataSource(
+        (options, _) => respondWithPrecheck(options),
+      );
+
+      await dataSource.fetchPrecheck(1);
+
+      expect(adapter.callsTo(ApiConstants.member(1)), 1);
+      expect(adapter.callsTo(ApiConstants.memberPaymentHistory(1)), 1);
+      expect(adapter.callsTo(ApiConstants.members), 0);
+      expect(adapter.callsTo(ApiConstants.paymentDelinquency), 0);
+      expect(adapter.callsTo(ApiConstants.currentClub), 0);
+    });
+
+    test('counts only the months of payments still standing', () async {
+      final dataSource = buildDataSource(
+        (options, _) => respondWithPrecheck(options),
+      );
+
+      final precheck = await dataSource.fetchPrecheck(1);
+
+      expect(precheck.isActive, isTrue);
+      expect(precheck.paidMonths, {const BillingMonth(2026, 8)});
+    });
+
+    test('reads whether the member is still active', () async {
+      final dataSource = buildDataSource(
+        (options, _) => respondWithPrecheck(options, member: _inactiveMember),
+      );
+
+      final precheck = await dataSource.fetchPrecheck(1);
+
+      expect(precheck.isActive, isFalse);
+    });
+
+    test('a member outside the club is reported as not found', () {
+      final dataSource = buildDataSource(
+        (options, _) => respondWithPrecheck(options),
+      );
+
+      expect(dataSource.fetchPrecheck(99), throwsA(isA<NotFoundException>()));
     });
   });
 

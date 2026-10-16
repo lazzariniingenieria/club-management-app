@@ -352,6 +352,7 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | `code` estable y `fieldErrors` en el envelope de error | Mapear un error al campo del formulario (E5, E8) |
 | Filtro de `GET /api/payments` por fecha de carga (`paidAt`) | E10 — la búsqueda existe pero filtra por mes cubierto; el PDF de lo cobrado en un período necesita filtrar por la fecha del pago |
 | Rechazo de un período que el socio ya tiene pago (`409`) | E6 — hoy la app relee el historial antes de enviar; dos admins cobrando el mismo mes a la vez todavía pueden duplicarlo, y también un reintento después de un timeout si el primer `POST` commitea después de esa relectura. Solo se cierra del lado del servidor |
+| Mora de un socio y padrón de su grupo familiar sin bajar todo el club (filtro por `memberId` en `GET /api/payments/delinquency`, por `familyGroupId` en `GET /api/members`) | Cuotas del socio a escala — hoy cada apertura del ledger trae el padrón entero y la mora de todo el club para mostrar a un socio. La verificación previa al registrar ya no lo necesita: usa `GET /api/members/{id}` y el historial del socio |
 | Edición de un pago | Corregir un pago es anularlo y registrarlo de nuevo |
 | Días de gracia configurables | El umbral de "en mora" |
 | Cambio de contraseña del usuario logueado | E7 |

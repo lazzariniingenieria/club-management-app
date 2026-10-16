@@ -8,9 +8,12 @@ import '../../../../core/network/api_writer.dart';
 import '../../domain/entities/payment_draft.dart';
 import '../models/member_ledger_model.dart';
 import '../models/payment_model.dart';
+import '../models/payment_precheck_model.dart';
 
 abstract class PaymentRemoteDataSource {
   Future<MemberLedgerModel> fetchLedger(int memberId);
+
+  Future<PaymentPrecheckModel> fetchPrecheck(int memberId);
 
   Future<void> recordPayment(PaymentDraft draft);
 
@@ -67,6 +70,27 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
   }
 
   @override
+  Future<PaymentPrecheckModel> fetchPrecheck(int memberId) async {
+    final responses = await Future.wait<Object>([
+      _objectReader.readObject(
+        path: ApiConstants.member(memberId),
+        build: (member) => member,
+      ),
+      _listReader.readLists(
+        paths: [ApiConstants.memberPaymentHistory(memberId)],
+        build: (responses) => responses.single,
+      ),
+    ]);
+
+    return _parsed(
+      () async => PaymentPrecheckModel.fromResponses(
+        member: responses[0] as Map<String, dynamic>,
+        payments: responses[1] as List<dynamic>,
+      ),
+    );
+  }
+
+  @override
   Future<void> recordPayment(PaymentDraft draft) {
     return _writer.post(
       ApiConstants.payments,
@@ -102,9 +126,7 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
     }
   }
 
-  Future<MemberLedgerModel> _parsed(
-    Future<MemberLedgerModel> Function() build,
-  ) async {
+  Future<T> _parsed<T>(Future<T> Function() build) async {
     try {
       return await build();
     } on TypeError catch (error) {
