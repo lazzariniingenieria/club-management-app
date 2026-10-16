@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:club_management_app/core/errors/failures.dart';
-import 'package:club_management_app/features/members/domain/usecases/watch_member_changes_use_case.dart';
+import 'package:club_management_app/features/members/domain/usecases/watch_roster_changes_use_case.dart';
 import 'package:club_management_app/features/members/domain/entities/member.dart';
 import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
 import 'package:club_management_app/features/payments/domain/entities/member_ledger.dart';
@@ -21,8 +21,8 @@ class MockLoadMemberLedgerUseCase extends Mock
 
 class MockVoidPaymentUseCase extends Mock implements VoidPaymentUseCase {}
 
-class MockWatchMemberChangesUseCase extends Mock
-    implements WatchMemberChangesUseCase {}
+class MockWatchRosterChangesUseCase extends Mock
+    implements WatchRosterChangesUseCase {}
 
 class MockWatchPaymentChangesUseCase extends Mock
     implements WatchPaymentChangesUseCase {}
@@ -41,15 +41,15 @@ void main() {
     voidPayment = MockVoidPaymentUseCase();
     when(() => loadLedger(any())).thenAnswer((_) async => Right(ledger));
     memberChanges = StreamController<void>.broadcast();
-    final watchMemberChanges = MockWatchMemberChangesUseCase();
-    when(() => watchMemberChanges()).thenAnswer((_) => memberChanges.stream);
+    final watchRosterChanges = MockWatchRosterChangesUseCase();
+    when(() => watchRosterChanges()).thenAnswer((_) => memberChanges.stream);
     paymentChanges = StreamController<void>.broadcast();
     final watchPaymentChanges = MockWatchPaymentChangesUseCase();
     when(() => watchPaymentChanges()).thenAnswer((_) => paymentChanges.stream);
     cubit = MemberLedgerCubit(
       loadLedger: loadLedger,
       voidPayment: voidPayment,
-      watchMemberChanges: watchMemberChanges,
+      watchRosterChanges: watchRosterChanges,
       watchPaymentChanges: watchPaymentChanges,
     );
   });

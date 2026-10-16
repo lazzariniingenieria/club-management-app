@@ -13,9 +13,9 @@ import '../../../../shared/widgets/error_retry_view.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../members/domain/entities/member.dart';
-import '../../../members/presentation/cubit/admin_payments_cubit.dart';
-import '../../../members/presentation/cubit/admin_payments_state.dart';
 import '../../domain/entities/payment_receipt.dart';
+import '../cubit/admin_payments_cubit.dart';
+import '../cubit/admin_payments_state.dart';
 import '../formatting/payment_formats.dart';
 import '../widgets/payment_pill.dart';
 

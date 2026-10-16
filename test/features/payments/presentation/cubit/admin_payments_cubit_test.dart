@@ -6,8 +6,9 @@ import 'package:club_management_app/features/members/domain/entities/member.dart
 import 'package:club_management_app/features/members/domain/entities/member_collection_filter.dart';
 import 'package:club_management_app/features/members/domain/usecases/load_members_use_case.dart';
 import 'package:club_management_app/features/members/domain/usecases/watch_roster_changes_use_case.dart';
-import 'package:club_management_app/features/members/presentation/cubit/admin_payments_cubit.dart';
-import 'package:club_management_app/features/members/presentation/cubit/admin_payments_state.dart';
+import 'package:club_management_app/features/payments/domain/usecases/watch_payment_changes_use_case.dart';
+import 'package:club_management_app/features/payments/presentation/cubit/admin_payments_cubit.dart';
+import 'package:club_management_app/features/payments/presentation/cubit/admin_payments_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mocktail/mocktail.dart';
@@ -19,9 +20,13 @@ class MockLoadMembersUseCase extends Mock implements LoadMembersUseCase {}
 class MockWatchRosterChangesUseCase extends Mock
     implements WatchRosterChangesUseCase {}
 
+class MockWatchPaymentChangesUseCase extends Mock
+    implements WatchPaymentChangesUseCase {}
+
 void main() {
   late MockLoadMembersUseCase useCase;
   late StreamController<void> rosterChanges;
+  late StreamController<void> paymentChanges;
   late AdminPaymentsCubit cubit;
 
   final overdueMember = buildMember(
@@ -55,15 +60,20 @@ void main() {
     rosterChanges = StreamController<void>.broadcast();
     final watchRosterChanges = MockWatchRosterChangesUseCase();
     when(() => watchRosterChanges()).thenAnswer((_) => rosterChanges.stream);
+    paymentChanges = StreamController<void>.broadcast();
+    final watchPaymentChanges = MockWatchPaymentChangesUseCase();
+    when(() => watchPaymentChanges()).thenAnswer((_) => paymentChanges.stream);
     cubit = AdminPaymentsCubit(
       loadMembers: useCase,
       watchRosterChanges: watchRosterChanges,
+      watchPaymentChanges: watchPaymentChanges,
     );
   });
 
   tearDown(() async {
     await cubit.close();
     await rosterChanges.close();
+    await paymentChanges.close();
   });
 
   test('starts loading so the list never opens on an empty roster', () {
@@ -285,6 +295,26 @@ void main() {
       await cubit.close();
 
       expect(rosterChanges.hasListener, isFalse);
+    });
+  });
+
+  group('a payment recorded or voided elsewhere', () {
+    Future<void> settle() => Future<void>.delayed(Duration.zero);
+
+    test('reloads the list, so the mora shown is the new one', () async {
+      stub(Right(roster()));
+      await cubit.load();
+
+      paymentChanges.add(null);
+      await settle();
+
+      verify(() => useCase()).called(2);
+    });
+
+    test('is no longer heard once the list is closed', () async {
+      await cubit.close();
+
+      expect(paymentChanges.hasListener, isFalse);
     });
   });
 }

@@ -12,13 +12,13 @@ import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/error_retry_view.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
-import '../../domain/entities/member.dart';
-import '../../domain/entities/member_collection_filter.dart';
+import '../../../members/domain/entities/member.dart';
+import '../../../members/domain/entities/member_collection_filter.dart';
+import '../../../members/presentation/widgets/member_filter_chips.dart';
+import '../../../members/presentation/widgets/member_list_tile.dart';
+import '../../../members/presentation/widgets/member_search_field.dart';
 import '../cubit/admin_payments_cubit.dart';
 import '../cubit/admin_payments_state.dart';
-import '../widgets/member_filter_chips.dart';
-import '../widgets/member_list_tile.dart';
-import '../widgets/member_search_field.dart';
 
 class AdminPaymentsScreen extends StatelessWidget {
   final MemberCollectionFilter filter;

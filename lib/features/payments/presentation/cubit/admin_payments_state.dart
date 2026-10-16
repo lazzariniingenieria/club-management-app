@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import '../../domain/entities/member.dart';
-import '../../domain/entities/member_collection_filter.dart';
+import '../../../members/domain/entities/member.dart';
+import '../../../members/domain/entities/member_collection_filter.dart';
 
 sealed class AdminPaymentsState extends Equatable {
   const AdminPaymentsState();

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failures.dart';
-import '../../../members/domain/usecases/watch_member_changes_use_case.dart';
+import '../../../members/domain/usecases/watch_roster_changes_use_case.dart';
 import '../../domain/entities/payment.dart';
 import '../../domain/usecases/load_member_ledger_use_case.dart';
 import '../../domain/usecases/void_payment_use_case.dart';
@@ -18,13 +18,13 @@ class MemberLedgerCubit extends Cubit<MemberLedgerState> {
   MemberLedgerCubit({
     required LoadMemberLedgerUseCase loadLedger,
     required VoidPaymentUseCase voidPayment,
-    required WatchMemberChangesUseCase watchMemberChanges,
+    required WatchRosterChangesUseCase watchRosterChanges,
     required WatchPaymentChangesUseCase watchPaymentChanges,
   })  : _loadLedger = loadLedger,
         _voidPayment = voidPayment,
         super(const MemberLedgerLoading()) {
     _changeSubscriptions = [
-      watchMemberChanges().listen((_) => _reloadOnChange()),
+      watchRosterChanges().listen((_) => _reloadOnChange()),
       watchPaymentChanges().listen((_) => _reloadOnPaymentChange()),
     ];
   }
