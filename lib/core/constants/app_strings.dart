@@ -278,14 +278,10 @@ class AppStrings {
   static const String registerPaymentOfflineTitle = 'Sin conexión.';
   static const String registerPaymentOfflineMessage =
       'El pago no se registró. Tus datos siguen cargados: cuando vuelva la señal, tocá «Reintentar».';
-  static const String registerPaymentTimedOutTitle =
-      'El servidor tardó demasiado en responder.';
-  static const String registerPaymentTimedOutMessage =
-      'Revisamos el historial del socio y el pago no se registró. Tus datos siguen cargados: tocá «Reintentar».';
   static const String registerPaymentUnconfirmedTitle =
       'No sabemos si el pago se registró.';
   static const String registerPaymentUnconfirmedMessage =
-      'El servidor no respondió a tiempo y no pudimos revisar el historial. Al reintentar lo revisamos antes de enviar, así el pago no se carga dos veces.';
+      'El servidor no respondió a tiempo y el pago puede estar registrándose todavía. Tus datos siguen cargados: al reintentar revisamos el historial antes de enviar, así el pago no se carga dos veces.';
   static const String registerPaymentInactiveTitle =
       'Este socio está dado de baja';
   static const String registerPaymentPayerLeftGroup =

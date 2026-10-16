@@ -220,7 +220,7 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 | Caso | Qué ve el admin |
 | :--- | :--- |
 | Sin conexión al confirmar | Aviso arriba del formulario; todo lo elegido queda como estaba. El pedido no salió, así que el pago seguro no se registró |
-| El servidor no respondió a tiempo | El pago pudo haberse registrado, así que la app relee el historial: si los meses figuran, termina como registrado; si no, avisa que no se registró. Si tampoco puede leer el historial, dice que no sabe si se registró, y el reintento revisa el historial antes de enviar |
+| El servidor no respondió a tiempo | El pago pudo haberse registrado, así que la app relee el historial: si todos los meses figuran, termina como registrado. Si no figuran (o no se puede leer el historial) **no afirma que no se registró** — el servidor puede seguir commiteando —, dice que no sabe y el reintento revisa el historial antes de enviar: si los encuentra, termina como registrado. Si figuran solo algunos, se quitan de la selección y el resto queda igual de en duda. Ese reintento solo se toma como "el pago de antes" si el formulario no cambió: con otro importe, medio o pagador, los meses encontrados se tratan como cobrados por otro |
 | Uno de los meses ya figura pago (otro admin lo cobró mientras tanto) | Aviso con los meses en cuestión; se quitan de la selección y la grilla los muestra como *Pagado* |
 | El familiar elegido ya no está en el grupo | El `400` no dice por qué rechazó el pago, así que la app relee el grupo: si el familiar ya no está, aviso y quién pagó vuelve al socio; si sigue (o no se pudo releer), queda elegido y se muestra el error como cualquier otro |
 | El socio ya no existe | Pantalla de "No encontramos a este socio" con *Volver a Pagos* |
@@ -229,7 +229,7 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 
 **Reintentar siempre vuelve a la confirmación**: entre el error y el reintento el admin pudo haber cambiado el importe o los meses, y un pago no se manda sin ver el resumen que se va a registrar.
 
-**Un mes ya pago no se puede volver a cobrar.** La API hoy no lo impide ([backend_api.md](backend_api.md) §6), así que la app relee el historial justo antes de enviar y frena el pago si alguno de los meses ya figura. Eso cubre el doble toque y el reintento después de un timeout; lo que queda abierto — dos admins cobrando el mismo mes en el mismo segundo — se cierra cuando el backend lo rechace.
+**Un mes ya pago no se puede volver a cobrar.** La API hoy no lo impide ([backend_api.md](backend_api.md) §6), así que la app relee el historial justo antes de enviar y frena el pago si alguno de los meses ya figura. Eso cubre el doble toque y la mayoría de los reintentos después de un timeout; lo que queda abierto — dos admins cobrando el mismo mes en el mismo segundo, o un primer envío que commitea recién después de la relectura del reintento — se cierra cuando el backend lo rechace, no con esperas ni reintentos en el cliente.
 
 **Un socio inactivo no puede pagar.** No aparece al elegir socio, y en sus cuotas el botón se reemplaza por una nota que explica por qué y un acceso a *Editar socio* para reactivarlo. La API no lo impide, así que la app lo controla en tres lugares: al abrir el registro, al releer el historial antes de enviar, y en las cuotas, que se recargan cuando el socio cambia (una baja o una reactivación hecha desde *Editar socio* se ve al volver).
 

@@ -171,11 +171,6 @@ class _TopNotice extends StatelessWidget {
           message: AppStrings.registerPaymentOfflineMessage,
           form: form,
         ),
-      PaymentTimedOutNotice() => _RetryNotice(
-          title: AppStrings.registerPaymentTimedOutTitle,
-          message: AppStrings.registerPaymentTimedOutMessage,
-          form: form,
-        ),
       PaymentUnconfirmedNotice() => _RetryNotice(
           title: AppStrings.registerPaymentUnconfirmedTitle,
           message: AppStrings.registerPaymentUnconfirmedMessage,

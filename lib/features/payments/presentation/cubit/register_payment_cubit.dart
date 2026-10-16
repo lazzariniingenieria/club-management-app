@@ -4,6 +4,7 @@ import '../../../../core/errors/failure_messages.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/billing_month.dart';
 import '../../domain/entities/member_ledger.dart';
+import '../../domain/entities/payment_draft.dart';
 import '../../domain/entities/payment_method.dart';
 import '../../domain/failures/payment_failures.dart';
 import '../../domain/usecases/load_member_ledger_use_case.dart';
@@ -26,7 +27,7 @@ class RegisterPaymentCubit extends Cubit<RegisterPaymentState> {
         _clock = clock,
         super(const RegisterPaymentLoading());
 
-  bool _lastSubmitUnconfirmed = false;
+  PaymentDraft? _unconfirmedDraft;
 
   Future<void> open(int memberId) async {
     emit(const RegisterPaymentLoading());
@@ -55,8 +56,8 @@ class RegisterPaymentCubit extends Cubit<RegisterPaymentState> {
     if (current.isSubmitting || !current.form.canReview) return;
 
     final form = current.form;
-    final retriesUnconfirmed = _lastSubmitUnconfirmed;
-    _lastSubmitUnconfirmed = false;
+    final retriesUnconfirmed = _unconfirmedDraft == form.toDraft();
+    _unconfirmedDraft = null;
     emit(RegisterPaymentEditing(form: form, isSubmitting: true));
 
     final result = await _registerPayment(form.toDraft());
@@ -151,7 +152,7 @@ class RegisterPaymentCubit extends Cubit<RegisterPaymentState> {
   }
 
   RegisterPaymentState _unconfirmed(PaymentForm form) {
-    _lastSubmitUnconfirmed = true;
+    _unconfirmedDraft = form.toDraft();
 
     return RegisterPaymentEditing(
       form: form,
@@ -167,19 +168,19 @@ class RegisterPaymentCubit extends Cubit<RegisterPaymentState> {
     return RegisterPaymentEditing(form: PaymentForm.start(ledger, _clock()));
   }
 
-  static RegisterPaymentState _settledAgainst(
-    PaymentForm form,
-    MemberLedger ledger,
-  ) {
+  RegisterPaymentState _settledAgainst(PaymentForm form, MemberLedger ledger) {
     final landed = form.toDraft().monthsAlreadyIn(ledger.paidMonths);
     if (_coversSelection(form, landed)) {
       return RegisterPaymentRegistered(form.toReceipt());
     }
 
+    final refreshed = form.withLedger(ledger);
+    _unconfirmedDraft = refreshed.toDraft();
+
     return RegisterPaymentEditing(
-      form: form.withLedger(ledger),
+      form: refreshed,
       notice: landed.isEmpty
-          ? const PaymentTimedOutNotice()
+          ? const PaymentUnconfirmedNotice()
           : MonthsAlreadyPaidNotice(landed),
     );
   }

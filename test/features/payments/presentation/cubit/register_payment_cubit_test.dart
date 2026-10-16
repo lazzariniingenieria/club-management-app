@@ -319,14 +319,50 @@ void main() {
       expect(cubit.state, isA<RegisterPaymentRegistered>());
     });
 
-    test('says it was not registered when the history does not show it',
+    test('admits it does not know when the history does not show it yet',
         () async {
       await submitTimingOut();
 
       await cubit.submit();
 
-      expect(notice(), const PaymentTimedOutNotice());
+      expect(notice(), const PaymentUnconfirmedNotice());
       expect(form().selectedMonths, {const BillingMonth(2026, 9)});
+    });
+
+    test('a retry after the history did not show it ends as registered',
+        () async {
+      await submitTimingOut();
+      await cubit.submit();
+      stubRegister(
+        const Left(AlreadyPaidMonthsFailure([BillingMonth(2026, 9)])),
+      );
+
+      await cubit.submit();
+
+      expect(cubit.state, isA<RegisterPaymentRegistered>());
+    });
+
+    test('drops the months the history shows and still doubts the rest',
+        () async {
+      await submitTimingOut();
+      cubit.toggleMonth(const BillingMonth(2026, 10));
+      when(() => loadLedger(any())).thenAnswer(
+        (_) async => Right(ledgerPaying(const [BillingMonth(2026, 9)])),
+      );
+      await cubit.submit();
+
+      expect(
+        notice(),
+        const MonthsAlreadyPaidNotice([BillingMonth(2026, 9)]),
+      );
+      expect(form().selectedMonths, {const BillingMonth(2026, 10)});
+
+      stubRegister(
+        const Left(AlreadyPaidMonthsFailure([BillingMonth(2026, 10)])),
+      );
+      await cubit.submit();
+
+      expect(cubit.state, isA<RegisterPaymentRegistered>());
     });
 
     test('admits it does not know when the history cannot be read', () async {
@@ -351,6 +387,62 @@ void main() {
       await cubit.submit();
 
       expect(cubit.state, isA<RegisterPaymentRegistered>());
+    });
+
+    group('a retry after editing the form', () {
+      Future<void> leaveUnconfirmed() async {
+        await submitTimingOut();
+        when(() => loadLedger(any()))
+            .thenAnswer((_) async => const Left(NetworkFailure()));
+        await cubit.submit();
+        stubRegister(
+          const Left(AlreadyPaidMonthsFailure([BillingMonth(2026, 9)])),
+        );
+      }
+
+      Future<void> expectNotTakenAsRegistered() async {
+        await cubit.submit();
+
+        expect(cubit.state, isA<RegisterPaymentEditing>());
+        expect(
+          notice(),
+          const MonthsAlreadyPaidNotice([BillingMonth(2026, 9)]),
+        );
+      }
+
+      test('with another amount is not taken as the payment that went through',
+          () async {
+        await leaveUnconfirmed();
+        cubit.changeAmount('12.000');
+
+        await expectNotTakenAsRegistered();
+      });
+
+      test('with another method is not taken as the payment that went through',
+          () async {
+        await leaveUnconfirmed();
+        cubit.pickMethod(PaymentMethod.transfer);
+
+        await expectNotTakenAsRegistered();
+      });
+
+      test('with another payer is not taken as the payment that went through',
+          () async {
+        await leaveUnconfirmed();
+        cubit.pickPayer(relative.id);
+
+        await expectNotTakenAsRegistered();
+      });
+
+      test('that only looked at another year still ends as registered',
+          () async {
+        await leaveUnconfirmed();
+        cubit.showYear(2025);
+
+        await cubit.submit();
+
+        expect(cubit.state, isA<RegisterPaymentRegistered>());
+      });
     });
 
     test('a lost connection is still told apart from a timeout', () async {

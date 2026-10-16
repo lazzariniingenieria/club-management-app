@@ -351,7 +351,7 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Cargar el último mes pagado en el alta de socio | E6 — el socio recién creado nace en mora desde el 1° del mes (§7) |
 | `code` estable y `fieldErrors` en el envelope de error | Mapear un error al campo del formulario (E5, E8) |
 | Filtro de `GET /api/payments` por fecha de carga (`paidAt`) | E10 — la búsqueda existe pero filtra por mes cubierto; el PDF de lo cobrado en un período necesita filtrar por la fecha del pago |
-| Rechazo de un período que el socio ya tiene pago (`409`) | E6 — hoy la app relee el historial antes de enviar; dos admins cobrando el mismo mes a la vez todavía pueden duplicarlo |
+| Rechazo de un período que el socio ya tiene pago (`409`) | E6 — hoy la app relee el historial antes de enviar; dos admins cobrando el mismo mes a la vez todavía pueden duplicarlo, y también un reintento después de un timeout si el primer `POST` commitea después de esa relectura. Solo se cierra del lado del servidor |
 | Edición de un pago | Corregir un pago es anularlo y registrarlo de nuevo |
 | Días de gracia configurables | El umbral de "en mora" |
 | Cambio de contraseña del usuario logueado | E7 |

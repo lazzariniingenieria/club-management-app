@@ -65,10 +65,6 @@ class OfflineNotice extends RegisterPaymentNotice {
   const OfflineNotice();
 }
 
-class PaymentTimedOutNotice extends RegisterPaymentNotice {
-  const PaymentTimedOutNotice();
-}
-
 class PaymentUnconfirmedNotice extends RegisterPaymentNotice {
   const PaymentUnconfirmedNotice();
 }
