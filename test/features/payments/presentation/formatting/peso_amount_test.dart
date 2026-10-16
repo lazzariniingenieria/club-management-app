@@ -87,8 +87,21 @@ void main() {
       expect(value.selection.baseOffset, value.text.length);
     });
 
-    test('a dot typed by hand also starts the decimals', () {
-      expect(typed('15.000', '.').text, '15.000,');
+    String typedKeyByKey(String keys) {
+      return keys.split('').fold('', (text, key) => typed(text, key).text);
+    }
+
+    test('a dot typed by hand is ignored, the field places the thousands dots',
+        () {
+      expect(typed('15', '.').text, '15');
+    });
+
+    test('an amount typed with its thousands dots keeps its value', () {
+      expect(typedKeyByKey('15.000'), '15.000');
+    });
+
+    test('only a comma starts the decimals', () {
+      expect(typedKeyByKey('15,50'), '15,50');
     });
 
     test('a decimal mark with nothing before it reads as zero', () {

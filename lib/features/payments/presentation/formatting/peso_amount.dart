@@ -40,10 +40,7 @@ class PesoAmountFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final raw = _RawEdit.between(oldValue, newValue);
-    if (raw == null) return oldValue;
-
-    final amount = _ParsedAmount.of(raw);
+    final amount = _ParsedAmount.of(_RawEdit.between(oldValue, newValue));
     if (amount == null) return oldValue;
 
     return TextEditingValue(
@@ -59,17 +56,8 @@ class _RawEdit {
 
   const _RawEdit(this.text, this.cursor);
 
-  static _RawEdit? between(TextEditingValue before, TextEditingValue after) {
+  static _RawEdit between(TextEditingValue before, TextEditingValue after) {
     final cursor = min(max(after.selection.end, 0), after.text.length);
-    final typedAt = _typedSeparatorIndex(before, after, cursor);
-    if (typedAt != null) {
-      if (before.text.contains(PesoAmount.decimalMark)) return null;
-
-      return _RawEdit(
-        after.text.replaceRange(typedAt, typedAt + 1, PesoAmount.decimalMark),
-        cursor,
-      );
-    }
     if (_removedDecimalMark(before, after)) {
       final whole = before.text.split(PesoAmount.decimalMark).first;
 
@@ -81,24 +69,6 @@ class _RawEdit {
     }
 
     return _RawEdit(after.text, cursor);
-  }
-
-  static int? _typedSeparatorIndex(
-    TextEditingValue before,
-    TextEditingValue after,
-    int cursor,
-  ) {
-    if (after.text.length != before.text.length + 1 || cursor == 0) {
-      return null;
-    }
-
-    final index = cursor - 1;
-    final typed = after.text[index];
-    final isSeparator = typed == '.' || typed == PesoAmount.decimalMark;
-    final onlyThatChanged =
-        after.text.replaceRange(index, cursor, '') == before.text;
-
-    return isSeparator && onlyThatChanged ? index : null;
   }
 
   static bool _removedDecimalMark(
