@@ -1,9 +1,6 @@
-import 'package:dio/dio.dart';
-
-import '../errors/exceptions.dart';
 import '../logging/app_logger.dart';
 import 'api_client.dart';
-import 'api_error_mapper.dart';
+import 'api_contract_guard.dart';
 
 class ApiListReader {
   final ApiClient apiClient;
@@ -19,20 +16,12 @@ class ApiListReader {
   Future<T> readLists<T>({
     required List<String> paths,
     required T Function(List<List<dynamic>> responses) build,
-  }) async {
-    try {
-      return build(await Future.wait(paths.map(_fetchList)));
-    } on DioException catch (error) {
-      throw apiExceptionFrom(error, logger: logger, logContext: logContext);
-    } on TypeError catch (error) {
-      logger.error(
-        'Response did not match the expected contract',
-        context: logContext,
-        cause: error,
-      );
-
-      throw ServerException('Response did not match the contract');
-    }
+  }) {
+    return guardContract(
+      () async => build(await Future.wait(paths.map(_fetchList))),
+      logger: logger,
+      logContext: logContext,
+    );
   }
 
   Future<List<dynamic>> _fetchList(String path) async {

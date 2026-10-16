@@ -40,6 +40,7 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
         daysOverdue: 0,
         phone: _orNull(draft.phone),
         email: _orNull(draft.email),
+        joinedAt: DateTime.now(),
       ),
     );
   }
@@ -49,18 +50,20 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
     await Future<void>.delayed(latency);
     _rejectDuplicatedDni(draft.dni, keeping: memberId);
 
-    final index = _indexOf(memberId);
-    final current = _roster[index];
-
-    _roster[index] = MemberModel(
-      id: current.id,
-      firstName: draft.firstName,
-      lastName: draft.lastName,
-      dni: draft.dni,
-      status: current.status,
-      daysOverdue: current.daysOverdue,
-      phone: _orNull(draft.phone),
-      email: _orNull(draft.email),
+    _replace(
+      memberId,
+      (current) => MemberModel(
+        id: current.id,
+        firstName: draft.firstName,
+        lastName: draft.lastName,
+        dni: draft.dni,
+        status: current.status,
+        daysOverdue: current.daysOverdue,
+        phone: _orNull(draft.phone),
+        email: _orNull(draft.email),
+        familyGroupId: current.familyGroupId,
+        joinedAt: current.joinedAt,
+      ),
     );
   }
 
@@ -68,18 +71,49 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
   Future<void> setMemberActive(int memberId, {required bool isActive}) async {
     await Future<void>.delayed(latency);
 
-    final index = _indexOf(memberId);
-    final current = _roster[index];
+    _replace(
+      memberId,
+      (current) => _withStanding(
+        current,
+        status: isActive ? MemberStatus.active : MemberStatus.inactive,
+        daysOverdue: isActive ? current.daysOverdue : 0,
+      ),
+    );
+  }
 
-    _roster[index] = MemberModel(
+  void setDaysOverdue(int memberId, int daysOverdue) {
+    _replace(
+      memberId,
+      (current) => _withStanding(
+        current,
+        status: current.status,
+        daysOverdue: current.isActive ? daysOverdue : 0,
+      ),
+    );
+  }
+
+  void _replace(int memberId, MemberModel Function(MemberModel) change) {
+    final index = _indexOf(memberId);
+
+    _roster[index] = change(_roster[index]);
+  }
+
+  static MemberModel _withStanding(
+    MemberModel current, {
+    required MemberStatus status,
+    required int daysOverdue,
+  }) {
+    return MemberModel(
       id: current.id,
       firstName: current.firstName,
       lastName: current.lastName,
       dni: current.dni,
-      status: isActive ? MemberStatus.active : MemberStatus.inactive,
-      daysOverdue: isActive ? current.daysOverdue : 0,
+      status: status,
+      daysOverdue: daysOverdue,
       phone: current.phone,
       email: current.email,
+      familyGroupId: current.familyGroupId,
+      joinedAt: current.joinedAt,
     );
   }
 
@@ -126,8 +160,23 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
       dni: '${20000000 + index * 13577}',
       status: isActive ? MemberStatus.active : MemberStatus.inactive,
       daysOverdue: isActive ? _daysOverdueAt(index) : 0,
+      familyGroupId: _familyGroupAt(index),
+      joinedAt: DateTime(2024, 1 + index % 12, 1 + index % 27),
     );
   }
+
+  static int? _familyGroupAt(int index) {
+    for (final entry in _familyGroups.entries) {
+      if (entry.value.contains(index)) return entry.key;
+    }
+
+    return null;
+  }
+
+  static const Map<int, Set<int>> _familyGroups = {
+    1: {0, 1, 2},
+    2: {24, 25},
+  };
 
   static int _daysOverdueAt(int index) {
     final isOverdue =

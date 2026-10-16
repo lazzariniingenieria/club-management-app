@@ -4,31 +4,37 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure_messages.dart';
 import '../../../../core/errors/failures.dart';
-import '../../domain/entities/member.dart';
-import '../../domain/usecases/load_members_use_case.dart';
-import '../../domain/usecases/watch_roster_changes_use_case.dart';
+import '../../../members/domain/entities/member.dart';
+import '../../../members/domain/usecases/load_members_use_case.dart';
+import '../../../members/domain/usecases/watch_roster_changes_use_case.dart';
+import '../../domain/usecases/watch_payment_changes_use_case.dart';
 import 'admin_payments_state.dart';
 
 class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
   final LoadMembersUseCase _loadMembers;
-  late final StreamSubscription<void> _rosterChangesSubscription;
+  late final List<StreamSubscription<void>> _changeSubscriptions;
 
   AdminPaymentsCubit({
     required LoadMembersUseCase loadMembers,
     required WatchRosterChangesUseCase watchRosterChanges,
+    required WatchPaymentChangesUseCase watchPaymentChanges,
   })  : _loadMembers = loadMembers,
         super(const AdminPaymentsLoading()) {
-    _rosterChangesSubscription =
-        watchRosterChanges().listen((_) => _reloadChangedRoster());
+    _changeSubscriptions = [
+      watchRosterChanges().listen((_) => _reloadOnChange()),
+      watchPaymentChanges().listen((_) => _reloadOnChange()),
+    ];
   }
 
   bool _isLoading = false;
-  bool _rosterChangedWhileLoading = false;
+  bool _changedWhileLoading = false;
   int _failedAttempts = 0;
 
   @override
   Future<void> close() async {
-    await _rosterChangesSubscription.cancel();
+    await Future.wait(
+      _changeSubscriptions.map((subscription) => subscription.cancel()),
+    );
 
     return super.close();
   }
@@ -47,11 +53,11 @@ class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
     final AdminPaymentsState next = result.fold(_failureFrom, _readyFrom);
 
     emit(next);
-    if (_rosterChangedWhileLoading) await _reloadChangedRoster();
+    if (_changedWhileLoading) await _reloadOnChange();
   }
 
-  Future<void> _reloadChangedRoster() async {
-    _rosterChangedWhileLoading = _isLoading;
+  Future<void> _reloadOnChange() async {
+    _changedWhileLoading = _isLoading;
     if (_isLoading) return;
 
     await load();
@@ -65,16 +71,6 @@ class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
   }
 
   void clearSearch() => search('');
-
-  void toggleReportSelection(int memberId) {
-    final roster = _lastLoadedRoster;
-    if (roster == null) return;
-
-    final selection = Set<int>.from(roster.selectedMemberIds);
-    if (!selection.remove(memberId)) selection.add(memberId);
-
-    _emitRoster(roster.copyWith(selectedMemberIds: selection));
-  }
 
   AdminPaymentsReady? get _lastLoadedRoster {
     final current = state;
@@ -101,14 +97,9 @@ class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
   }
 
   AdminPaymentsReady _readyFrom(List<Member> members) {
-    final previous = _lastLoadedRoster;
-    final knownIds = members.map((member) => member.id).toSet();
-
     return AdminPaymentsReady(
       members: _sortedByName(members),
-      selectedMemberIds:
-          previous?.selectedMemberIds.intersection(knownIds) ?? const {},
-      searchQuery: previous?.searchQuery ?? '',
+      searchQuery: _lastLoadedRoster?.searchQuery ?? '',
     );
   }
 

@@ -3,9 +3,16 @@ abstract final class ApiConstants {
   static const String refresh = '/auth/refresh';
 
   static const String members = '/members';
+  static const String payments = '/payments';
   static const String paymentDelinquency = '/payments/delinquency';
+  static const String currentClub = '/clubs/me';
 
   static String member(int memberId) => '$members/$memberId';
+
+  static String memberPaymentHistory(int memberId) =>
+      '$payments/members/$memberId?includeVoided=true';
+
+  static String paymentVoiding(int paymentId) => '$payments/$paymentId/void';
 
   static String memberDeactivation(int memberId) =>
       '${member(memberId)}/deactivate';

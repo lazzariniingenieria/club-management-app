@@ -11,6 +11,8 @@ class Member extends Equatable {
   final int daysOverdue;
   final String? phone;
   final String? email;
+  final int? familyGroupId;
+  final DateTime? joinedAt;
 
   const Member({
     required this.id,
@@ -21,6 +23,8 @@ class Member extends Equatable {
     required this.daysOverdue,
     this.phone,
     this.email,
+    this.familyGroupId,
+    this.joinedAt,
   });
 
   String get fullName => '$firstName $lastName';
@@ -28,6 +32,11 @@ class Member extends Equatable {
   bool get isActive => status == MemberStatus.active;
 
   bool get isOverdue => daysOverdue > 0;
+
+  bool sharesFamilyGroupWith(Member other) =>
+      familyGroupId != null &&
+      other.id != id &&
+      other.familyGroupId == familyGroupId;
 
   String get sortKey => _withoutAccents('$lastName $firstName'.toLowerCase());
 
@@ -41,8 +50,18 @@ class Member extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [id, firstName, lastName, dni, status, daysOverdue, phone, email];
+  List<Object?> get props => [
+        id,
+        firstName,
+        lastName,
+        dni,
+        status,
+        daysOverdue,
+        phone,
+        email,
+        familyGroupId,
+        joinedAt,
+      ];
 }
 
 const Map<String, String> _accentFolding = {

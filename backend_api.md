@@ -2,7 +2,7 @@
 
 Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, shapes, errores o reglas del servidor, se contesta acá y no leyendo el repo del backend.
 
-**Verificado contra** [`club-management-api`](https://github.com/lazzariniingenieria/club-management-api) `develop`, commit `142b070` — 2026-10-06.
+**Verificado contra** [`club-management-api`](https://github.com/lazzariniingenieria/club-management-api) `develop`, commit `02ff70e` — 2026-10-15.
 
 **Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/`, `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
@@ -102,8 +102,11 @@ DNI + contraseña, sin proveedor externo. El `dni` es único **por club**, así 
 | Ruta | Quién entra |
 | :--- | :--- |
 | `/api/auth/login`, `/api/auth/refresh` | público |
-| `/api/admins/**` | **solo `SUPER_ADMIN`** |
+| `PATCH /api/admins/{id}/password` | `ADMIN`, `SUPER_ADMIN` |
+| `/api/admins/**` (todo lo demás) | **solo `SUPER_ADMIN`** |
 | `/api/members/**`, `/api/family-groups/**`, `/api/payments/**` | `ADMIN`, `SUPER_ADMIN` |
+| `GET /api/clubs/me` | `ADMIN`, `SUPER_ADMIN` |
+| `PATCH /api/clubs/me` | **solo `SUPER_ADMIN`** |
 
 **Un token con `role = MEMBER` no entra a ningún endpoint implementado.** Puede autenticarse y nada más.
 
@@ -120,9 +123,9 @@ Todo lo demás sale con este envelope:
 
 | Status | Cuándo |
 | :--- | :--- |
-| `400` | Validación fallida (`details` por campo), body ilegible, `paidByMemberId` fuera del grupo familiar, `periodsCovered` con repetidos |
-| `404` | El recurso no existe **en tu club** — indistinguible de uno de otro club, porque todo filtra por el `clubId` del token |
-| `409` | DNI ya usado en el club, o cualquier otra violación de constraint |
+| `400` | Validación fallida (`details` por campo), body ilegible, `paidByMemberId` fuera del grupo familiar, `periodsCovered` con repetidos, rango `from` > `to` en la búsqueda de pagos, query param con un valor que no se puede parsear |
+| `404` | El recurso no existe **en tu club** — indistinguible de uno de otro club, porque todo filtra por el `clubId` del token. Aplica a socios, pagos y admins |
+| `409` | DNI ya usado en el club, un período que el socio ya tiene pago, un pago que ya estaba anulado, o cualquier otra violación de constraint |
 | `500` | Excepción no manejada |
 
 ---
@@ -180,7 +183,9 @@ Todo lo demás sale con este envelope:
 
 **El listado solo devuelve `role = ADMIN`.** El `SUPER_ADMIN` es una única cuenta seedeada en base y nunca aparece, así que no existe la fila que se podría dar de baja por error. Los admins dados de baja sí siguen en el listado, con `active: false`.
 
-**Dos fuentes de `409` acá**: DNI repetido, y `memberId` ya tomado por otra cuenta (`UNIQUE (member_id)`). Sin `code` estable (§4), distinguirlas obliga a leer el `message`.
+**Dos fuentes de `409` acá**: DNI repetido, y `memberId` ya tomado por otra cuenta (`UNIQUE (member_id)`). Sin `code` estable (§4), distinguirlas obliga a leer el `message`. Un `memberId` que no es un socio del club da `404`.
+
+**`PATCH /api/admins/{id}/password`** — `{ "newPassword": "..." }`, de 8 a 100 caracteres. Es la única ruta de `/api/admins` abierta también a `ADMIN`, y el servidor **no verifica que sea la propia cuenta**: un admin puede resetear la contraseña de otro admin del club. Revoca todos los refresh tokens vivos de esa cuenta, así que sus sesiones abiertas caen en el próximo refresh. Devuelve el `AdminResponse`.
 
 ### Bajas lógicas
 
@@ -193,6 +198,17 @@ Nunca hay borrado físico, y los dos modelos son reversibles con `/reactivate`:
 
 Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistinguible de una contraseña incorrecta (§3).
 
+### Club — `/api/clubs/me`
+
+```json
+{ "id": 1, "name": "Club 1", "monthlyFeeAmount": 15000.00,
+  "updatedAt": "...", "updatedByUserId": 1 }
+```
+
+`GET` devuelve el club del token. `monthlyFeeAmount` es la **cuota de referencia** y es nullable: un club recién migrado no la tiene cargada. El `name` lo pone la migración como `"Club <id>"` hasta que se configure por entorno.
+
+`PATCH` (**solo `SUPER_ADMIN`**) recibe `{ "monthlyFeeAmount": 16000 }` (> 0, hasta 8 enteros y 2 decimales); mandarlo en `null` borra la cuota de referencia. Es solo una referencia: **no cambia ningún pago** ni la forma de calcular la mora, y `POST /api/payments` sigue exigiendo el `amount` explícito.
+
 ---
 
 ## 6. Pagos
@@ -201,8 +217,10 @@ Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistingui
 
 | Verbo | Ruta | Respuesta |
 | :--- | :--- | :--- |
-| `POST` | `/api/payments` | `201` + `PaymentResponse[]` · `400` · `404` |
+| `POST` | `/api/payments` | `201` + `PaymentResponse[]` · `400` · `404` · `409` |
+| `GET` | `/api/payments` | `200` + `PaymentResponse[]` · `400` |
 | `GET` | `/api/payments/members/{memberId}` | `200` + `PaymentResponse[]` · `404` |
+| `PATCH` | `/api/payments/{paymentId}/void` | `200` + `PaymentResponse` · `404` · `409` |
 | `GET` | `/api/payments/delinquency` | `200` + `MemberDelinquencyResponse[]` |
 
 ### `POST /api/payments`
@@ -215,13 +233,31 @@ Convención de `periodsCovered`: el **primer día del mes** que se paga — `"20
 
 **`paidByMemberId`**: nulo o igual a `memberId` se guarda como `null` ("pagó el propio socio" se representa con `null`). Si viene otro socio, tiene que **compartir un `familyGroupId` no nulo** con el socio de la cuota, o `400`; dos socios los dos sin grupo no cuentan como el mismo grupo. No hay cuota familiar compartida: siempre se paga la cuota de un socio.
 
+**Rechaza un período que ya está pago → `409`**, y rechaza el pedido entero: si uno solo de los meses ya tiene un pago no anulado, no se registra ninguno. Lo controla dos veces: el servicio compara contra los pagos vigentes antes de guardar (el `message` lista los períodos, pero sin `code` estable, §4), y un índice único parcial en base (§8) frena los dos pedidos simultáneos que pasan juntos ese control — ese `409` llega con el mensaje genérico de constraint. Un período **anulado** sí se puede volver a pagar.
+
 ```json
 { "id": 88, "memberId": 34, "paidByMemberId": null, "amount": 15000.00,
   "paidAt": "...", "periodCovered": "2026-07-01", "paymentMethod": "CASH",
-  "recordedByUserId": 12, "createdAt": "..." }
+  "recordedByUserId": 12, "createdAt": "...",
+  "voidedAt": null, "voidedByUserId": null, "voidReason": null }
 ```
 
-`GET /api/payments/members/{memberId}` devuelve el historial completo por `periodCovered` descendente.
+### `GET /api/payments/members/{memberId}`
+
+Historial del socio por `periodCovered` descendente. **Por defecto oculta los pagos anulados**: con `?includeVoided=true` los incluye, con `voidedAt`, `voidedByUserId` y `voidReason` cargados. `404` si el socio no es del club.
+
+### `PATCH /api/payments/{paymentId}/void`
+
+Anula un pago: body opcional `{ "reason": "..." }` (≤ 150; vacío o en blanco se guarda como `null`). Lo puede hacer **cualquier `ADMIN` o `SUPER_ADMIN`**. Devuelve el pago con los tres campos de anulación cargados.
+
+- **Es una baja lógica sin vuelta atrás**: el pago sigue en la base, pero no hay endpoint para des-anularlo. Si fue un error, se registra un pago nuevo.
+- Se anula **un período por vez**: un pago de dos meses son dos filas, y cada una se anula por separado.
+- `404` si el pago no es del club; `409` si ya estaba anulado (lo anuló otro admin, o es un doble toque).
+- Un pago anulado **deja de contar para la mora** (§7) y desaparece del historial por defecto.
+
+### `GET /api/payments` — búsqueda
+
+Todos los pagos del club, del `paidAt` más reciente al más viejo. Filtros opcionales por query param: `memberId`, `from` y `to` (fechas ISO, **sobre `periodCovered`, no sobre la fecha de carga**; `from` > `to` → `400`), `paymentMethod` e `includeVoided` (por defecto, sin anulados). Sin paginar.
 
 ### `GET /api/payments/delinquency`
 
@@ -242,7 +278,7 @@ Convención de `periodsCovered`: el **primer día del mes** que se paga — `"20
 Nunca es una columna guardada: se computa en cada llamada, así que no puede desincronizarse.
 
 ```
-lastPeriodCovered = MAX(period_covered) de todos los pagos del socio   // null si nunca pagó
+lastPeriodCovered = MAX(period_covered) de los pagos no anulados del socio   // null si nunca pagó
 coverageStart     = lastPeriodCovered != null ? lastPeriodCovered + 1 mes
                                               : primer día del mes de member.joinedAt
 daysOverdue       = max(0, días entre coverageStart y hoy)
@@ -253,15 +289,18 @@ daysOverdue       = max(0, días entre coverageStart y hoy)
 - Se mide en **días**, no en cuotas ni en meses.
 - **Ignora los huecos**: quien pagó enero y después diciembre figura al día, porque solo se mira el máximo. La API no modela cuotas adeudadas una por una.
 - No mira quién pagó: `paidByMemberId` no afecta el cálculo.
+- **Ignora los pagos anulados**: anular el último mes pago vuelve a correr la mora desde ese mes.
 - `status` y mora son **dos ejes independientes** — un socio puede estar `ACTIVE` y en mora a la vez — y la API nunca los combina en un solo estado.
 
 ---
 
 ## 8. Modelo de datos
 
-**Cinco tablas** (migraciones `V1`–`V7`): `user_account`, `member`, `family_group`, `refresh_token`, `payment`. El diseño de nueve tablas del `README` del backend es el plan, no el estado.
+**Seis tablas** (migraciones `V1`–`V12`): `user_account`, `member`, `family_group`, `refresh_token`, `payment` y `club`. El diseño de nueve tablas del `README` del backend es el plan, no el estado.
 
-**La tabla `club` no existe**: `club_id` es un `BIGINT` sin FK ni tabla del otro lado, así que no hay nombre de club, ni flags de rollout, ni `GET /api/clubs`. Está en las tablas raíz (`user_account`, `member`, `family_group`) y cada query filtra por el `clubId` del token; las hojas quedan alcanzadas vía `member_id` / `user_account_id`.
+**`club`** tiene `name`, `address`, `courts_enabled`, `member_app_enabled` y `monthly_fee_amount` (la cuota de referencia, nullable y > 0). `member.club_id` y `user_account.club_id` ya tienen FK a esa tabla; cada query sigue filtrando por el `clubId` del token, y las hojas quedan alcanzadas vía `member_id` / `user_account_id`. **Los flags `courts_enabled` y `member_app_enabled` existen en la tabla pero ningún endpoint los expone.**
+
+**`payment`** suma `voided_at`, `voided_by_user_id` y `void_reason` (≤ 150): los dos primeros van juntos o en `null`, y el motivo solo puede existir en un pago anulado. `user_account.member_id` tiene FK a `member` desde `V8`.
 
 Constraints que el cliente ve como comportamiento HTTP:
 
@@ -271,7 +310,7 @@ Constraints que el cliente ve como comportamiento HTTP:
 | `user_account UNIQUE (member_id)` | Un socio no puede tener dos cuentas — el segundo `409` de `/api/admins`. Varios `NULL` sí se permiten |
 | `CHECK (role <> 'SUPER_ADMIN' OR member_id IS NULL)` | El `memberId` del super admin es siempre `null` |
 | `CHECK (amount > 0)` en `payment` | Refuerza la validación del `POST` |
-| **No** hay `UNIQUE (member_id, period_covered)` | Nada impide pagar dos veces el mismo período (§9) |
+| `UNIQUE (member_id, period_covered) WHERE voided_at IS NULL` (`V12`) | Un período tiene a lo sumo un pago vigente: el segundo da `409`, aun si los dos pedidos llegan a la vez. Anular libera el período |
 
 `user_account`, `member` y `family_group` llevan `created_at`, `updated_at`, `created_by_user_id` y `updated_by_user_id`, todas expuestas en las respuestas, por si hace falta mostrar "cargado por".
 
@@ -290,7 +329,9 @@ Lo que es fácil codear mal porque el contrato dice otra cosa de la que uno espe
 | `PATCH /api/admins/{id}` sin `memberId` | El admin pierde el vínculo con su socio | 5 |
 | Un socio recién creado figura en mora | El alta "funciona" y el socio aparece en rojo al instante | 7 |
 | `/delinquency` trae a todos los activos | Contar filas da los activos, no los morosos | 6 |
-| Nada impide pagar dos veces el mismo período | El duplicado entra: la protección contra el doble submit es del cliente | 8 |
+| El historial oculta los anulados por defecto | Sin `?includeVoided=true` un pago anulado desaparece sin rastro | 6 |
+| Anular no se revierte | Un toque de más deja un mes impago que hay que volver a registrar | 6 |
+| La búsqueda de pagos filtra por mes cubierto | Un rango "de octubre" trae lo que cubre octubre, no lo cobrado en octubre | 6 |
 | El `message` de los errores no es estable | Matchear texto se rompe cuando el backend corrige una redacción | 4 |
 | `401` y `403` no traen cuerpo | Parsear la respuesta para leer `message` revienta | 4 |
 | `GET /api/members` ignora todo query param | Un `?page=` o `?search=` vuelve la lista completa, en silencio | 5 |
@@ -308,17 +349,16 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Contadores por estado para los chips del listado | E4 |
 | Cargar el último mes pagado en el alta de socio | E6 — el socio recién creado nace en mora desde el 1° del mes (§7) |
 | `code` estable y `fieldErrors` en el envelope de error | Mapear un error al campo del formulario (E5, E8) |
-| `GET /api/payments` con filtro por estado y por socio | E6 — hoy solo hay historial por socio |
-| Anulación o corrección de un pago | E6 — un pago mal cargado no se deshace por API |
-| Monto de referencia de la cuota del club | E6 — el importe lo tipea el admin en cada pago |
+| Filtro de `GET /api/payments` por fecha de carga (`paidAt`) | E10 — la búsqueda existe pero filtra por mes cubierto; el PDF de lo cobrado en un período necesita filtrar por la fecha del pago |
+| Mora de un socio y padrón de su grupo familiar sin bajar todo el club (filtro por `memberId` en `GET /api/payments/delinquency`, por `familyGroupId` en `GET /api/members`) | Cuotas del socio a escala — hoy cada apertura del ledger trae el padrón entero y la mora de todo el club para mostrar a un socio. La verificación previa al registrar ya no lo necesita: usa `GET /api/members/{id}` y el historial del socio |
+| Edición de un pago | Corregir un pago es anularlo y registrarlo de nuevo |
 | Días de gracia configurables | El umbral de "en mora" |
 | Cambio de contraseña del usuario logueado | E7 |
-| Reset de contraseña de un tercero por un ADMIN / SUPER_ADMIN | E11 |
+| Reset de contraseña de un **socio** por un ADMIN / SUPER_ADMIN | E11 — existe solo para cuentas de admin (§5) |
 | Flag de "debe cambiar la contraseña en el próximo ingreso" | Primer ingreso (E11) |
-| Endpoint de reporte de pagos (formato, binario o URL) | E10 |
 | `court`, `court_block`, `recurring_slot`, `reservation` — ni tabla, ni endpoint | **E9 completa**, y "Próximos turnos" del Inicio |
 | Cualquier endpoint que acepte un token `MEMBER` (§4) | **E12+ completa** |
 | `POST /api/auth/logout` con revocación | Nada: el logout es local, y el refresh descartado vence solo |
-| Tabla `club`, `GET /api/clubs`, nombre del club | Selector de club y header con el nombre |
+| Listado de clubes y nombre real configurado | Selector de club. `GET /api/clubs/me` ya da el club del token, con un nombre provisorio |
 
 No hay, ni va a haber, recuperación de contraseña por email: el reset es una acción manual de un ADMIN o SUPER_ADMIN, decisión de arquitectura ya tomada del lado de la API.

@@ -1,0 +1,163 @@
+import 'package:club_management_app/core/errors/failures.dart';
+import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
+import 'package:club_management_app/features/payments/domain/entities/payment_draft.dart';
+import 'package:club_management_app/features/payments/domain/entities/payment_method.dart';
+import 'package:club_management_app/features/payments/domain/entities/payment_precheck.dart';
+import 'package:club_management_app/features/payments/domain/failures/payment_failures.dart';
+import 'package:club_management_app/features/payments/domain/repositories/payment_repository.dart';
+import 'package:club_management_app/features/payments/domain/usecases/register_payment_use_case.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:fpdart/fpdart.dart';
+import 'package:mocktail/mocktail.dart';
+
+import '../../../../helpers/payment_builders.dart';
+
+class MockPaymentRepository extends Mock implements PaymentRepository {}
+
+void main() {
+  late MockPaymentRepository repository;
+  late RegisterPaymentUseCase registerPayment;
+
+  PaymentDraft draftFor(List<BillingMonth> months) {
+    return PaymentDraft(
+      memberId: 1,
+      months: months,
+      amountCents: feeCents,
+      method: PaymentMethod.cash,
+    );
+  }
+
+  setUpAll(() => registerFallbackValue(draftFor(const [])));
+
+  setUp(() {
+    repository = MockPaymentRepository();
+    registerPayment = RegisterPaymentUseCase(repository);
+    when(() => repository.loadPrecheck(any())).thenAnswer(
+      (_) async => Right(
+        PaymentPrecheck(isActive: true, paidMonths: buildLedger().paidMonths),
+      ),
+    );
+    when(() => repository.recordPayment(any()))
+        .thenAnswer((_) async => const Right(null));
+  });
+
+  test('records months that are still unpaid', () async {
+    final draft = draftFor(
+      const [BillingMonth(2026, 9), BillingMonth(2026, 10)],
+    );
+
+    final result = await registerPayment(draft);
+
+    expect(result.isRight(), isTrue);
+    verify(() => repository.recordPayment(draft)).called(1);
+  });
+
+  test('checks the member with the focused precheck, not the whole ledger',
+      () async {
+    await registerPayment(draftFor(const [BillingMonth(2026, 9)]));
+
+    verify(() => repository.loadPrecheck(1)).called(1);
+    verifyNever(() => repository.loadLedger(any()));
+  });
+
+  test('never sends a month that another payment already covers', () async {
+    final result = await registerPayment(
+      draftFor(const [BillingMonth(2026, 8), BillingMonth(2026, 9)]),
+    );
+
+    expect(
+      result,
+      const Left<Failure, void>(
+        AlreadyPaidMonthsFailure([BillingMonth(2026, 8)]),
+      ),
+    );
+    verifyNever(() => repository.recordPayment(any()));
+  });
+
+  test('a precheck that cannot be read stops the payment too', () async {
+    when(() => repository.loadPrecheck(any()))
+        .thenAnswer((_) async => const Left(NetworkFailure()));
+
+    final result = await registerPayment(
+      draftFor(const [BillingMonth(2026, 9)]),
+    );
+
+    expect(result, const Left<Failure, void>(NetworkFailure()));
+    verifyNever(() => repository.recordPayment(any()));
+  });
+
+  test('never charges a member who is no longer active', () async {
+    when(() => repository.loadPrecheck(any())).thenAnswer(
+      (_) async =>
+          const Right(PaymentPrecheck(isActive: false, paidMonths: {})),
+    );
+
+    final result = await registerPayment(
+      draftFor(const [BillingMonth(2026, 9)]),
+    );
+
+    expect(result, const Left<Failure, void>(InactiveMemberFailure()));
+    verifyNever(() => repository.recordPayment(any()));
+  });
+
+  group('a payment the server rejects as already paid', () {
+    void stubConflict() {
+      when(() => repository.recordPayment(any()))
+          .thenAnswer((_) async => const Left(ConflictFailure()));
+    }
+
+    void stubRereadPaid(Set<BillingMonth> paidMonths) {
+      when(() => repository.loadPrecheck(any())).thenAnswer(
+        (_) async => Right(
+          PaymentPrecheck(isActive: true, paidMonths: paidMonths),
+        ),
+      );
+    }
+
+    test('reports the months the reread finds paid', () async {
+      final draft = draftFor(
+        const [BillingMonth(2026, 9), BillingMonth(2026, 10)],
+      );
+      when(() => repository.recordPayment(any())).thenAnswer((_) async {
+        stubRereadPaid({const BillingMonth(2026, 9)});
+
+        return const Left(ConflictFailure());
+      });
+
+      final result = await registerPayment(draft);
+
+      expect(
+        result,
+        const Left<Failure, void>(
+          AlreadyPaidMonthsFailure([BillingMonth(2026, 9)]),
+        ),
+      );
+    });
+
+    test('keeps the conflict when the reread finds none of the months',
+        () async {
+      stubConflict();
+
+      final result = await registerPayment(
+        draftFor(const [BillingMonth(2026, 9)]),
+      );
+
+      expect(result, const Left<Failure, void>(ConflictFailure()));
+    });
+
+    test('keeps the conflict when the reread fails', () async {
+      when(() => repository.recordPayment(any())).thenAnswer((_) async {
+        when(() => repository.loadPrecheck(any()))
+            .thenAnswer((_) async => const Left(NetworkFailure()));
+
+        return const Left(ConflictFailure());
+      });
+
+      final result = await registerPayment(
+        draftFor(const [BillingMonth(2026, 9)]),
+      );
+
+      expect(result, const Left<Failure, void>(ConflictFailure()));
+    });
+  });
+}
