@@ -114,7 +114,7 @@ class _Standing {
     }
 
     return _Standing(
-      title: AppStrings.ledgerDaysOverdue(member.daysOverdue),
+      title: AppStrings.daysOverdueBadge(member.daysOverdue),
       lastPaid: lastPaid,
       note: _overdueNoteOf(ledger),
       background: AppColors.dangerSurface,

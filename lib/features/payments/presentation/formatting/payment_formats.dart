@@ -2,17 +2,12 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../shared/formatters/digit_layout_formatter.dart';
 import '../../domain/entities/billing_month.dart';
 import '../../domain/entities/payment_method.dart';
+import 'peso_amount.dart';
 
 abstract final class PaymentFormats {
   static const int _longListThreshold = 3;
 
-  static String pesos(int cents) {
-    final whole = DigitLayouts.groupedByThousands('${cents ~/ 100}');
-    final remainder = cents % 100;
-    if (remainder == 0) return '\$$whole';
-
-    return '\$$whole,${remainder.toString().padLeft(2, '0')}';
-  }
+  static String pesos(int cents) => '\$${PesoAmount.textFor(cents)}';
 
   static String dni(String digits) => DigitLayouts.groupedByThousands(digits);
 

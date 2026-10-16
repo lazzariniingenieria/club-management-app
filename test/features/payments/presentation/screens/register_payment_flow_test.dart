@@ -175,7 +175,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(currentLocation(), AppRoutes.adminMemberLedger(1));
-      expect(find.text(AppStrings.ledgerDaysOverdue(42)), findsOneWidget);
+      expect(find.text(AppStrings.daysOverdueBadge(42)), findsOneWidget);
       expect(
         find.text(AppStrings.ledgerLastPaid('agosto 2026')),
         findsOneWidget,

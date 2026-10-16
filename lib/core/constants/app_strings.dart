@@ -194,9 +194,6 @@ class AppStrings {
   static const String ledgerMissingAction = 'Volver a Pagos';
   static const String ledgerNewTag = 'NUEVO';
 
-  static String ledgerDaysOverdue(int days) =>
-      days == 1 ? '1 día de mora' : '$days días de mora';
-
   static String ledgerLastPaid(String month) => 'Último mes pago: $month';
 
   static String ledgerOverdueSinceLastPaid(String month) =>

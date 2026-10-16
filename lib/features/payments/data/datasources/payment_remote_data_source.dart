@@ -1,7 +1,7 @@
 import '../../../../core/constants/api_constants.dart';
-import '../../../../core/errors/exceptions.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/network/api_contract_guard.dart';
 import '../../../../core/network/api_list_reader.dart';
 import '../../../../core/network/api_object_reader.dart';
 import '../../../../core/network/api_writer.dart';
@@ -126,17 +126,6 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
     }
   }
 
-  Future<T> _parsed<T>(Future<T> Function() build) async {
-    try {
-      return await build();
-    } on TypeError catch (error) {
-      _logger.error(
-        'Response did not match the expected contract',
-        context: _logContext,
-        cause: error,
-      );
-
-      throw ServerException('Response did not match the contract');
-    }
-  }
+  Future<T> _parsed<T>(Future<T> Function() build) =>
+      guardContract(build, logger: _logger, logContext: _logContext);
 }
