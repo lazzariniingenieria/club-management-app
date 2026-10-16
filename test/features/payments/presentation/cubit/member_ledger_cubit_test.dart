@@ -7,6 +7,7 @@ import 'package:club_management_app/features/payments/domain/entities/billing_mo
 import 'package:club_management_app/features/payments/domain/entities/member_ledger.dart';
 import 'package:club_management_app/features/payments/domain/usecases/load_member_ledger_use_case.dart';
 import 'package:club_management_app/features/payments/domain/usecases/void_payment_use_case.dart';
+import 'package:club_management_app/features/payments/domain/usecases/watch_payment_changes_use_case.dart';
 import 'package:club_management_app/features/payments/presentation/cubit/member_ledger_cubit.dart';
 import 'package:club_management_app/features/payments/presentation/cubit/member_ledger_state.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,10 +24,14 @@ class MockVoidPaymentUseCase extends Mock implements VoidPaymentUseCase {}
 class MockWatchMemberChangesUseCase extends Mock
     implements WatchMemberChangesUseCase {}
 
+class MockWatchPaymentChangesUseCase extends Mock
+    implements WatchPaymentChangesUseCase {}
+
 void main() {
   late MockLoadMemberLedgerUseCase loadLedger;
   late MockVoidPaymentUseCase voidPayment;
   late StreamController<void> memberChanges;
+  late StreamController<void> paymentChanges;
   late MemberLedgerCubit cubit;
 
   final ledger = buildLedger();
@@ -38,16 +43,21 @@ void main() {
     memberChanges = StreamController<void>.broadcast();
     final watchMemberChanges = MockWatchMemberChangesUseCase();
     when(() => watchMemberChanges()).thenAnswer((_) => memberChanges.stream);
+    paymentChanges = StreamController<void>.broadcast();
+    final watchPaymentChanges = MockWatchPaymentChangesUseCase();
+    when(() => watchPaymentChanges()).thenAnswer((_) => paymentChanges.stream);
     cubit = MemberLedgerCubit(
       loadLedger: loadLedger,
       voidPayment: voidPayment,
       watchMemberChanges: watchMemberChanges,
+      watchPaymentChanges: watchPaymentChanges,
     );
   });
 
   tearDown(() async {
     await cubit.close();
     await memberChanges.close();
+    await paymentChanges.close();
   });
 
   Future<void> settle() => Future<void>.delayed(Duration.zero);
@@ -190,6 +200,62 @@ void main() {
       await cubit.close();
 
       expect(memberChanges.hasListener, isFalse);
+    });
+  });
+
+  group('a payment recorded or voided elsewhere', () {
+    test('reloads the ledger, so a payment that went through shows up',
+        () async {
+      await cubit.load(1);
+      final paid = buildLedger(
+        payments: [
+          buildPayment(id: 3, month: const BillingMonth(2026, 9)),
+          ...ledger.payments,
+        ],
+      );
+      when(() => loadLedger(any())).thenAnswer((_) async => Right(paid));
+
+      paymentChanges.add(null);
+      await settle();
+
+      verify(() => loadLedger(1)).called(2);
+      expect(cubit.state, MemberLedgerReady(paid));
+    });
+
+    test('arriving during a load is not lost: one more load follows', () async {
+      final firstLoad = Completer<Either<Failure, MemberLedger>>();
+      when(() => loadLedger(any())).thenAnswer((_) => firstLoad.future);
+
+      final loading = cubit.load(1);
+      paymentChanges.add(null);
+      paymentChanges.add(null);
+      await settle();
+      when(() => loadLedger(any())).thenAnswer((_) async => Right(ledger));
+      firstLoad.complete(Right(ledger));
+      await loading;
+
+      verify(() => loadLedger(1)).called(2);
+    });
+
+    test('announced by a void from this screen reloads only once', () async {
+      when(() => voidPayment(any(), reason: any(named: 'reason')))
+          .thenAnswer((_) async {
+        paymentChanges.add(null);
+
+        return const Right(null);
+      });
+      await cubit.load(1);
+
+      await cubit.voidPayment(ledger.payments.first);
+      await settle();
+
+      verify(() => loadLedger(1)).called(2);
+    });
+
+    test('is no longer heard once the screen closes', () async {
+      await cubit.close();
+
+      expect(paymentChanges.hasListener, isFalse);
     });
   });
 }

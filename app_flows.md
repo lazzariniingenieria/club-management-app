@@ -231,7 +231,7 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 
 **Un mes ya pago no se puede volver a cobrar.** La API hoy no lo impide ([backend_api.md](backend_api.md) §6), así que la app relee el historial justo antes de enviar y frena el pago si alguno de los meses ya figura. Eso cubre el doble toque y la mayoría de los reintentos después de un timeout; lo que queda abierto — dos admins cobrando el mismo mes en el mismo segundo, o un primer envío que commitea recién después de la relectura del reintento — se cierra cuando el backend lo rechace, no con esperas ni reintentos en el cliente.
 
-**Un socio inactivo no puede pagar.** No aparece al elegir socio, y en sus cuotas el botón se reemplaza por una nota que explica por qué y un acceso a *Editar socio* para reactivarlo. La API no lo impide, así que la app lo controla en tres lugares: al abrir el registro, al releer el historial antes de enviar, y en las cuotas, que se recargan cuando el socio cambia (una baja o una reactivación hecha desde *Editar socio* se ve al volver).
+**Un socio inactivo no puede pagar.** No aparece al elegir socio, y en sus cuotas el botón se reemplaza por una nota que explica por qué y un acceso a *Editar socio* para reactivarlo. La API no lo impide, así que la app lo controla en tres lugares: al abrir el registro, al releer el historial antes de enviar, y en las cuotas, que se recargan cuando el socio cambia (una baja o una reactivación hecha desde *Editar socio* se ve al volver) y cuando un pago pudo haber cambiado (un registro que no respondió a tiempo pero entró se ve al volver atrás).
 
 #### 4.2.1 Cuotas del socio y anulación
 

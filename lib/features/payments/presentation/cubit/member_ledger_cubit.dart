@@ -7,31 +7,38 @@ import '../../../members/domain/usecases/watch_member_changes_use_case.dart';
 import '../../domain/entities/payment.dart';
 import '../../domain/usecases/load_member_ledger_use_case.dart';
 import '../../domain/usecases/void_payment_use_case.dart';
+import '../../domain/usecases/watch_payment_changes_use_case.dart';
 import 'member_ledger_state.dart';
 
 class MemberLedgerCubit extends Cubit<MemberLedgerState> {
   final LoadMemberLedgerUseCase _loadLedger;
   final VoidPaymentUseCase _voidPayment;
-  late final StreamSubscription<void> _memberChangesSubscription;
+  late final List<StreamSubscription<void>> _changeSubscriptions;
 
   MemberLedgerCubit({
     required LoadMemberLedgerUseCase loadLedger,
     required VoidPaymentUseCase voidPayment,
     required WatchMemberChangesUseCase watchMemberChanges,
+    required WatchPaymentChangesUseCase watchPaymentChanges,
   })  : _loadLedger = loadLedger,
         _voidPayment = voidPayment,
         super(const MemberLedgerLoading()) {
-    _memberChangesSubscription =
-        watchMemberChanges().listen((_) => _reloadChangedMember());
+    _changeSubscriptions = [
+      watchMemberChanges().listen((_) => _reloadOnChange()),
+      watchPaymentChanges().listen((_) => _reloadOnPaymentChange()),
+    ];
   }
 
   int? _memberId;
   bool _isLoading = false;
-  bool _memberChangedWhileLoading = false;
+  bool _isVoiding = false;
+  bool _changedWhileLoading = false;
 
   @override
   Future<void> close() async {
-    await _memberChangesSubscription.cancel();
+    await Future.wait(
+      _changeSubscriptions.map((subscription) => subscription.cancel()),
+    );
 
     return super.close();
   }
@@ -46,7 +53,7 @@ class MemberLedgerCubit extends Cubit<MemberLedgerState> {
     if (isClosed) return;
 
     emit(result.fold(_stateFor, MemberLedgerReady.new));
-    if (_memberChangedWhileLoading) await _reloadChangedMember();
+    if (_changedWhileLoading) await _reloadOnChange();
   }
 
   Future<void> reload() async {
@@ -55,7 +62,9 @@ class MemberLedgerCubit extends Cubit<MemberLedgerState> {
   }
 
   Future<Failure?> voidPayment(Payment payment, {String? reason}) async {
+    _isVoiding = true;
     final result = await _voidPayment(payment.id, reason: reason);
+    _isVoiding = false;
     final failure = result.fold<Failure?>((failure) => failure, (_) => null);
 
     if (!_leftLedgerUntouched(failure)) await reload();
@@ -64,8 +73,14 @@ class MemberLedgerCubit extends Cubit<MemberLedgerState> {
     return failure;
   }
 
-  Future<void> _reloadChangedMember() async {
-    _memberChangedWhileLoading = _isLoading;
+  Future<void> _reloadOnPaymentChange() async {
+    if (_isVoiding) return;
+
+    await _reloadOnChange();
+  }
+
+  Future<void> _reloadOnChange() async {
+    _changedWhileLoading = _isLoading;
     if (_isLoading) return;
 
     await reload();
