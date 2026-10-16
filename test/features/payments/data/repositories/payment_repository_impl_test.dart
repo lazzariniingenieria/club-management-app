@@ -94,6 +94,24 @@ void main() {
     expect(voiding, hasLength(1));
   });
 
+  test('a void somebody else already applied announces a change', () async {
+    final announcements = await announcementsAfter(
+      ConflictException(),
+      (repository) => repository.voidPayment(7),
+    );
+
+    expect(announcements, hasLength(1));
+  });
+
+  test('a payment the server rejected announces nothing', () async {
+    final announcements = await announcementsAfter(
+      ValidationException(),
+      (repository) => repository.recordPayment(draft),
+    );
+
+    expect(announcements, isEmpty);
+  });
+
   test('a write that never left the device announces nothing', () async {
     final announcements = await announcementsAfter(
       NetworkException(),

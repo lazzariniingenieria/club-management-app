@@ -63,7 +63,8 @@ class PaymentRepositoryImpl implements PaymentRepository {
 
   static bool _mayHaveChangedPayments(Either<Failure, void> result) {
     return result.fold(
-      (failure) => failure is ResponseTimeoutFailure,
+      (failure) =>
+          failure is ResponseTimeoutFailure || failure is ConflictFailure,
       (_) => true,
     );
   }
