@@ -105,8 +105,11 @@ class _RawEdit {
     TextEditingValue before,
     TextEditingValue after,
   ) {
-    return before.text.contains(PesoAmount.decimalMark) &&
-        !after.text.contains(PesoAmount.decimalMark);
+    if (after.text.length != before.text.length - 1) return false;
+    final markAt = before.text.indexOf(PesoAmount.decimalMark);
+
+    return markAt >= 0 &&
+        before.text.replaceRange(markAt, markAt + 1, '') == after.text;
   }
 
   static bool _removedOnlyGrouping(

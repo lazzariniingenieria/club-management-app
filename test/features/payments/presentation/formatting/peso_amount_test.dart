@@ -63,6 +63,19 @@ void main() {
       );
     }
 
+    TextEditingValue replacedAll(String before, String replacement) {
+      return formatter.formatEditUpdate(
+        TextEditingValue(
+          text: before,
+          selection: TextSelection(baseOffset: 0, extentOffset: before.length),
+        ),
+        TextEditingValue(
+          text: replacement,
+          selection: TextSelection.collapsed(offset: replacement.length),
+        ),
+      );
+    }
+
     test('groups thousands while typing', () {
       expect(typed('1.500', '0').text, '15.000');
     });
@@ -93,6 +106,34 @@ void main() {
 
     test('erasing the decimal mark drops the decimals', () {
       expect(erased('15.000,').text, '15.000');
+    });
+
+    test('erasing the decimal mark of an amount with cents keeps the pesos',
+        () {
+      final value = formatter.formatEditUpdate(
+        const TextEditingValue(
+          text: '15.000,50',
+          selection: TextSelection.collapsed(offset: 7),
+        ),
+        const TextEditingValue(
+          text: '15.00050',
+          selection: TextSelection.collapsed(offset: 6),
+        ),
+      );
+
+      expect(value.text, '15.000');
+    });
+
+    test('typing over the whole amount replaces it', () {
+      expect(replacedAll('15.000,50', '2').text, '2');
+    });
+
+    test('erasing the whole amount empties the field', () {
+      expect(replacedAll('15.000,50', '').text, '');
+    });
+
+    test('pasting over the whole amount takes the pasted one', () {
+      expect(replacedAll('15.000,50', '3.500').text, '3.500');
     });
 
     test('erasing a thousands dot erases the digit before it', () {
