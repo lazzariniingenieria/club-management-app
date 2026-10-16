@@ -1,3 +1,4 @@
+import 'package:club_management_app/core/errors/failure_messages.dart';
 import 'package:club_management_app/core/errors/failures.dart';
 import 'package:club_management_app/features/members/domain/entities/member.dart';
 import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
@@ -234,15 +235,53 @@ void main() {
       expect(form().selectedMonths, {const BillingMonth(2026, 10)});
     });
 
-    test('asks again who paid when the relative left the group', () async {
-      stubRegister(const Left(ValidationFailure()));
-      await cubit.open(1);
-      cubit.pickPayer(relative.id);
+    group('a rejected payment paid by a relative', () {
+      Future<void> submitRejected() async {
+        stubRegister(const Left(ValidationFailure()));
+        await cubit.open(1);
+        cubit.pickPayer(relative.id);
+      }
 
-      await cubit.submit();
+      test('asks again who paid when the relative left the group', () async {
+        await submitRejected();
+        when(() => loadLedger(any())).thenAnswer(
+          (_) async => Right(
+            buildLedger(member: buildLedgerMember(familyGroupId: 7)),
+          ),
+        );
 
-      expect(notice(), const PayerLeftGroupNotice());
-      expect(form().payerId, isNull);
+        await cubit.submit();
+
+        expect(notice(), const PayerLeftGroupNotice());
+        expect(form().payerId, isNull);
+      });
+
+      test('keeps the relative and shows the error when they are still there',
+          () async {
+        await submitRejected();
+
+        await cubit.submit();
+
+        expect(
+          notice(),
+          SubmitFailedNotice(const ValidationFailure().userMessage),
+        );
+        expect(form().payerId, relative.id);
+      });
+
+      test('keeps the relative when the group cannot be checked', () async {
+        await submitRejected();
+        when(() => loadLedger(any()))
+            .thenAnswer((_) async => const Left(NetworkFailure()));
+
+        await cubit.submit();
+
+        expect(
+          notice(),
+          SubmitFailedNotice(const ValidationFailure().userMessage),
+        );
+        expect(form().payerId, relative.id);
+      });
     });
 
     test('ignores a second submit while the first one is in flight', () async {

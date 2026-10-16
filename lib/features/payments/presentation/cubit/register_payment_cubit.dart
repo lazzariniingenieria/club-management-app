@@ -95,7 +95,7 @@ class RegisterPaymentCubit extends Cubit<RegisterPaymentState> {
           MonthsAlreadyPaidNotice(months),
         );
       case ValidationFailure() when form.payerId != null:
-        await _refresh(form.withPayer(null), const PayerLeftGroupNotice());
+        await _recoverFromRejectedPayer(form, failure);
       case ResponseTimeoutFailure():
         await _settleTimedOut(form);
       default:
@@ -114,6 +114,26 @@ class RegisterPaymentCubit extends Cubit<RegisterPaymentState> {
       RegisterPaymentEditing(
         form: result.fold((_) => form, form.withLedger),
         notice: notice,
+      ),
+    );
+  }
+
+  Future<void> _recoverFromRejectedPayer(
+    PaymentForm form,
+    Failure failure,
+  ) async {
+    final result = await _loadLedger(form.ledger.member.id);
+    if (isClosed) return;
+
+    final refreshed = result.fold((_) => form, form.withLedger);
+    final payerLeft = refreshed.payerId == null;
+
+    emit(
+      RegisterPaymentEditing(
+        form: refreshed,
+        notice: payerLeft
+            ? const PayerLeftGroupNotice()
+            : SubmitFailedNotice(failure.userMessage),
       ),
     );
   }

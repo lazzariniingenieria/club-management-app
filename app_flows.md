@@ -222,7 +222,7 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 | Sin conexión al confirmar | Aviso arriba del formulario; todo lo elegido queda como estaba. El pedido no salió, así que el pago seguro no se registró |
 | El servidor no respondió a tiempo | El pago pudo haberse registrado, así que la app relee el historial: si los meses figuran, termina como registrado; si no, avisa que no se registró. Si tampoco puede leer el historial, dice que no sabe si se registró, y el reintento revisa el historial antes de enviar |
 | Uno de los meses ya figura pago (otro admin lo cobró mientras tanto) | Aviso con los meses en cuestión; se quitan de la selección y la grilla los muestra como *Pagado* |
-| El familiar elegido ya no está en el grupo | Aviso; quién pagó vuelve al socio |
+| El familiar elegido ya no está en el grupo | El `400` no dice por qué rechazó el pago, así que la app relee el grupo: si el familiar ya no está, aviso y quién pagó vuelve al socio; si sigue (o no se pudo releer), queda elegido y se muestra el error como cualquier otro |
 | El socio ya no existe | Pantalla de "No encontramos a este socio" con *Volver a Pagos* |
 | El socio fue dado de baja mientras tanto | Pantalla de "Este socio está dado de baja" con *Volver* |
 | Otro error del servidor | Aviso con el mensaje; el formulario sigue editable |
