@@ -138,24 +138,48 @@ class _LedgerContent extends StatelessWidget {
         Expanded(
           child: RefreshIndicator(
             onRefresh: context.read<MemberLedgerCubit>().reload,
-            child: ListView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+            child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                _LedgerHeader(ledger: ledger),
-                const SizedBox(height: AppSpacing.md),
-                FeeStandingCard(ledger: ledger),
-                if (_newMemberNote(ledger) != null) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  PaymentNotice(message: _newMemberNote(ledger)!),
-                ],
-                const SizedBox(height: AppSpacing.xl),
-                _HistorySection(ledger: ledger, newMonths: newMonths),
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  sliver: SliverMainAxisGroup(
+                    slivers: [
+                      SliverToBoxAdapter(child: _LedgerSummary(ledger: ledger)),
+                      _HistorySection(ledger: ledger, newMonths: newMonths),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
         ),
         _LedgerFooter(ledger: ledger, onRegister: onRegister),
+      ],
+    );
+  }
+}
+
+class _LedgerSummary extends StatelessWidget {
+  final MemberLedger ledger;
+
+  const _LedgerSummary({required this.ledger});
+
+  @override
+  Widget build(BuildContext context) {
+    final newMemberNote = _newMemberNote(ledger);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _LedgerHeader(ledger: ledger),
+        const SizedBox(height: AppSpacing.md),
+        FeeStandingCard(ledger: ledger),
+        if (newMemberNote != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          PaymentNotice(message: newMemberNote),
+        ],
+        const SizedBox(height: AppSpacing.xl),
       ],
     );
   }
@@ -208,23 +232,17 @@ class _HistorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          AppStrings.ledgerHistoryTitle.toUpperCase(),
-          style: AppTextStyles.sectionLabel,
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(child: _HistoryHeading(ledger: ledger)),
+        if (ledger.payments.isEmpty)
+          const SliverToBoxAdapter(child: _EmptyHistory()),
+        SliverList.separated(
+          itemCount: ledger.payments.length,
+          itemBuilder: (_, index) =>
+              _historyTile(context, ledger.payments[index]),
+          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
         ),
-        if (ledger.livePayments.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xs),
-          Text(AppStrings.ledgerHistoryHint, style: AppTextStyles.bodySmall),
-        ],
-        const SizedBox(height: AppSpacing.md),
-        if (ledger.payments.isEmpty) const _EmptyHistory(),
-        for (final payment in ledger.payments) ...[
-          _historyTile(context, payment),
-          const SizedBox(height: AppSpacing.sm),
-        ],
       ],
     );
   }
@@ -281,6 +299,30 @@ class _HistorySection extends StatelessWidget {
       ConflictFailure() => AppStrings.voidPaymentAlreadyVoided,
       final Failure other => other.userMessage,
     };
+  }
+}
+
+class _HistoryHeading extends StatelessWidget {
+  final MemberLedger ledger;
+
+  const _HistoryHeading({required this.ledger});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          AppStrings.ledgerHistoryTitle.toUpperCase(),
+          style: AppTextStyles.sectionLabel,
+        ),
+        if (ledger.livePayments.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(AppStrings.ledgerHistoryHint, style: AppTextStyles.bodySmall),
+        ],
+        const SizedBox(height: AppSpacing.md),
+      ],
+    );
   }
 }
 

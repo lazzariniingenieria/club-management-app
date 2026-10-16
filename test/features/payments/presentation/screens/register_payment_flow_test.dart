@@ -8,6 +8,9 @@ import 'package:club_management_app/features/members/data/models/member_model.da
 import 'package:club_management_app/features/members/data/datasources/member_remote_data_source.dart';
 import 'package:club_management_app/features/members/domain/entities/member.dart';
 import 'package:club_management_app/features/payments/domain/entities/payment_draft.dart';
+import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
+import 'package:club_management_app/features/payments/data/models/member_ledger_model.dart';
+import 'package:club_management_app/features/payments/presentation/screens/payment_member_picker_screen.dart';
 import 'package:club_management_app/features/payments/presentation/widgets/payment_history_tile.dart';
 import 'package:club_management_app/features/payments/data/datasources/payment_fake_data_source.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../helpers/app_test_harness.dart';
 import '../../../../helpers/member_roster_data_source.dart';
+import '../../../../helpers/payment_builders.dart';
 
 class DroppingPaymentSource extends PaymentFakeDataSource {
   int dropsLeft;
@@ -36,6 +40,44 @@ class DroppingPaymentSource extends PaymentFakeDataSource {
     }
     recorded++;
     await super.recordPayment(draft);
+  }
+}
+
+class LongHistoryPaymentSource extends PaymentFakeDataSource {
+  static const int paymentCount = 60;
+
+  LongHistoryPaymentSource({required super.members})
+      : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
+
+  @override
+  Future<MemberLedgerModel> fetchLedger(int memberId) async {
+    final current = await super.fetchLedger(memberId);
+    var month = const BillingMonth(2026, 9);
+
+    return MemberLedgerModel(
+      member: current.member,
+      familyMembers: current.familyMembers,
+      memberNames: current.memberNames,
+      monthlyFeeCents: current.monthlyFeeCents,
+      payments: [
+        for (var id = 1; id <= paymentCount; id++, month = month.previous)
+          buildPayment(id: id, memberId: memberId, month: month),
+      ],
+    );
+  }
+}
+
+class CountingLedgerSource extends PaymentFakeDataSource {
+  int ledgerReads = 0;
+
+  CountingLedgerSource({required super.members})
+      : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
+
+  @override
+  Future<MemberLedgerModel> fetchLedger(int memberId) {
+    ledgerReads++;
+
+    return super.fetchLedger(memberId);
   }
 }
 
@@ -379,6 +421,80 @@ void main() {
         findsWidgets,
       );
     });
+  });
+
+  group('a long list', () {
+    Finder scrollableAround(Finder child) =>
+        find.ancestor(of: child, matching: find.byType(Scrollable)).first;
+
+    testWidgets('of members to pick builds only the tiles on screen', (
+      tester,
+    ) async {
+      final crowd = [
+        for (var id = 1; id <= 200; id++)
+          buildMember(
+            id: id,
+            firstName: 'Socio',
+            lastName: 'Apellido${id.toString().padLeft(3, '0')}',
+          ),
+      ];
+      await bootClub(tester, memberSource: MemberRosterDataSource(crowd));
+      await tester.tap(find.text(AppStrings.adminHomeRegisterPaymentAccess));
+      await settleSession(tester);
+
+      final last = find.text('Socio Apellido200');
+      expect(last, findsNothing);
+
+      await tester.scrollUntilVisible(
+        last,
+        2000,
+        scrollable: scrollableAround(find.byType(PaymentMemberPickerTile)),
+      );
+      expect(last, findsOneWidget);
+    });
+
+    testWidgets('of payments in the ledger builds only the tiles on screen', (
+      tester,
+    ) async {
+      await bootClub(
+        tester,
+        payments: (members) => LongHistoryPaymentSource(members: members),
+      );
+      await openLedgerOf(tester, 'Juan Zárate');
+
+      final oldest = find.byWidgetPredicate(
+        (widget) =>
+            widget is PaymentHistoryTile &&
+            widget.payment.id == LongHistoryPaymentSource.paymentCount,
+      );
+      expect(oldest, findsNothing);
+
+      await tester.scrollUntilVisible(
+        oldest,
+        2000,
+        scrollable: scrollableAround(find.byType(PaymentHistoryTile)),
+      );
+      expect(oldest, findsOneWidget);
+    });
+  });
+
+  testWidgets('pulling the ledger down reloads it', (tester) async {
+    late CountingLedgerSource source;
+    await bootClub(
+      tester,
+      payments: (members) => source = CountingLedgerSource(members: members),
+    );
+    await openLedgerOf(tester, 'Juan Zárate');
+    final readsBefore = source.ledgerReads;
+
+    await tester.fling(
+      find.byType(CustomScrollView),
+      const Offset(0, 400),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(source.ledgerReads, readsBefore + 1);
   });
 
   group('the ledger of an inactive member', () {

@@ -74,27 +74,31 @@ class _PickerContent extends StatelessWidget {
       ..sort((a, b) => b.daysOverdue.compareTo(a.daysOverdue));
     final upToDate = candidates.where((member) => !member.isOverdue).toList();
 
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      children: [
-        Text(
-          AppStrings.paymentPickerQuestion,
-          style: AppTextStyles.labelLarge,
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          sliver: SliverMainAxisGroup(
+            slivers: [
+              SliverToBoxAdapter(
+                child: _PickerIntro(query: roster.searchQuery),
+              ),
+              if (candidates.isEmpty)
+                SliverToBoxAdapter(child: _emptyMessage()),
+              if (overdue.isNotEmpty)
+                _PickerSection(
+                  title: AppStrings.paymentPickerOverdueSection(overdue.length),
+                  members: overdue,
+                ),
+              if (upToDate.isNotEmpty)
+                _PickerSection(
+                  title:
+                      AppStrings.paymentPickerUpToDateSection(upToDate.length),
+                  members: upToDate,
+                ),
+            ],
+          ),
         ),
-        const SizedBox(height: AppSpacing.md),
-        _PickerSearchField(query: roster.searchQuery),
-        const SizedBox(height: AppSpacing.lg),
-        if (candidates.isEmpty) _emptyMessage(),
-        if (overdue.isNotEmpty)
-          _PickerSection(
-            title: AppStrings.paymentPickerOverdueSection(overdue.length),
-            members: overdue,
-          ),
-        if (upToDate.isNotEmpty)
-          _PickerSection(
-            title: AppStrings.paymentPickerUpToDateSection(upToDate.length),
-            members: upToDate,
-          ),
       ],
     );
   }
@@ -109,6 +113,28 @@ class _PickerContent extends StatelessWidget {
         style: AppTextStyles.bodyLargeMuted,
         textAlign: TextAlign.center,
       ),
+    );
+  }
+}
+
+class _PickerIntro extends StatelessWidget {
+  final String query;
+
+  const _PickerIntro({required this.query});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          AppStrings.paymentPickerQuestion,
+          style: AppTextStyles.labelLarge,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _PickerSearchField(query: query),
+        const SizedBox(height: AppSpacing.lg),
+      ],
     );
   }
 }
@@ -156,20 +182,25 @@ class _PickerSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SliverPadding(
       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Semantics(
-            header: true,
-            child: Text(title, style: AppTextStyles.sectionLabel),
+      sliver: SliverMainAxisGroup(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Semantics(
+                header: true,
+                child: Text(title, style: AppTextStyles.sectionLabel),
+              ),
+            ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          for (final member in members) ...[
-            PaymentMemberPickerTile(member: member),
-            const SizedBox(height: AppSpacing.sm),
-          ],
+          SliverList.separated(
+            itemCount: members.length,
+            itemBuilder: (_, index) =>
+                PaymentMemberPickerTile(member: members[index]),
+            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+          ),
         ],
       ),
     );
