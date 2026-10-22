@@ -32,6 +32,7 @@ class AdminPaymentsScreen extends StatelessWidget {
       child: AdminScaffold(
         title: AppStrings.adminPaymentsTitle,
         showsRoleBadge: true,
+        actions: const [_ReportAction()],
         floatingActionButton: const _CreateMemberButton(),
         body: _AdminPaymentsBody(filter: filter),
       ),
@@ -310,4 +311,17 @@ String _emptyMessageFor(
     MemberCollectionFilter.all => AppStrings.adminPaymentsEmptyRoster,
     MemberCollectionFilter.overdue => AppStrings.adminPaymentsEmptyOverdue,
   };
+}
+
+class _ReportAction extends StatelessWidget {
+  const _ReportAction();
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: () => context.push(AppRoutes.adminPaymentReport),
+      tooltip: AppStrings.reportTitle,
+      icon: const Icon(Icons.picture_as_pdf_outlined),
+    );
+  }
 }

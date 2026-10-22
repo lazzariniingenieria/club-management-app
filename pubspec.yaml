@@ -30,6 +30,9 @@ dependencies:
   # Functional / Result type
   fpdart: ^1.1.0
 
+  # Reports: comparte e imprime el PDF que genera el backend (E10)
+  printing: ^5.13.4
+
   # UI / Assets
   google_fonts: ^6.2.1
   flutter_svg: ^2.0.10+1

@@ -224,6 +224,7 @@ Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistingui
 | `GET` | `/api/payments/members/{memberId}` | `200` + `PaymentResponse[]` · `404` |
 | `PATCH` | `/api/payments/{paymentId}/void` | `200` + `PaymentResponse` · `404` · `409` |
 | `GET` | `/api/payments/delinquency` | `200` + `MemberDelinquencyResponse[]` |
+| `GET` | `/api/payments/receipts` | `200` + PDF · `204` · `400` — **solo en la rama `feature/add-fee-receipt-report`** |
 
 ### `POST /api/payments`
 
@@ -260,6 +261,16 @@ Anula un pago: body opcional `{ "reason": "..." }` (≤ 150; vacío o en blanco 
 ### `GET /api/payments` — búsqueda
 
 Todos los pagos del club, del `paidAt` más reciente al más viejo. Filtros opcionales por query param: `memberId`, `from` y `to` (fechas ISO, **sobre `periodCovered`, no sobre la fecha de carga**; `from` > `to` → `400`), `paymentMethod` e `includeVoided` (por defecto, sin anulados). Sin paginar.
+
+### `GET /api/payments/receipts` — tabletas de cuotas cobradas
+
+**Todavía no está en `develop`**: verificado contra la rama `feature/add-fee-receipt-report`, commit `7470854` (2026-10-19).
+
+Query params `paidFrom` y `paidTo`, los dos requeridos, en formato `"2026-10-01"`. Filtra por **fecha de cobro** (`paid_at`), en días calendario de Argentina e incluyendo los dos extremos, y deja afuera los pagos anulados. `paidFrom` > `paidTo` → `400`.
+
+- `200` con `Content-Type: application/pdf` y `Content-Disposition: attachment; filename="cuotas-cobradas-<paidFrom>-al-<paidTo>.pdf"`. Es un A4 hecho con PDFBox: una tableta por grupo familiar y mes cubierto (o por socio si no tiene grupo), con cada socio que pagó ese mes, su importe y el total; cada tableta sale dos veces lado a lado, con líneas de corte, y nunca se parte entre páginas. Orden alfabético (es-AR) por el primer socio y después por mes.
+- **`204` sin cuerpo si no hubo cobros** en el rango: no es un error.
+- Abierto a `ADMIN` y `SUPER_ADMIN`, como el resto de `/api/payments/**`.
 
 ### `GET /api/payments/delinquency`
 
@@ -351,7 +362,8 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Contadores por estado para los chips del listado | E4 |
 | Cargar el último mes pagado en el alta de socio | E6 — el socio recién creado nace en mora desde el 1° del mes (§7) |
 | `code` estable y `fieldErrors` en el envelope de error | Mapear un error al campo del formulario (E5, E8) |
-| Filtro de `GET /api/payments` por fecha de carga (`paidAt`) | E10 — la búsqueda existe pero filtra por mes cubierto; el PDF de lo cobrado en un período necesita filtrar por la fecha del pago |
+| Merge de `feature/add-fee-receipt-report` (`GET /api/payments/receipts`) en `develop` | E10 contra la API real |
+| Filtro de `GET /api/payments` por fecha de carga (`paidAt`) | Nada hoy: el reporte de E10 filtra por fecha de cobro en el backend. La búsqueda sigue filtrando por mes cubierto |
 | Mora de un socio y padrón de su grupo familiar sin bajar todo el club (filtro por `memberId` en `GET /api/payments/delinquency`, por `familyGroupId` en `GET /api/members`) | Cuotas del socio a escala — hoy cada apertura del ledger trae el padrón entero y la mora de todo el club para mostrar a un socio. La verificación previa al registrar ya no lo necesita: usa `GET /api/members/{id}` y el historial del socio |
 | Edición de un pago | Corregir un pago es anularlo y registrarlo de nuevo |
 | Días de gracia configurables | El umbral de "en mora" |

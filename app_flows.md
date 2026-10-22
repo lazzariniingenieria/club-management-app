@@ -379,7 +379,12 @@ Si el bloqueo pisa reservas existentes, la confirmación **debe listar las reser
 
 `Generar reporte → período (un mes o un rango de fechas) → PDF`
 
-Un PDF con **todos los pagos registrados en el período**: fecha, socio, mes cubierto, importe, medio y quién pagó, con el total al pie. Lo arma la app con la búsqueda de pagos, que existe pero filtra por mes cubierto y no por fecha de cobro ([backend_api.md](backend_api.md) §6 y §10). Los pagos anulados no entran. La entrada al reporte se define con el diseño de E10.
+**El PDF lo genera el backend** (`GET /api/payments/receipts`, [backend_api.md](backend_api.md) §6): son las **tabletas** que hoy el admin arma a mano en Excel para imprimir y recortar, una por grupo familiar y mes cubierto (o por socio si no tiene grupo), con cada socio que pagó ese mes, su importe y el total; cada tableta sale dos veces lado a lado, con líneas de corte. La app elige el período, baja el PDF y lo comparte o imprime.
+
+- **Entrada**: ícono de PDF con `tooltip` "Reporte de cuotas cobradas" en la barra superior de Pagos (`/admin/payments/report`). Ícono solo, como permite §1 para el admin, para no quitarle lugar al título.
+- **Período por fecha de cobro**: *Un mes* o *Varios meses* (desde / hasta) entre los últimos 24 meses. La app lo traduce a días (`paidFrom` = día 1 del primer mes, `paidTo` = último día del último mes). Se eligen meses y no días sueltos porque así rinde el club, y porque el selector de fechas de Flutter sale en inglés mientras la app no tenga la localización en español. Un rango invertido se explica en el campo y deshabilita *Generar PDF*.
+- **Estados**: generando (botón con progreso y "Generando el PDF…"), listo ("Tabletas listas", el período, *Compartir PDF* y *Ver o imprimir*), **sin cobros** (el `204`: "No hubo cobros en ese período, así que no hay tabletas para imprimir"), y error sin conexión o del servidor. Si el dispositivo no puede abrir o compartir el PDF, un snackbar lo dice.
+- El archivo conserva el nombre que manda el backend (`cuotas-cobradas-2026-10-01-al-2026-10-31.pdf`).
 
 ---
 
@@ -511,7 +516,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | No bloquea (SUPER_ADMIN y cuota por ADMIN: **Sí**) | — |
 | E8 | ABM de administradores (superAdmin) | No bloquea | — |
 | E9 | Agenda / Reservas + canchas + bloqueos | **Bloqueada** | — |
-| E10 | Reporte de pagos en PDF, por período | **Bloqueada** | — |
+| E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | **Sí**: merge de `feature/add-fee-receipt-report` | — |
 | E11 | Recuperar contraseña (informativa) + primer ingreso | **Sí** | — |
 | E12+ | Superficie del socio completa | **Bloqueada** | — |
 
@@ -625,6 +630,15 @@ Las decisiones están en §4.3; el contrato, en [backend_api.md](backend_api.md)
 - Fake con un admin suelto, uno vinculado a un socio y uno dado de baja; da `409` a DNI o socio repetidos.
 
 **Terminado cuando**: el SUPER_ADMIN crea, edita (sin perder el vínculo), da de baja, reactiva y restablece la contraseña de un admin; un ADMIN no llega a la ruta; el `409` se muestra sin perder el formulario; hay tests del mapeo, del fake y del flujo de alta.
+
+### E10 — Reporte de cuotas cobradas en PDF
+
+Las decisiones están en §4.6. **Depende de que se mergee `feature/add-fee-receipt-report` en el backend**: hasta entonces, contra la API real la pantalla responde con el error del servidor (`404`).
+
+- **Feature `reports`**: el dominio solo modela el período y el documento (bytes y nombre). El repositorio baja el PDF con `responseType: bytes`, lee el nombre del `Content-Disposition` y traduce el `204` a "sin cobros".
+- Compartir e imprimir con `printing`, detrás de una interfaz para probar el flujo sin el plugin. El fake devuelve un PDF mínimo de prueba.
+
+**Terminado cuando**: desde Pagos se baja el PDF de un mes y de un rango, se comparte y se imprime; un período sin cobros muestra el vacío y no un error; hay tests del período, del data source (query, nombre de archivo, `204`, `400`) y del flujo.
 
 ### E6.5 — Grupos familiares
 

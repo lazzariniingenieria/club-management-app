@@ -471,6 +471,37 @@ class AppStrings {
   static String familyGroupRemoveTitle(String member) =>
       '¿Quitar a $member del grupo?';
 
+  static const String reportTitle = 'Reporte de cuotas cobradas';
+  static const String reportPeriodQuestion = '¿De qué período?';
+  static const String reportModeSingle = 'Un mes';
+  static const String reportModeRange = 'Varios meses';
+  static const String reportMonthLabel = 'Mes';
+  static const String reportFromLabel = 'Desde';
+  static const String reportToLabel = 'Hasta';
+  static const String reportScopeNote =
+      'Arma las tabletas para imprimir y recortar: una por grupo familiar y mes cubierto (o por socio, si no tiene grupo), con lo cobrado en el período por fecha de cobro. No incluye pagos anulados.';
+  static const String reportInvalidRange =
+      'El mes «Desde» tiene que ser anterior o igual a «Hasta».';
+  static const String reportGenerate = 'Generar PDF';
+  static const String reportGenerating = 'Generando el PDF…';
+  static const String reportReadyTitle = 'Tabletas listas';
+  static const String reportReadyHint =
+      'Cada tableta sale dos veces, lado a lado, con líneas de corte.';
+  static const String reportShare = 'Compartir PDF';
+  static const String reportPreview = 'Ver o imprimir';
+  static const String reportEmpty =
+      'No hubo cobros en ese período, así que no hay tabletas para imprimir.';
+  static const String reportOfflineTitle = 'Sin conexión.';
+  static const String reportOffline =
+      'No pudimos generar el PDF. Revisá la conexión y probá de nuevo.';
+  static const String reportServerTitle = 'No pudimos generar el PDF.';
+  static const String reportServer =
+      'El sistema del club tuvo un problema. Probá de nuevo en unos minutos.';
+  static const String reportExportFailed =
+      'No pudimos abrir el PDF en este dispositivo. Probá de nuevo.';
+
+  static String reportPeriodRange(String from, String to) => 'De $from a $to';
+
   static const String adminCourtsTitle = 'Canchas';
   static const String adminCourtsPending =
       'La gestión de canchas se habilita junto con la agenda de reservas.';

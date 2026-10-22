@@ -5,6 +5,7 @@ abstract final class ApiConstants {
   static const String members = '/members';
   static const String payments = '/payments';
   static const String paymentDelinquency = '/payments/delinquency';
+  static const String feeReceipts = '/payments/receipts';
   static const String currentClub = '/clubs/me';
   static const String familyGroups = '/family-groups';
   static const String admins = '/admins';

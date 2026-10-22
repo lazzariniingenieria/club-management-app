@@ -73,6 +73,13 @@ import '../../features/payments/domain/usecases/watch_payment_changes_use_case.d
 import '../../features/payments/presentation/cubit/admin_payments_cubit.dart';
 import '../../features/payments/presentation/cubit/member_ledger_cubit.dart';
 import '../../features/payments/presentation/cubit/register_payment_cubit.dart';
+import '../../features/reports/data/datasources/payment_report_fake_data_source.dart';
+import '../../features/reports/data/datasources/payment_report_remote_data_source.dart';
+import '../../features/reports/data/repositories/payment_report_repository_impl.dart';
+import '../../features/reports/domain/repositories/payment_report_repository.dart';
+import '../../features/reports/domain/usecases/download_fee_receipts_use_case.dart';
+import '../../features/reports/presentation/cubit/payment_report_cubit.dart';
+import '../../features/reports/presentation/export/report_file_exporter.dart';
 import '../config/app_environment.dart';
 import '../logging/app_logger.dart';
 import '../network/api_client.dart';
@@ -95,6 +102,7 @@ Future<void> init() async {
   _registerFamilyGroups();
   _registerClub();
   _registerAdmins();
+  _registerReports();
   _registerPresentation();
 }
 
@@ -298,6 +306,29 @@ void _registerAdmins() {
       saveAdmin: sl(),
       setAdminActive: sl(),
       resetPassword: sl(),
+    ),
+  );
+}
+
+void _registerReports() {
+  sl.registerLazySingleton<PaymentReportRemoteDataSource>(
+    () => AppEnvironment.usesFakeDataSources
+        ? PaymentReportFakeDataSource()
+        : PaymentReportRemoteDataSourceImpl(sl(), sl()),
+  );
+  sl.registerLazySingleton<PaymentReportRepository>(
+    () => PaymentReportRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+  );
+  sl.registerLazySingleton(() => DownloadFeeReceiptsUseCase(sl()));
+  sl.registerLazySingleton<ReportFileExporter>(
+    () => const PrintingReportFileExporter(),
+  );
+
+  sl.registerFactory(
+    () => PaymentReportCubit(
+      downloadReceipts: sl(),
+      exporter: sl(),
+      logger: sl(),
     ),
   );
 }

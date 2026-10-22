@@ -15,6 +15,8 @@ import 'package:club_management_app/features/members/data/datasources/member_fak
 import 'package:club_management_app/features/members/data/datasources/member_remote_data_source.dart';
 import 'package:club_management_app/features/payments/data/datasources/payment_fake_data_source.dart';
 import 'package:club_management_app/features/payments/data/datasources/payment_remote_data_source.dart';
+import 'package:club_management_app/features/reports/data/datasources/payment_report_fake_data_source.dart';
+import 'package:club_management_app/features/reports/data/datasources/payment_report_remote_data_source.dart';
 import 'package:club_management_app/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -29,6 +31,7 @@ Future<InMemorySecureStorage> bootApp(
   FamilyGroupRemoteDataSource? familyGroupSource,
   ClubRemoteDataSource? clubSource,
   AdminRemoteDataSource? adminSource,
+  PaymentReportRemoteDataSource? reportSource,
 }) async {
   final storage = InMemorySecureStorage();
   if (signedInAs != null) storage.seedSession(signedInAs);
@@ -75,6 +78,11 @@ Future<InMemorySecureStorage> bootApp(
   di.sl.unregister<AdminRemoteDataSource>();
   di.sl.registerLazySingleton<AdminRemoteDataSource>(
     () => adminSource ?? AdminFakeDataSource(latency: Duration.zero),
+  );
+
+  di.sl.unregister<PaymentReportRemoteDataSource>();
+  di.sl.registerLazySingleton<PaymentReportRemoteDataSource>(
+    () => reportSource ?? PaymentReportFakeDataSource(latency: Duration.zero),
   );
 
   await tester.pumpWidget(const ClubManagementApp());

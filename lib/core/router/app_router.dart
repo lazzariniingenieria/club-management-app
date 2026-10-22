@@ -26,6 +26,7 @@ import '../../features/payments/presentation/screens/admin_payments_screen.dart'
 import '../../features/payments/presentation/screens/member_ledger_screen.dart';
 import '../../features/payments/presentation/screens/payment_member_picker_screen.dart';
 import '../../features/payments/presentation/screens/register_payment_screen.dart';
+import '../../features/reports/presentation/screens/payment_report_screen.dart';
 import '../constants/app_strings.dart';
 import 'app_routes.dart';
 import 'go_router_refresh_stream.dart';
@@ -133,6 +134,10 @@ class AppRouter {
     GoRoute(
       path: AppRoutes.adminPaymentMemberPicker,
       builder: (context, state) => const PaymentMemberPickerScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.adminPaymentReport,
+      builder: (context, state) => const PaymentReportScreen(),
     ),
     GoRoute(
       path: AppRoutes.adminMemberLedgerPattern,
