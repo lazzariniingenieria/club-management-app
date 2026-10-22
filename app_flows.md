@@ -346,6 +346,21 @@ Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la not
 - Un admin dado de baja sigue en el listado, marcado como inactivo, con la acción de reactivar en su fila. Desaparecer de la lista al desactivar hace creer que se borró.
 - **No hace falta lógica defensiva contra la auto-baja del superAdmin**: el listado de la API nunca devuelve esa cuenta, así que no existe la fila que se podría tocar por error.
 
+**Listado** (`/admin/admins`): activos primero y después los dados de baja. Cada fila muestra el nombre del socio vinculado o, si no tiene, "DNI 30.222.333"; el email (o "Sin email") y el badge Activo / Inactivo. Tocar la fila abre la edición; las filas dadas de baja suman *Reactivar*. FAB extendido *Nuevo administrador*. Estados de §5: skeleton, vacío con mensaje y error con *Reintentar*.
+
+**Alta y edición** (`/admin/admins/new`, `/admin/admins/:adminId/edit`), con etiquetas visibles en cada campo:
+
+| Campo | Regla |
+| :--- | :--- |
+| DNI | Requerido, solo números, hasta 20; se agrupa con puntos y viaja sin ellos |
+| Email (opcional) | Formato y hasta 150 |
+| Contraseña inicial | Solo en el alta, 8 a 100 caracteres, con mostrar/ocultar. La define el SUPER_ADMIN: la API no genera ninguna |
+| Socio vinculado (opcional) | Desplegable con búsqueda sobre los socios activos (más el vinculado, si está inactivo) y "Sin vincular" |
+
+**La edición manda siempre `memberId`** (o `null` si se eligió "Sin vincular"): un `PATCH` sin el campo desvincula al admin de su socio ([backend_api.md](backend_api.md) §9). El `409` puede ser DNI repetido o socio ya vinculado a otra cuenta y la API no los distingue sin leer el `message`, así que el formulario avisa arriba "Ese DNI o ese socio ya los usa otra cuenta del club" y conserva lo cargado.
+
+En la edición, debajo del botón de guardar: **Restablecer contraseña** (hoja con la contraseña nueva y el aviso de que sus sesiones se cierran) y **Dar de baja / Reactivar** con el diálogo estándar. Restablecer es lo que hace posible la pantalla de Recuperar contraseña (§3.1.2).
+
 ### 4.4 Reservar una cancha (admin)
 
 `Reservas → Nueva → Seleccionar socio → Cancha → Horario → Confirmar → Éxito`
@@ -599,6 +614,17 @@ Las pantallas están en §3.2.3.
 - El socio vinculado sale del padrón ya cargado por `memberId`.
 
 **Terminado cuando**: el ADMIN cambia su contraseña y vuelve al login; el SUPER_ADMIN edita y borra la cuota y la ve precargada al registrar un pago; un fallo del club no impide cerrar sesión; hay tests del mapeo de la cuota, de las reglas de contraseña y del Perfil por rol.
+
+### E8 — ABM de administradores (superAdmin)
+
+Las decisiones están en §4.3; el contrato, en [backend_api.md](backend_api.md) §5.
+
+- **Feature `admins`** con sus tres capas. El dominio normaliza `active` (booleano) contra el `MemberStatus` del socio solo en la vista, para reutilizar el mismo badge.
+- La lista cruza `GET /api/admins` con el padrón para mostrar el nombre del socio vinculado.
+- `AdminModel.bodyFromDraft` incluye `memberId` siempre; un test lo fija.
+- Fake con un admin suelto, uno vinculado a un socio y uno dado de baja; da `409` a DNI o socio repetidos.
+
+**Terminado cuando**: el SUPER_ADMIN crea, edita (sin perder el vínculo), da de baja, reactiva y restablece la contraseña de un admin; un ADMIN no llega a la ruta; el `409` se muestra sin perder el formulario; hay tests del mapeo, del fake y del flujo de alta.
 
 ### E6.5 — Grupos familiares
 

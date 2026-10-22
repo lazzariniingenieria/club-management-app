@@ -13,7 +13,13 @@ import '../../features/admins/data/datasources/admin_fake_data_source.dart';
 import '../../features/admins/data/datasources/admin_remote_data_source.dart';
 import '../../features/admins/data/repositories/admin_repository_impl.dart';
 import '../../features/admins/domain/repositories/admin_repository.dart';
+import '../../features/admins/domain/usecases/load_admins_use_case.dart';
 import '../../features/admins/domain/usecases/reset_admin_password_use_case.dart';
+import '../../features/admins/domain/usecases/save_admin_use_case.dart';
+import '../../features/admins/domain/usecases/set_admin_active_use_case.dart';
+import '../../features/admins/domain/usecases/watch_admin_changes_use_case.dart';
+import '../../features/admins/presentation/cubit/admin_form_cubit.dart';
+import '../../features/admins/presentation/cubit/admins_cubit.dart';
 import '../../features/auth/data/datasources/auth_fake_data_source.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
@@ -273,6 +279,27 @@ void _registerAdmins() {
   );
 
   sl.registerLazySingleton(() => ResetAdminPasswordUseCase(sl()));
+  sl.registerLazySingleton(
+    () => LoadAdminsUseCase(admins: sl(), members: sl()),
+  );
+  sl.registerLazySingleton(() => SaveAdminUseCase(sl()));
+  sl.registerLazySingleton(() => SetAdminActiveUseCase(sl()));
+  sl.registerLazySingleton(() => WatchAdminChangesUseCase(sl()));
+
+  sl.registerFactory(
+    () => AdminsCubit(
+      loadAdmins: sl(),
+      setAdminActive: sl(),
+      watchChanges: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => AdminFormCubit(
+      saveAdmin: sl(),
+      setAdminActive: sl(),
+      resetPassword: sl(),
+    ),
+  );
 }
 
 void _registerPresentation() {

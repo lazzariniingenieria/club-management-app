@@ -476,8 +476,47 @@ class AppStrings {
       'La gestión de canchas se habilita junto con la agenda de reservas.';
 
   static const String adminAdminsTitle = 'Administradores';
-  static const String adminAdminsPending =
-      'El alta, edición y baja de administradores se habilita en una próxima entrega.';
+  static const String adminsNew = 'Nuevo administrador';
+  static const String adminsEmptyTitle = 'Todavía no hay administradores';
+  static const String adminsEmptyHint =
+      'Sumá a quienes cobran las cuotas: cada uno entra con su DNI y la contraseña que le asignes.';
+  static const String adminsErrorTitle =
+      'No pudimos cargar los administradores';
+  static const String adminRowNoEmail = 'Sin email';
+  static const String adminReactivateShort = 'Reactivar';
+  static const String adminFormCreateTitle = 'Nuevo administrador';
+  static const String adminFormEditTitle = 'Editar administrador';
+  static const String adminFormDni = 'DNI';
+  static const String adminFormEmail = 'Email (opcional)';
+  static const String adminFormPassword = 'Contraseña inicial';
+  static const String adminFormPasswordHelp =
+      'Entre 8 y 100 caracteres. Pasásela a la persona por un canal seguro.';
+  static const String adminFormMember = 'Socio vinculado (opcional)';
+  static const String adminFormNoMember = 'Sin vincular';
+  static const String adminFormMemberHelp =
+      'Si además es socio del club, vinculalo para que figure con su nombre.';
+  static const String adminFormCreate = 'Crear administrador';
+  static const String adminFormSave = 'Guardar cambios';
+  static const String adminFormCreated = 'Administrador creado';
+  static const String adminFormUpdated = 'Cambios guardados';
+  static const String adminFormConflict =
+      'Ese DNI o ese socio ya los usa otra cuenta del club. Revisá los datos.';
+  static const String adminResetPassword = 'Restablecer contraseña';
+  static const String adminResetPasswordNotice =
+      'Sus sesiones abiertas se cierran. Pasale la contraseña nueva por un canal seguro.';
+  static const String adminResetPasswordDone = 'Contraseña restablecida';
+  static const String adminDeactivate = 'Dar de baja';
+  static const String adminReactivate = 'Reactivar administrador';
+  static const String adminDeactivateMessage =
+      'No va a poder ingresar a la app. Vas a poder reactivarlo cuando quieras.';
+  static const String adminReactivateMessage =
+      'Va a poder volver a ingresar con su DNI y su contraseña.';
+  static const String adminDeactivated = 'Administrador dado de baja';
+  static const String adminReactivated = 'Administrador reactivado';
+
+  static String adminDeactivateTitle(String name) => '¿Dar de baja a $name?';
+
+  static String adminReactivateTitle(String name) => '¿Reactivar a $name?';
 
   static const String adminProfileTitle = 'Perfil';
   static const String adminProfilePending =

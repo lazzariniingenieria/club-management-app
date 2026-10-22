@@ -9,6 +9,8 @@ abstract final class AppRoutes {
   static const String adminProfile = '/admin/profile';
   static const String adminCourts = '/admin/courts';
   static const String adminAdmins = '/admin/admins';
+  static const String adminAdminCreation = '/admin/admins/new';
+  static const String adminAdminEditionPattern = '/admin/admins/:adminId/edit';
 
   static const String adminMemberCreation = '/admin/members/new';
   static const String adminMemberEditionPattern =
@@ -45,6 +47,9 @@ abstract final class AppRoutes {
 
   static String adminPaymentRegistration(int memberId) =>
       '${adminMemberLedger(memberId)}/new';
+
+  static String adminAdminEdition(int adminId) =>
+      '/admin/admins/$adminId/edit';
 
   static String adminFamilyGroupCreation(int memberId) =>
       '/admin/members/$memberId/family-group/new';

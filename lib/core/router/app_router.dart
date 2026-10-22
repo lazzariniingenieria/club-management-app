@@ -6,6 +6,9 @@ import '../../features/admin/presentation/screens/admin_home_screen.dart';
 import '../../features/admin/presentation/screens/admin_pending_screen.dart';
 import '../../features/admin/presentation/screens/admin_profile_screen.dart';
 import '../../features/admin/presentation/widgets/admin_shell.dart';
+import '../../features/admins/presentation/screens/admin_form_args.dart';
+import '../../features/admins/presentation/screens/admin_form_screen.dart';
+import '../../features/admins/presentation/screens/admins_screen.dart';
 import '../../features/auth/domain/entities/user.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
@@ -177,17 +180,31 @@ class AppRouter {
     ),
     GoRoute(
       path: AppRoutes.adminAdmins,
-      builder: (context, state) => const AdminPendingScreen(
-        title: AppStrings.adminAdminsTitle,
-        message: AppStrings.adminAdminsPending,
-        icon: Icons.admin_panel_settings_rounded,
-      ),
+      builder: (context, state) => const AdminsScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.adminAdminCreation,
+      redirect: _requireAdminFormArgs,
+      builder: (context, state) =>
+          AdminFormScreen(args: state.extra as AdminFormArgs),
+    ),
+    GoRoute(
+      path: AppRoutes.adminAdminEditionPattern,
+      redirect: _requireAdminFormArgs,
+      builder: (context, state) =>
+          AdminFormScreen(args: state.extra as AdminFormArgs),
     ),
   ];
 
   static int? _memberIdOf(GoRouterState state) => int.tryParse(
         state.pathParameters[AppRoutes.memberIdPathParameter] ?? '',
       );
+
+  static String? _requireAdminFormArgs(
+    BuildContext context,
+    GoRouterState state,
+  ) =>
+      state.extra is AdminFormArgs ? null : AppRoutes.adminAdmins;
 
   static int? _familyGroupIdOf(GoRouterState state) => int.tryParse(
         state.pathParameters[AppRoutes.familyGroupIdPathParameter] ?? '',
