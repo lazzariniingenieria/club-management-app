@@ -59,7 +59,7 @@ class AdminFormCubit extends Cubit<AdminFormState> {
     final result = await run();
     if (isClosed) return;
 
-    emit(result.fold(_stateFor, (_) => AdminFormSaved(outcome)));
+    emit(result.fold<AdminFormState>(_stateFor, (_) => AdminFormSaved(outcome)));
   }
 
   static AdminFormState _stateFor(Failure failure) {

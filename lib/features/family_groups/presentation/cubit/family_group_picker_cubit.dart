@@ -17,7 +17,7 @@ class FamilyGroupPickerCubit extends Cubit<FamilyGroupPickerState> {
     final result = await _loadCandidates();
     if (isClosed) return;
 
-    emit(result.fold(_failureFrom, _readyFrom));
+    emit(result.fold<FamilyGroupPickerState>(_failureFrom, _readyFrom));
   }
 
   void search(String query) {

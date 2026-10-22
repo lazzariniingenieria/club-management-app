@@ -56,7 +56,7 @@ class AdminProfileCubit extends Cubit<AdminProfileState> {
     final result = await _updateMonthlyFee(monthlyFeeCents);
     if (isClosed) return result.getLeft().toNullable();
 
-    return result.fold((failure) => failure, (club) {
+    return result.fold<Failure?>((failure) => failure, (club) {
       emit(state.withClub(club));
 
       return null;

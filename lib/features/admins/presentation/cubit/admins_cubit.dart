@@ -38,7 +38,7 @@ class AdminsCubit extends Cubit<AdminsState> {
     if (isClosed) return;
 
     emit(
-      result.fold(
+      result.fold<AdminsState>(
         (failure) => AdminsFailure(isOffline: failure is NetworkFailure),
         AdminsReady.new,
       ),

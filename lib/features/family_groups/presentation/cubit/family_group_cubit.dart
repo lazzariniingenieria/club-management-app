@@ -55,7 +55,7 @@ class FamilyGroupCubit extends Cubit<FamilyGroupState> {
     _isLoading = false;
     if (isClosed) return;
 
-    emit(result.fold(_stateFor, FamilyGroupReady.new));
+    emit(result.fold<FamilyGroupState>(_stateFor, FamilyGroupReady.new));
     if (_changedWhileLoading) await _reloadOnChange();
   }
 
