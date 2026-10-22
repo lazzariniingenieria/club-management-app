@@ -8,6 +8,12 @@ import '../../features/admin/data/repositories/admin_summary_repository_impl.dar
 import '../../features/admin/domain/repositories/admin_summary_repository.dart';
 import '../../features/admin/domain/usecases/load_admin_summary_use_case.dart';
 import '../../features/admin/presentation/cubit/admin_home_cubit.dart';
+import '../../features/admin/presentation/cubit/admin_profile_cubit.dart';
+import '../../features/admins/data/datasources/admin_fake_data_source.dart';
+import '../../features/admins/data/datasources/admin_remote_data_source.dart';
+import '../../features/admins/data/repositories/admin_repository_impl.dart';
+import '../../features/admins/domain/repositories/admin_repository.dart';
+import '../../features/admins/domain/usecases/reset_admin_password_use_case.dart';
 import '../../features/auth/data/datasources/auth_fake_data_source.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
@@ -18,6 +24,12 @@ import '../../features/auth/domain/usecases/logout_use_case.dart';
 import '../../features/auth/domain/usecases/restore_session_use_case.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/cubit/login_cubit.dart';
+import '../../features/club/data/datasources/club_fake_data_source.dart';
+import '../../features/club/data/datasources/club_remote_data_source.dart';
+import '../../features/club/data/repositories/club_repository_impl.dart';
+import '../../features/club/domain/repositories/club_repository.dart';
+import '../../features/club/domain/usecases/load_club_use_case.dart';
+import '../../features/club/domain/usecases/update_monthly_fee_use_case.dart';
 import '../../features/family_groups/data/datasources/family_group_fake_data_source.dart';
 import '../../features/family_groups/data/datasources/family_group_remote_data_source.dart';
 import '../../features/family_groups/data/repositories/family_group_repository_impl.dart';
@@ -75,6 +87,8 @@ Future<void> init() async {
   _registerPaymentDataSources();
   _registerPaymentDomain();
   _registerFamilyGroups();
+  _registerClub();
+  _registerAdmins();
   _registerPresentation();
 }
 
@@ -234,6 +248,33 @@ void _registerFamilyGroups() {
   );
 }
 
+void _registerClub() {
+  sl.registerLazySingleton<ClubRemoteDataSource>(
+    () => AppEnvironment.usesFakeDataSources
+        ? ClubFakeDataSource()
+        : ClubRemoteDataSourceImpl(sl(), sl()),
+  );
+  sl.registerLazySingleton<ClubRepository>(
+    () => ClubRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+  );
+
+  sl.registerLazySingleton(() => LoadClubUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateMonthlyFeeUseCase(sl()));
+}
+
+void _registerAdmins() {
+  sl.registerLazySingleton<AdminRemoteDataSource>(
+    () => AppEnvironment.usesFakeDataSources
+        ? AdminFakeDataSource()
+        : AdminRemoteDataSourceImpl(sl(), sl()),
+  );
+  sl.registerLazySingleton<AdminRepository>(
+    () => AdminRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+  );
+
+  sl.registerLazySingleton(() => ResetAdminPasswordUseCase(sl()));
+}
+
 void _registerPresentation() {
   sl.registerLazySingleton<AuthBloc>(
     () => AuthBloc(
@@ -247,6 +288,14 @@ void _registerPresentation() {
 
   sl.registerFactory(() => LoginCubit(sl()));
   sl.registerFactory(() => AdminHomeCubit(sl()));
+  sl.registerFactory(
+    () => AdminProfileCubit(
+      loadClub: sl(),
+      loadMembers: sl(),
+      updateMonthlyFee: sl(),
+      resetPassword: sl(),
+    ),
+  );
   sl.registerFactory(
     () => AdminPaymentsCubit(
       loadMembers: sl(),

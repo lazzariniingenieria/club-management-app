@@ -2,6 +2,10 @@ import 'package:club_management_app/core/di/injection_container.dart' as di;
 import 'package:club_management_app/core/storage/secure_storage_service.dart';
 import 'package:club_management_app/features/admin/data/datasources/admin_summary_fake_data_source.dart';
 import 'package:club_management_app/features/admin/data/datasources/admin_summary_remote_data_source.dart';
+import 'package:club_management_app/features/admins/data/datasources/admin_fake_data_source.dart';
+import 'package:club_management_app/features/admins/data/datasources/admin_remote_data_source.dart';
+import 'package:club_management_app/features/club/data/datasources/club_fake_data_source.dart';
+import 'package:club_management_app/features/club/data/datasources/club_remote_data_source.dart';
 import 'package:club_management_app/features/auth/data/datasources/auth_fake_data_source.dart';
 import 'package:club_management_app/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
@@ -23,6 +27,8 @@ Future<InMemorySecureStorage> bootApp(
   MemberRemoteDataSource? memberSource,
   PaymentRemoteDataSource? paymentSource,
   FamilyGroupRemoteDataSource? familyGroupSource,
+  ClubRemoteDataSource? clubSource,
+  AdminRemoteDataSource? adminSource,
 }) async {
   final storage = InMemorySecureStorage();
   if (signedInAs != null) storage.seedSession(signedInAs);
@@ -59,6 +65,16 @@ Future<InMemorySecureStorage> bootApp(
   di.sl.registerLazySingleton<FamilyGroupRemoteDataSource>(
     () =>
         familyGroupSource ?? FamilyGroupFakeDataSource(latency: Duration.zero),
+  );
+
+  di.sl.unregister<ClubRemoteDataSource>();
+  di.sl.registerLazySingleton<ClubRemoteDataSource>(
+    () => clubSource ?? ClubFakeDataSource(latency: Duration.zero),
+  );
+
+  di.sl.unregister<AdminRemoteDataSource>();
+  di.sl.registerLazySingleton<AdminRemoteDataSource>(
+    () => adminSource ?? AdminFakeDataSource(latency: Duration.zero),
   );
 
   await tester.pumpWidget(const ClubManagementApp());

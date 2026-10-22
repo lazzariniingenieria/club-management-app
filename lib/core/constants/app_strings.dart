@@ -482,7 +482,55 @@ class AppStrings {
   static const String adminProfileTitle = 'Perfil';
   static const String adminProfilePending =
       'Los datos de la cuenta y el cambio de contraseña se habilitan en una próxima entrega.';
-  static const String adminProfileManageAdmins = 'Gestionar administradores';
+  static const String adminProfileManageAdmins = 'Administradores';
+  static const String profileAccountSection = 'Tu cuenta';
+  static const String profileRoleAdmin = 'Administrador';
+  static const String profileRoleSuperAdmin = 'Administrador principal';
+  static const String profileNotLinked =
+      'Esta cuenta no está vinculada a un socio.';
+  static const String profileClubSection = 'Club';
+  static const String profileMonthlyFeeLabel = 'Cuota mensual de referencia';
+  static const String profileMonthlyFeeUnset = 'Sin cargar';
+  static const String profileMonthlyFeeHelp =
+      'Es el importe que aparece precargado al registrar un pago. Cambiarla no modifica pagos ya registrados.';
+  static const String profileMonthlyFeeReadOnly =
+      'Solo el administrador principal puede cambiarla.';
+  static const String profileEditMonthlyFee = 'Editar cuota mensual';
+  static const String profileClubOffline =
+      'Sin conexión: no pudimos cargar los datos del club.';
+  static const String profileClubFailed =
+      'No pudimos cargar los datos del club.';
+  static const String profileSecuritySection = 'Sesión y seguridad';
+  static const String profileChangePassword = 'Cambiar contraseña';
+  static const String profileChangePasswordUnavailable =
+      'La contraseña de la cuenta principal todavía no se puede cambiar desde la app.';
+
+  static String profileLinkedMember(String name) => 'Socio: $name';
+
+  static const String passwordSheetTitle = 'Cambiar contraseña';
+  static const String passwordNewLabel = 'Contraseña nueva';
+  static const String passwordHelp = 'Entre 8 y 100 caracteres.';
+  static const String passwordTooShort =
+      'Tiene que tener al menos 8 caracteres';
+  static const String passwordTooLong = 'Puede tener hasta 100 caracteres';
+  static const String passwordChangeNotice =
+      'Al cambiarla se cierran tus sesiones abiertas y vas a ingresar de nuevo con la nueva.';
+  static const String passwordChangeAction = 'Cambiar contraseña';
+  static const String passwordChangedTitle = 'Contraseña cambiada';
+  static const String passwordChangedMessage =
+      'Ingresá de nuevo con la contraseña nueva.';
+  static const String passwordChangedAction = 'Ir al ingreso';
+
+  static const String feeSheetTitle = 'Cuota mensual de referencia';
+  static const String feeSheetLabel = 'Cuota mensual';
+  static const String feeSheetHelp =
+      'Dejalo vacío si el club no tiene una cuota fija: el importe va a arrancar vacío al registrar un pago.';
+  static const String feeSaved = 'Cuota de referencia actualizada';
+  static const String saveAction = 'Guardar';
+  static const String saveFailedOffline =
+      'Sin conexión. No se guardó el cambio: revisá la conexión y probá de nuevo.';
+  static const String saveFailedServer =
+      'No pudimos guardar el cambio. El sistema del club tuvo un problema: probá de nuevo en unos minutos.';
 
   static const String memberSurfacePendingTitle = 'En preparación';
   static const String memberSurfacePendingMessage =

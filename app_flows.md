@@ -151,6 +151,20 @@ Los dos ejes de estado siguen siendo independientes en el dominio (§9): `activo
 
 **Acciones todavía no disponibles**: se dibujan en gris y, al tocarlas, explican en qué entrega se habilitan, en lugar de ocultarse. Así la pantalla tiene su forma definitiva y las filas no cambian de layout en cada entrega. Así se hizo con el FAB de alta y el lápiz hasta E5.
 
+#### 3.2.3 Perfil del administrador
+
+Tres bloques, de arriba abajo:
+
+| Bloque | Contenido |
+| :--- | :--- |
+| **Tu cuenta** | El rol ("Administrador" / "Administrador principal") y, si la cuenta está vinculada a un socio, su nombre y DNI. Si no, "Esta cuenta no está vinculada a un socio." No hay más datos: la API no expone la cuenta logueada ([backend_api.md](backend_api.md) §10) |
+| **Club** | Nombre del club y **cuota mensual de referencia** (`monthlyFeeAmount`), o "Sin cargar". El SUPER_ADMIN la edita desde un lápiz que abre una hoja con el mismo campo de importe que Registrar pago; vacío la borra. El ADMIN la ve con la nota "Solo el administrador principal puede cambiarla" hasta que la API le abra el `PATCH` |
+| **Sesión y seguridad** | *Cambiar contraseña*, *Administradores* (solo `canManageAdmins`) y *Cerrar sesión* |
+
+**Cambiar contraseña** pide solo la nueva (8 a 100 caracteres, con mostrar/ocultar): decisión de producto, tiene que ser simple. Al guardarla, la API revoca todas las sesiones de la cuenta, así que la app lo avisa antes ("Al cambiarla se cierran tus sesiones abiertas…") y después muestra "Contraseña cambiada. Ingresá de nuevo con la contraseña nueva." y cierra la sesión. Para el **SUPER_ADMIN** la acción se ve pero explica que todavía no se puede desde la app: el endpoint disponible no acepta su cuenta.
+
+Si el club no carga, el bloque Club muestra el aviso con *Reintentar* y el resto del Perfil sigue usable: cerrar sesión nunca depende de la red.
+
 ### 3.3 Shell del Socio
 
 Se construye recién con el admin terminado (E12+). Cuatro tabs con ícono y etiqueta:
@@ -479,7 +493,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E5 | Alta y edición de socio | No bloquea | ✅ Entregada — sin el scroll al socio recién creado (§4.1) |
 | E6 | Registrar un pago, cuotas del socio y anulación, sobre el listado de E4 | No bloquea | 🚧 En revisión |
 | E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar | No bloquea (eliminar grupo: **Sí**) | — |
-| E7 | Perfil del admin + cambiar contraseña + logout | **Sí** | — |
+| E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | No bloquea (SUPER_ADMIN y cuota por ADMIN: **Sí**) | — |
 | E8 | ABM de administradores (superAdmin) | No bloquea | — |
 | E9 | Agenda / Reservas + canchas + bloqueos | **Bloqueada** | — |
 | E10 | Reporte de pagos en PDF, por período | **Bloqueada** | — |
@@ -575,6 +589,16 @@ La primera escritura que mueve plata. Las pantallas y sus decisiones están en �
 - El `404` de la API pasa a tener su propia falla (`NotFoundFailure`) en lugar de caer como error genérico del servidor.
 
 **Terminado cuando**: se puede cobrar desde el Inicio en cuatro toques y desde la fila del socio, anular un pago desde su historial, los cinco casos de error de §4.2 conservan lo cargado, un mes ya pago no se cobra dos veces, Pagos refleja la mora nueva al volver, y hay tests de dominio, del mapeo DTO ↔ dominio, de los dos Cubits y del flujo completo en pantalla.
+
+### E7 — Perfil del administrador y cuota de referencia
+
+Las pantallas están en §3.2.3.
+
+- **Feature `club`**: `GET` y `PATCH /api/clubs/me`. La cuota viaja en pesos y se modela en centavos, igual que los pagos.
+- **Cambio de contraseña propio** sobre `PATCH /api/admins/{id}/password` con el `userAccountId` de la sesión: funciona para ADMIN y no pide la actual. `UserRole.canChangeOwnPassword` lo habilita solo para `admin`; `canEditClubFee`, la cuota solo para `superAdmin`. Un solo lugar cada una, como `canManageAdmins`.
+- El socio vinculado sale del padrón ya cargado por `memberId`.
+
+**Terminado cuando**: el ADMIN cambia su contraseña y vuelve al login; el SUPER_ADMIN edita y borra la cuota y la ve precargada al registrar un pago; un fallo del club no impide cerrar sesión; hay tests del mapeo de la cuota, de las reglas de contraseña y del Perfil por rol.
 
 ### E6.5 — Grupos familiares
 

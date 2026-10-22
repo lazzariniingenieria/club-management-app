@@ -7,11 +7,20 @@ abstract final class ApiConstants {
   static const String paymentDelinquency = '/payments/delinquency';
   static const String currentClub = '/clubs/me';
   static const String familyGroups = '/family-groups';
+  static const String admins = '/admins';
 
   static String member(int memberId) => '$members/$memberId';
 
   static String memberFamilyGroup(int memberId) =>
       '${member(memberId)}/family-group';
+
+  static String admin(int adminId) => '$admins/$adminId';
+
+  static String adminPassword(int adminId) => '${admin(adminId)}/password';
+
+  static String adminDeactivation(int adminId) => '${admin(adminId)}/deactivate';
+
+  static String adminReactivation(int adminId) => '${admin(adminId)}/reactivate';
 
   static String familyGroup(int familyGroupId) =>
       '$familyGroups/$familyGroupId';

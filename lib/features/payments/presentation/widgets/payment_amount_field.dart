@@ -7,11 +7,13 @@ import '../formatting/peso_amount.dart';
 class PaymentAmountField extends StatefulWidget {
   final int? initialCents;
   final ValueChanged<String> onChanged;
+  final String label;
 
   const PaymentAmountField({
     super.key,
     required this.initialCents,
     required this.onChanged,
+    this.label = AppStrings.registerPaymentAmountLabel,
   });
 
   @override
@@ -39,7 +41,7 @@ class _PaymentAmountFieldState extends State<PaymentAmountField> {
       inputFormatters: const [PesoAmountFormatter()],
       style: AppTextStyles.titleMedium,
       decoration: InputDecoration(
-        labelText: AppStrings.registerPaymentAmountLabel,
+        labelText: widget.label,
         prefixText: r'$ ',
         prefixStyle: AppTextStyles.titleMedium,
         hintText: '0',

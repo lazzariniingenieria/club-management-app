@@ -20,4 +20,14 @@ void main() {
       expect(UserRole.member.usesAdminSurface, isFalse);
     });
   });
+
+  test('only the super admin edits the club fee', () {
+    expect(UserRole.superAdmin.canEditClubFee, isTrue);
+    expect(UserRole.admin.canEditClubFee, isFalse);
+  });
+
+  test('only an admin can change their own password from the app', () {
+    expect(UserRole.admin.canChangeOwnPassword, isTrue);
+    expect(UserRole.superAdmin.canChangeOwnPassword, isFalse);
+  });
 }
