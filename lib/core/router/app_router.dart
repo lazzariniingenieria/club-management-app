@@ -12,6 +12,7 @@ import '../../features/admins/presentation/screens/admins_screen.dart';
 import '../../features/auth/domain/entities/user.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
+import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/dev/presentation/screens/component_gallery_screen.dart';
@@ -48,6 +49,10 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.login,
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.loginForgotPassword,
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
         path: AppRoutes.memberSurfacePending,

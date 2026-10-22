@@ -22,6 +22,14 @@ class AppStrings {
   static const String loginSubmitButton = 'Ingresar';
   static const String loginForgotPassword = '¿Olvidaste tu contraseña?';
   static const String loginFirstTimeUser = 'Es mi primera vez aquí';
+  static const String forgotPasswordTitle = '¿Olvidaste tu contraseña?';
+  static const String forgotPasswordNoEmail =
+      'La app no puede enviarte una contraseña nueva por email.';
+  static const String forgotPasswordAskAdmin =
+      'Pedile al administrador principal del club que te asigne una contraseña nueva. Después podés cambiarla desde tu Perfil.';
+  static const String forgotPasswordMainAccount =
+      'Si sos el administrador principal, comunicate con quien mantiene el sistema del club.';
+  static const String forgotPasswordBack = 'Volver al ingreso';
   static const String loginSessionExpiredTitle = 'Tu sesión venció';
   static const String loginSessionExpiredMessage =
       'Por seguridad cerramos la sesión. Ingresá de nuevo para continuar.';

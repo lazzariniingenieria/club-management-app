@@ -49,7 +49,7 @@ El **superAdmin comparte el shell del admin**: su único delta es la gestión de
 | Splash / Bootstrap | `/` | ✅ Implementada — resuelve sesión persistida y redirige (§3.1.1) |
 | Login | `/login` | ✅ Implementada |
 | Primer ingreso | `/login/activate` | A construir — CTA ya existe en `AppStrings.loginFirstTimeUser` |
-| Recuperar contraseña | `/login/forgot` | A construir — **pantalla informativa**, no formulario (§3.1.2) |
+| Recuperar contraseña | `/login/forgot` | ✅ Implementada — **pantalla informativa**, no formulario (§3.1.2) |
 
 #### 3.1.1 Splash — no es una pantalla instantánea
 
@@ -69,7 +69,7 @@ La regla de fondo: **el Splash nunca es una pantalla sin salida**. Cualquier ram
 
 El backend no expone ni va a exponer recuperación por email: **el reset de contraseña es una acción manual de un ADMIN o SUPER_ADMIN**, decisión de arquitectura ya tomada del lado de la API. La pantalla no puede ser un formulario de email porque no hay endpoint del otro lado.
 
-Se construye entonces como pantalla informativa: explica que un administrador del club puede restablecer la contraseña y ofrece volver al login. El canal de contacto queda pendiente: la API no expone datos de contacto del club ([backend_api.md](backend_api.md) §10). Sin campo de email, sin botón "Enviar" — un formulario que no manda nada a ningún lado es peor que no tener la pantalla.
+Se construye entonces como pantalla informativa (E11, parte del Bloque 1): dice que la app no puede enviar una contraseña nueva por email, que el administrador principal asigna una nueva desde Administradores (E8) y que después se cambia desde el Perfil; suma un aviso para el propio administrador principal, cuya contraseña se cambia en la base, y *Volver al ingreso*. El canal de contacto queda pendiente: la API no expone datos de contacto del club ([backend_api.md](backend_api.md) §10). Sin campo de email, sin botón "Enviar" — un formulario que no manda nada a ningún lado es peor que no tener la pantalla.
 
 ### 3.2 Shell del Administrador
 
@@ -517,7 +517,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E8 | ABM de administradores (superAdmin) | No bloquea | — |
 | E9 | Agenda / Reservas + canchas + bloqueos | **Bloqueada** | — |
 | E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | **Sí**: merge de `feature/add-fee-receipt-report` | — |
-| E11 | Recuperar contraseña (informativa) + primer ingreso | **Sí** | — |
+| E11 | Recuperar contraseña (informativa) + primer ingreso | Primer ingreso: **Sí** | Recuperar contraseña ✅ (Bloque 1); primer ingreso en el Bloque 2 |
 | E12+ | Superficie del socio completa | **Bloqueada** | — |
 
 ### E1 — Migración de paleta y theming

@@ -3,6 +3,7 @@ import '../../features/members/domain/entities/member_collection_filter.dart';
 abstract final class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
+  static const String loginForgotPassword = '/login/forgot';
 
   static const String adminHome = '/admin';
   static const String adminPayments = '/admin/payments';
@@ -61,7 +62,8 @@ abstract final class AppRoutes {
   static String adminFamilyGroupMemberPicker(int familyGroupId) =>
       '${adminFamilyGroup(familyGroupId)}/add';
 
-  static bool isAuthRoute(String location) => location == login;
+  static bool isAuthRoute(String location) =>
+      location == login || location == loginForgotPassword;
 
   static bool isAdminSurface(String location) => location.startsWith(adminHome);
 
