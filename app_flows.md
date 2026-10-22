@@ -4,7 +4,7 @@ Documento de referencia del frontend: **qué pantallas existen, cómo se navega,
 
 No define píxeles. Define estructura, flujos, estados y alcance por entrega.
 
-> **Estado al 2026-10-06.** La superficie del **administrador es el camino crítico**: se construye completa antes de la del socio, y va entregada hasta E4. La paleta de §7 y la navegación de §3.2 derivan de dos capturas de referencia; los hexadecimales están estimados visualmente y hay que confirmarlos.
+> **Estado al 2026-10-22.** La superficie del **administrador es el camino crítico**: se construye completa antes de la del socio. Entregada hasta E6; el Bloque 1 (E6.5, E7, E8, E10 y la parte informativa de E11) cierra el resto del admin sin canchas. La paleta de §7 está confirmada en código (`AppColors`).
 >
 > **El contrato de la API no se documenta acá**: vive en [backend_api.md](backend_api.md), verificado contra `develop`. Este archivo manda en pantallas, flujos y entregas; ese otro manda en endpoints, shapes, errores y reglas del servidor.
 
@@ -14,7 +14,7 @@ No define píxeles. Define estructura, flujos, estados y alcance por entrega.
 
 | Principio | Implicancia concreta |
 | :--- | :--- |
-| **Pocos pasos** | Máximo 3 toques desde el Inicio hasta confirmar cualquier flujo principal. |
+| **Pocos pasos** | Máximo 3 toques desde el Inicio hasta confirmar cualquier flujo principal, salvo flujos especiales que realmente lo necesiten, con el motivo escrito en su sección (registrar un pago: 4, §4.2). |
 | **Íconos con etiqueta, según superficie** | **Socio**: nunca un ícono solo (uso esporádico, rango de edad amplio). **Admin**: se permite ícono-only en filas densas, con `Semantics(label:)`, `tooltip` y área táctil de 48×48. |
 | **Estado siempre explícito** | Nadie debe preguntarse "¿se guardó o no?". Confirmación textual, no solo cambio de color. |
 | **El color nunca solo** | Todo estado va acompañado de texto o ícono. Daltonismo y pantallas al sol en el predio. Los pares texto/fondo cumplen **WCAG AA** (§7). |
@@ -69,11 +69,11 @@ La regla de fondo: **el Splash nunca es una pantalla sin salida**. Cualquier ram
 
 El backend no expone ni va a exponer recuperación por email: **el reset de contraseña es una acción manual de un ADMIN o SUPER_ADMIN**, decisión de arquitectura ya tomada del lado de la API. La pantalla no puede ser un formulario de email porque no hay endpoint del otro lado.
 
-Se construye entonces como pantalla informativa: explica que un administrador del club puede restablecer la contraseña, muestra el canal de contacto y ofrece volver al login. Sin campo de email, sin botón "Enviar" — un formulario que no manda nada a ningún lado es peor que no tener la pantalla.
+Se construye entonces como pantalla informativa: explica que un administrador del club puede restablecer la contraseña y ofrece volver al login. El canal de contacto queda pendiente: la API no expone datos de contacto del club ([backend_api.md](backend_api.md) §10). Sin campo de email, sin botón "Enviar" — un formulario que no manda nada a ningún lado es peor que no tener la pantalla.
 
 ### 3.2 Shell del Administrador
 
-Bottom navigation navy, 3 items con ícono **y** etiqueta. Badge `RoleBadge` ("ADMINISTRADOR" / "SUPER ADMIN") en el header de toda pantalla del shell.
+Bottom navigation navy, 3 items con ícono **y** etiqueta. Badge `RoleBadge` ("ADMINISTRADOR" / "SUPER ADMIN") en el header de las **tres pantallas raíz** de los tabs. Las pantallas push muestran solo la flecha de volver y el título: con el badge, un título de dos palabras ya no entraba ("Registrar p…").
 
 | Tab | Ruta | Contenido |
 | :--- | :--- | :--- |
@@ -142,7 +142,7 @@ Los contadores de los chips (§3.2.2) salen del mismo listado que ya está en me
 | Activo | "Activo" | `successSurface` / `successText` |
 | Inactivo | "Inactivo" | `disabledSurface` / `textSecondary` |
 
-Los dos ejes de estado siguen siendo independientes en el dominio (§9): `activo/inactivo` dice si sigue siendo socio, `al día/en mora` dice si la cuota está paga, y un socio puede estar activo y en mora a la vez. Lo que cambió es cómo se muestran: la mora se consulta entrando al chip "En mora", no leyendo fila por fila. **Consecuencia asumida**: en "Todos" no se distingue a simple vista quién debe. Si molesta en uso real, el badge combinado ("Activo · En mora") ya está diseñado y es un cambio de una sola función.
+Los dos ejes de estado siguen siendo independientes en el dominio (§9): `activo/inactivo` dice si sigue siendo socio, `al día/en mora` dice si la cuota está paga, y un socio puede estar activo y en mora a la vez. Lo que cambió es cómo se muestran: la mora se consulta entrando al chip "En mora", no leyendo fila por fila. **Consecuencia asumida**: en "Todos" no se distingue a simple vista quién debe. Si molesta en uso real, el badge combinado ("Activo · En mora") ya está diseñado y es un cambio de una sola función. El listado tampoco se ordena por días de mora ni los muestra, aunque V6 lo mencione: el chip "En mora" alcanza para el uso real (decisión del 22/10/2026).
 
 **Tres vacíos distintos, no uno** (§5): padrón sin socios, "ningún socio está en mora" y búsqueda sin resultados con acción "Limpiar búsqueda".
 
@@ -242,7 +242,7 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 - **Pie fijo** con *Registrar pago* (*Registrar primer pago* si no tiene ninguno).
 - Estados de §5: skeleton, sin conexión y error del servidor con *Reintentar*, y socio inexistente.
 
-**Anular un pago**: tocar una fila del historial abre el **detalle** (los mismos datos y quién lo cargó) con la acción *Anular pago*, que pide confirmación en una segunda hoja:
+**Anular un pago**: tocar una fila del historial abre el **detalle** (los mismos datos y la fecha de carga; quién lo cargó queda pendiente de backend, [backend_api.md](backend_api.md) §10) con la acción *Anular pago*, que pide confirmación en una segunda hoja:
 
 - Dice el efecto: *"Ese mes vuelve a figurar impago y la mora se recalcula. La anulación queda registrada y no se puede revertir: si fue un error, vas a tener que cargar el pago de nuevo."*
 - **Motivo opcional**, hasta 150 caracteres.
@@ -349,7 +349,7 @@ Esto requiere un `AuthBloc` de sesión, separado del `LoginCubit` de formulario 
 
 ## 7. Dirección visual
 
-Paleta derivada de las capturas. **Valores estimados visualmente, a confirmar.**
+Paleta derivada de las capturas, confirmada en `AppColors`.
 
 | Token | Hex | Uso |
 | :--- | :--- | :--- |

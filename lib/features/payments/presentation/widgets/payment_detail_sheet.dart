@@ -9,7 +9,7 @@ import '../../domain/entities/member_ledger.dart';
 import '../../domain/entities/payment.dart';
 import '../formatting/payment_formats.dart';
 import 'payment_history_tile.dart';
-import 'payment_summary_table.dart';
+import '../../../../shared/widgets/summary_table.dart';
 
 class PaymentDetailSheet extends StatelessWidget {
   final Payment payment;
@@ -59,7 +59,7 @@ class PaymentDetailSheet extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             Text(ledger.member.fullName, style: AppTextStyles.bodyMedium),
             const SizedBox(height: AppSpacing.lg),
-            PaymentSummaryTable(rows: _rows()),
+            SummaryTable(rows: _rows()),
             const SizedBox(height: AppSpacing.lg),
             const _VoidAction(),
             const SizedBox(height: AppSpacing.sm),
@@ -73,21 +73,21 @@ class PaymentDetailSheet extends StatelessWidget {
     );
   }
 
-  List<PaymentSummaryRow> _rows() {
+  List<SummaryRow> _rows() {
     return [
-      PaymentSummaryRow(
+      SummaryRow(
         AppStrings.paymentDetailAmount,
         PaymentFormats.pesos(payment.amountCents),
       ),
-      PaymentSummaryRow(
+      SummaryRow(
         AppStrings.paymentDetailMethod,
         PaymentFormats.method(payment.method),
       ),
-      PaymentSummaryRow(
+      SummaryRow(
         AppStrings.paymentDetailPayer,
         PaymentHistoryTile.payerLabelOf(payment, ledger),
       ),
-      PaymentSummaryRow(
+      SummaryRow(
         AppStrings.paymentDetailRecordedOn,
         PaymentFormats.day(payment.paidAt),
       ),

@@ -27,6 +27,7 @@ class AdminHomeScreen extends StatelessWidget {
       create: (_) => sl<AdminHomeCubit>()..load(),
       child: const AdminScaffold(
         title: AppStrings.adminHomeTitle,
+        showsRoleBadge: true,
         body: _ReloadOnReturn(child: _AdminHomeBody()),
       ),
     );

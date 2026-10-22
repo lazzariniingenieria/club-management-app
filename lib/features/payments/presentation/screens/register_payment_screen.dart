@@ -20,7 +20,7 @@ import '../widgets/payer_selector.dart';
 import '../widgets/payment_amount_field.dart';
 import '../widgets/payment_confirmation_sheet.dart';
 import '../widgets/payment_method_selector.dart';
-import '../widgets/payment_notice.dart';
+import '../../../../shared/widgets/app_notice.dart';
 import '../widgets/payment_pill.dart';
 import '../widgets/payment_total_summary.dart';
 import '../widgets/payment_unavailable_view.dart';
@@ -176,9 +176,9 @@ class _TopNotice extends StatelessWidget {
           message: AppStrings.registerPaymentUnconfirmedMessage,
           form: form,
         ),
-      SubmitFailedNotice(:final message) => PaymentNotice(
+      SubmitFailedNotice(:final message) => AppNotice(
           message: message,
-          tone: PaymentNoticeTone.danger,
+          tone: AppNoticeTone.danger,
         ),
       MonthsAlreadyPaidNotice() ||
       PayerLeftGroupNotice() =>
@@ -200,10 +200,10 @@ class _RetryNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PaymentNotice(
+    return AppNotice(
       title: title,
       message: message,
-      tone: PaymentNoticeTone.danger,
+      tone: AppNoticeTone.danger,
       action: OutlinedButton(
         onPressed:
             form.canReview ? () => _reviewAndSubmit(context, form) : null,
@@ -256,11 +256,11 @@ class _MonthsSection extends StatelessWidget {
           onShowYear: cubit.showYear,
         ),
         if (repeated is MonthsAlreadyPaidNotice)
-          PaymentNotice(
+          AppNotice(
             message: AppStrings.registerPaymentMonthsAlreadyPaid(
               PaymentFormats.monthsSummary(repeated.months),
             ),
-            tone: PaymentNoticeTone.danger,
+            tone: AppNoticeTone.danger,
           )
         else
           Text(_suggestionOf(form), style: AppTextStyles.bodyMedium),
@@ -347,9 +347,9 @@ class _PayerSection extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         if (notice is PayerLeftGroupNotice) ...[
-          const PaymentNotice(
+          const AppNotice(
             message: AppStrings.registerPaymentPayerLeftGroup,
-            tone: PaymentNoticeTone.danger,
+            tone: AppNoticeTone.danger,
           ),
           const SizedBox(height: AppSpacing.sm),
         ],

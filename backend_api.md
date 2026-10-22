@@ -159,6 +159,8 @@ Todo lo demás sale con este envelope:
 
 **`PATCH`** recibe `firstName`, `lastName`, `dni` (requeridos), `phone` y `email`. **No toca `familyGroupId` ni `status`** — esos se mueven por sus endpoints.
 
+**`PATCH /{id}/family-group`** recibe `{ "familyGroupId": 7 }` (requerido → `400` si falta; `404` si el grupo no es del club). Si el socio ya estaba en otro grupo, **lo mueve** sin aviso. **`DELETE /{id}/family-group`** lo deja sin grupo y es idempotente: un socio sin grupo devuelve `200` igual. Ninguno de los dos mira `status`: se puede agrupar a un socio inactivo.
+
 ### Grupos familiares — `/api/family-groups`
 
 `POST` (`201`), `GET` listado, `GET /{id}` y `PATCH /{id}`. Respuesta: `{ id, name, createdAt, updatedAt, createdByUserId, updatedByUserId }`.
@@ -185,7 +187,7 @@ Todo lo demás sale con este envelope:
 
 **Dos fuentes de `409` acá**: DNI repetido, y `memberId` ya tomado por otra cuenta (`UNIQUE (member_id)`). Sin `code` estable (§4), distinguirlas obliga a leer el `message`. Un `memberId` que no es un socio del club da `404`.
 
-**`PATCH /api/admins/{id}/password`** — `{ "newPassword": "..." }`, de 8 a 100 caracteres. Es la única ruta de `/api/admins` abierta también a `ADMIN`, y el servidor **no verifica que sea la propia cuenta**: un admin puede resetear la contraseña de otro admin del club. Revoca todos los refresh tokens vivos de esa cuenta, así que sus sesiones abiertas caen en el próximo refresh. Devuelve el `AdminResponse`.
+**`PATCH /api/admins/{id}/password`** — `{ "newPassword": "..." }`, de 8 a 100 caracteres. Es la única ruta de `/api/admins` abierta también a `ADMIN`, y el servidor **no verifica que sea la propia cuenta**: un admin puede resetear la contraseña de otro admin del club. Revoca todos los refresh tokens vivos de esa cuenta, así que sus sesiones abiertas caen en el próximo refresh. Devuelve el `AdminResponse`. Busca la cuenta con `role = ADMIN`, así que **con el id del SUPER_ADMIN da `404`**: si el SUPER_ADMIN olvida su contraseña, no hay endpoint y se cambia directamente en la base.
 
 ### Bajas lógicas
 
@@ -353,7 +355,13 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Mora de un socio y padrón de su grupo familiar sin bajar todo el club (filtro por `memberId` en `GET /api/payments/delinquency`, por `familyGroupId` en `GET /api/members`) | Cuotas del socio a escala — hoy cada apertura del ledger trae el padrón entero y la mora de todo el club para mostrar a un socio. La verificación previa al registrar ya no lo necesita: usa `GET /api/members/{id}` y el historial del socio |
 | Edición de un pago | Corregir un pago es anularlo y registrarlo de nuevo |
 | Días de gracia configurables | El umbral de "en mora" |
-| Cambio de contraseña del usuario logueado | E7 |
+| Cambio de contraseña **de la cuenta logueada**, para los dos roles y sin pedir la actual (decisión de producto). Hoy un ADMIN usa `PATCH /api/admins/{id}/password` con su propio id, que no verifica que la cuenta sea la propia; el SUPER_ADMIN no tiene camino (§5) | E7 — el SUPER_ADMIN ve la acción deshabilitada |
+| Mostrar a un ADMIN quién cargó o anuló un pago: `recordedByUserId` y `voidedByUserId` no se pueden traducir a una persona (`GET /api/admins` es solo para SUPER_ADMIN y un admin no tiene nombre) | "Quién lo cargó" en el detalle del pago |
+| Datos de contacto del club en `GET /api/clubs/me` | El canal de contacto de Recuperar contraseña (E11) |
+| Asignar grupo en el alta y en la edición de forma pareja: `POST /api/members` acepta `familyGroupId` y `PATCH` no | Nada hoy: el grupo se arma desde las cuotas del socio (E6.5) |
+| `DELETE /api/family-groups/{id}`, que saque a los integrantes y borre el grupo sin tocar socios ni pagos | "Eliminar grupo" de E6.5 |
+| Crear un grupo con sus integrantes en una sola operación | Nada: la app completa un armado a medias con "Reintentar" (E6.5) |
+| `PATCH /api/clubs/me` abierto también a `ADMIN` | Que un ADMIN edite la cuota de referencia desde Perfil (E7) |
 | Reset de contraseña de un **socio** por un ADMIN / SUPER_ADMIN | E11 — existe solo para cuentas de admin (§5) |
 | Flag de "debe cambiar la contraseña en el próximo ingreso" | Primer ingreso (E11) |
 | `court`, `court_block`, `recurring_slot`, `reservation` — ni tabla, ni endpoint | **E9 completa**, y "Próximos turnos" del Inicio |

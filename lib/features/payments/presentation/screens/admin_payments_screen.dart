@@ -31,6 +31,7 @@ class AdminPaymentsScreen extends StatelessWidget {
       create: (_) => sl<AdminPaymentsCubit>()..load(),
       child: AdminScaffold(
         title: AppStrings.adminPaymentsTitle,
+        showsRoleBadge: true,
         floatingActionButton: const _CreateMemberButton(),
         body: _AdminPaymentsBody(filter: filter),
       ),

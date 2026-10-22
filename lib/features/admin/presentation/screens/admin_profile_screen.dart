@@ -19,6 +19,7 @@ class AdminProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return const AdminScaffold(
       title: AppStrings.adminProfileTitle,
+      showsRoleBadge: true,
       body: ComingSoonView(
         icon: Icons.person_rounded,
         title: AppStrings.adminProfileTitle,

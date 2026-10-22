@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_radius.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_radius.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_text_styles.dart';
 
-enum PaymentNoticeTone { info, danger }
+enum AppNoticeTone { info, danger }
 
-class PaymentNotice extends StatelessWidget {
+class AppNotice extends StatelessWidget {
   final String message;
   final String? title;
-  final PaymentNoticeTone tone;
+  final AppNoticeTone tone;
   final Widget? action;
 
-  const PaymentNotice({
+  const AppNotice({
     super.key,
     required this.message,
     this.title,
-    this.tone = PaymentNoticeTone.info,
+    this.tone = AppNoticeTone.info,
     this.action,
   });
 
-  bool get _isDanger => tone == PaymentNoticeTone.danger;
+  bool get _isDanger => tone == AppNoticeTone.danger;
 
   @override
   Widget build(BuildContext context) {

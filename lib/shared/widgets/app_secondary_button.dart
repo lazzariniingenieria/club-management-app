@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_radius.dart';
+import '../../core/theme/app_radius.dart';
 
-class PaymentSecondaryButton extends StatelessWidget {
+class AppSecondaryButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
 
-  const PaymentSecondaryButton({
+  const AppSecondaryButton({
     super.key,
     required this.label,
     required this.onPressed,

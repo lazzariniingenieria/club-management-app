@@ -26,8 +26,8 @@ import '../widgets/fee_standing_card.dart';
 import '../widgets/member_header_card.dart';
 import '../widgets/payment_detail_sheet.dart';
 import '../widgets/payment_history_tile.dart';
-import '../widgets/payment_notice.dart';
-import '../widgets/payment_secondary_button.dart';
+import '../../../../shared/widgets/app_notice.dart';
+import '../../../../shared/widgets/app_secondary_button.dart';
 import '../widgets/payment_unavailable_view.dart';
 import '../widgets/void_payment_sheet.dart';
 
@@ -177,7 +177,7 @@ class _LedgerSummary extends StatelessWidget {
         FeeStandingCard(ledger: ledger),
         if (newMemberNote != null) ...[
           const SizedBox(height: AppSpacing.md),
-          PaymentNotice(message: newMemberNote),
+          AppNotice(message: newMemberNote),
         ],
         const SizedBox(height: AppSpacing.xl),
       ],
@@ -431,7 +431,7 @@ class _InactiveFooter extends StatelessWidget {
       children: [
         Text(AppStrings.ledgerInactiveHint, style: AppTextStyles.bodyMedium),
         const SizedBox(height: AppSpacing.sm),
-        PaymentSecondaryButton(
+        AppSecondaryButton(
           label: AppStrings.memberEditAction,
           onPressed: () => context.push(
             AppRoutes.adminMemberEdition(ledger.member.id),

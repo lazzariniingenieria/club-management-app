@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_radius.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_radius.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_text_styles.dart';
 
-class PaymentSummaryRow {
+class SummaryRow {
   final String label;
   final String value;
 
-  const PaymentSummaryRow(this.label, this.value);
+  const SummaryRow(this.label, this.value);
 }
 
-class PaymentSummaryTable extends StatelessWidget {
-  final List<PaymentSummaryRow> rows;
-  final PaymentSummaryRow? total;
+class SummaryTable extends StatelessWidget {
+  final List<SummaryRow> rows;
+  final SummaryRow? total;
 
-  const PaymentSummaryTable({super.key, required this.rows, this.total});
+  const SummaryTable({super.key, required this.rows, this.total});
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +41,7 @@ class PaymentSummaryTable extends StatelessWidget {
 }
 
 class _SummaryLine extends StatelessWidget {
-  final PaymentSummaryRow row;
+  final SummaryRow row;
   final bool showsDivider;
 
   const _SummaryLine({required this.row, required this.showsDivider});
@@ -80,7 +80,7 @@ class _SummaryLine extends StatelessWidget {
 }
 
 class _TotalLine extends StatelessWidget {
-  final PaymentSummaryRow row;
+  final SummaryRow row;
 
   const _TotalLine({required this.row});
 
