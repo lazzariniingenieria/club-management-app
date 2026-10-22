@@ -6,8 +6,9 @@ import 'package:club_management_app/features/members/domain/entities/member.dart
 import 'package:club_management_app/features/members/domain/entities/member_collection_filter.dart';
 import 'package:club_management_app/features/members/domain/usecases/load_members_use_case.dart';
 import 'package:club_management_app/features/members/domain/usecases/watch_roster_changes_use_case.dart';
-import 'package:club_management_app/features/members/presentation/cubit/admin_payments_cubit.dart';
-import 'package:club_management_app/features/members/presentation/cubit/admin_payments_state.dart';
+import 'package:club_management_app/features/payments/domain/usecases/watch_payment_changes_use_case.dart';
+import 'package:club_management_app/features/payments/presentation/cubit/admin_payments_cubit.dart';
+import 'package:club_management_app/features/payments/presentation/cubit/admin_payments_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mocktail/mocktail.dart';
@@ -19,9 +20,13 @@ class MockLoadMembersUseCase extends Mock implements LoadMembersUseCase {}
 class MockWatchRosterChangesUseCase extends Mock
     implements WatchRosterChangesUseCase {}
 
+class MockWatchPaymentChangesUseCase extends Mock
+    implements WatchPaymentChangesUseCase {}
+
 void main() {
   late MockLoadMembersUseCase useCase;
   late StreamController<void> rosterChanges;
+  late StreamController<void> paymentChanges;
   late AdminPaymentsCubit cubit;
 
   final overdueMember = buildMember(
@@ -55,15 +60,20 @@ void main() {
     rosterChanges = StreamController<void>.broadcast();
     final watchRosterChanges = MockWatchRosterChangesUseCase();
     when(() => watchRosterChanges()).thenAnswer((_) => rosterChanges.stream);
+    paymentChanges = StreamController<void>.broadcast();
+    final watchPaymentChanges = MockWatchPaymentChangesUseCase();
+    when(() => watchPaymentChanges()).thenAnswer((_) => paymentChanges.stream);
     cubit = AdminPaymentsCubit(
       loadMembers: useCase,
       watchRosterChanges: watchRosterChanges,
+      watchPaymentChanges: watchPaymentChanges,
     );
   });
 
   tearDown(() async {
     await cubit.close();
     await rosterChanges.close();
+    await paymentChanges.close();
   });
 
   test('starts loading so the list never opens on an empty roster', () {
@@ -103,55 +113,6 @@ void main() {
     test('overdue counts only the members behind on the fee', () {
       expect(readyState().countFor(MemberCollectionFilter.overdue), 1);
     });
-
-    test('toCollect starts empty and follows the selection', () {
-      expect(readyState().countFor(MemberCollectionFilter.toCollect), 0);
-
-      cubit.toggleReportSelection(upToDateMember.id);
-
-      expect(readyState().countFor(MemberCollectionFilter.toCollect), 1);
-    });
-  });
-
-  group('report selection', () {
-    setUp(() async {
-      stub(Right(roster()));
-      await cubit.load();
-    });
-
-    test('a second tap takes the member back out of the report', () {
-      cubit.toggleReportSelection(overdueMember.id);
-      cubit.toggleReportSelection(overdueMember.id);
-
-      expect(readyState().selectedMemberIds, isEmpty);
-    });
-
-    test('toCollect lists exactly the members marked for the report', () {
-      cubit.toggleReportSelection(inactiveMember.id);
-
-      final visible = readyState()
-          .visibleMembers(MemberCollectionFilter.toCollect)
-          .map((member) => member.id);
-
-      expect(visible, [inactiveMember.id]);
-    });
-
-    test('a reload keeps the selection the admin already marked', () async {
-      cubit.toggleReportSelection(overdueMember.id);
-
-      await cubit.load();
-
-      expect(readyState().selectedMemberIds, {overdueMember.id});
-    });
-
-    test('a reload drops members that left the club', () async {
-      cubit.toggleReportSelection(inactiveMember.id);
-      stub(Right([overdueMember, upToDateMember]));
-
-      await cubit.load();
-
-      expect(readyState().selectedMemberIds, isEmpty);
-    });
   });
 
   group('search', () {
@@ -178,8 +139,8 @@ void main() {
         hasLength(1),
       );
       expect(
-        readyState().visibleMembers(MemberCollectionFilter.toCollect),
-        isEmpty,
+        readyState().visibleMembers(MemberCollectionFilter.all),
+        hasLength(1),
       );
     });
 
@@ -205,7 +166,6 @@ void main() {
     setUp(() async {
       stub(Right(roster()));
       await cubit.load();
-      cubit.toggleReportSelection(overdueMember.id);
       cubit.search('Zárate');
       stub(const Left(NetworkFailure('Unreachable')));
       await cubit.load();
@@ -218,19 +178,17 @@ void main() {
       expect(failure.previous?.members, hasLength(3));
     });
 
-    test('does not drop the selection the admin marked by hand', () {
+    test('does not drop the search the admin typed', () {
       final failure = cubit.state as AdminPaymentsFailure;
 
-      expect(failure.previous?.selectedMemberIds, {overdueMember.id});
       expect(failure.previous?.searchQuery, 'Zárate');
     });
 
-    test('a later retry comes back with that selection intact', () async {
+    test('a later retry comes back with that search intact', () async {
       stub(Right(roster()));
 
       await cubit.load();
 
-      expect(readyState().selectedMemberIds, {overdueMember.id});
       expect(readyState().searchQuery, 'Zárate');
     });
 
@@ -240,17 +198,6 @@ void main() {
       final failure = cubit.state as AdminPaymentsFailure;
 
       expect(failure.previous?.searchQuery, 'Álvarez');
-    });
-
-    test('keeps marking members for the report while the error is shown', () {
-      cubit.toggleReportSelection(upToDateMember.id);
-
-      final failure = cubit.state as AdminPaymentsFailure;
-
-      expect(
-        failure.previous?.selectedMemberIds,
-        {overdueMember.id, upToDateMember.id},
-      );
     });
 
     test('reports a second failure instead of swallowing it', () async {
@@ -284,16 +231,16 @@ void main() {
     expect((cubit.state as AdminPaymentsFailure).previous, isNull);
   });
 
-  test('keeps a selection the admin made while the reload was in flight',
+  test('keeps a search the admin typed while the reload was in flight',
       () async {
     stub(Right(roster()));
     await cubit.load();
 
     final reload = cubit.load();
-    cubit.toggleReportSelection(upToDateMember.id);
+    cubit.search('Álvarez');
     await reload;
 
-    expect(readyState().selectedMemberIds, {upToDateMember.id});
+    expect(readyState().searchQuery, 'Álvarez');
   });
 
   test('ignores a second load while one is already in flight', () async {
@@ -318,18 +265,16 @@ void main() {
   group('a change to the roster made elsewhere', () {
     Future<void> settle() => Future<void>.delayed(Duration.zero);
 
-    test('reloads the list on its own, keeping search and selection', () async {
+    test('reloads the list on its own, keeping the search', () async {
       stub(Right(roster()));
       await cubit.load();
       cubit.search('ana');
-      cubit.toggleReportSelection(upToDateMember.id);
 
       rosterChanges.add(null);
       await settle();
 
       verify(() => useCase()).called(2);
       expect(readyState().searchQuery, 'ana');
-      expect(readyState().selectedMemberIds, {upToDateMember.id});
     });
 
     test('arriving during a load is not lost: one more load follows', () async {
@@ -350,6 +295,26 @@ void main() {
       await cubit.close();
 
       expect(rosterChanges.hasListener, isFalse);
+    });
+  });
+
+  group('a payment recorded or voided elsewhere', () {
+    Future<void> settle() => Future<void>.delayed(Duration.zero);
+
+    test('reloads the list, so the mora shown is the new one', () async {
+      stub(Right(roster()));
+      await cubit.load();
+
+      paymentChanges.add(null);
+      await settle();
+
+      verify(() => useCase()).called(2);
+    });
+
+    test('is no longer heard once the list is closed', () async {
+      await cubit.close();
+
+      expect(paymentChanges.hasListener, isFalse);
     });
   });
 }

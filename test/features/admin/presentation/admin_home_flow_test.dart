@@ -174,13 +174,16 @@ void main() {
         isChipSelected(tester, AppStrings.adminPaymentsFilterAll, 3), isTrue);
   });
 
-  testWidgets('the register payment card stays on the home', (tester) async {
+  testWidgets('the register payment card asks first for the member', (
+    tester,
+  ) async {
     await bootHome(tester);
 
     await tester.tap(find.text(AppStrings.adminHomeRegisterPaymentAccess));
     await settleSession(tester);
 
-    expect(currentLocation(), AppRoutes.adminHome);
+    expect(currentLocation(), AppRoutes.adminPaymentMemberPicker);
+    expect(find.text(AppStrings.paymentPickerQuestion), findsOneWidget);
   });
 
   testWidgets('a member created from the home already shows up in Pagos', (

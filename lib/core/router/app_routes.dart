@@ -13,6 +13,13 @@ abstract final class AppRoutes {
   static const String adminMemberCreation = '/admin/members/new';
   static const String adminMemberEditionPattern =
       '/admin/members/:memberId/edit';
+  static const String adminMemberLedgerPattern =
+      '/admin/members/:memberId/payments';
+  static const String adminPaymentRegistrationPattern =
+      '/admin/members/:memberId/payments/new';
+  static const String adminPaymentMemberPicker = '/admin/payments/new';
+
+  static const String memberIdPathParameter = 'memberId';
 
   static const String memberSurfacePending = '/member';
 
@@ -25,6 +32,12 @@ abstract final class AppRoutes {
 
   static String adminMemberEdition(int memberId) =>
       '/admin/members/$memberId/edit';
+
+  static String adminMemberLedger(int memberId) =>
+      '/admin/members/$memberId/payments';
+
+  static String adminPaymentRegistration(int memberId) =>
+      '${adminMemberLedger(memberId)}/new';
 
   static bool isAuthRoute(String location) => location == login;
 

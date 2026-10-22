@@ -45,3 +45,18 @@ class ConflictException implements Exception {
   @override
   String toString() => message ?? 'ConflictException';
 }
+
+class NotFoundException implements Exception {
+  final String? message;
+  NotFoundException([this.message]);
+
+  @override
+  String toString() => message ?? 'NotFoundException';
+}
+
+class ResponseTimeoutException extends NetworkException {
+  ResponseTimeoutException([super.message]);
+
+  @override
+  String toString() => message ?? 'ResponseTimeoutException';
+}

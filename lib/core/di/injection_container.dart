@@ -27,8 +27,18 @@ import '../../features/members/domain/usecases/load_members_use_case.dart';
 import '../../features/members/domain/usecases/set_member_active_use_case.dart';
 import '../../features/members/domain/usecases/update_member_use_case.dart';
 import '../../features/members/domain/usecases/watch_roster_changes_use_case.dart';
-import '../../features/members/presentation/cubit/admin_payments_cubit.dart';
 import '../../features/members/presentation/cubit/member_form_cubit.dart';
+import '../../features/payments/data/datasources/payment_fake_data_source.dart';
+import '../../features/payments/data/datasources/payment_remote_data_source.dart';
+import '../../features/payments/data/repositories/payment_repository_impl.dart';
+import '../../features/payments/domain/repositories/payment_repository.dart';
+import '../../features/payments/domain/usecases/load_member_ledger_use_case.dart';
+import '../../features/payments/domain/usecases/register_payment_use_case.dart';
+import '../../features/payments/domain/usecases/void_payment_use_case.dart';
+import '../../features/payments/domain/usecases/watch_payment_changes_use_case.dart';
+import '../../features/payments/presentation/cubit/admin_payments_cubit.dart';
+import '../../features/payments/presentation/cubit/member_ledger_cubit.dart';
+import '../../features/payments/presentation/cubit/register_payment_cubit.dart';
 import '../config/app_environment.dart';
 import '../logging/app_logger.dart';
 import '../network/api_client.dart';
@@ -46,6 +56,8 @@ Future<void> init() async {
   _registerAdminDomain();
   _registerMemberDataSources();
   _registerMemberDomain();
+  _registerPaymentDataSources();
+  _registerPaymentDomain();
   _registerPresentation();
 }
 
@@ -133,6 +145,35 @@ void _registerMemberDomain() {
   sl.registerLazySingleton(() => WatchRosterChangesUseCase(sl()));
 }
 
+void _registerPaymentDataSources() {
+  sl.registerLazySingleton<PaymentRemoteDataSource>(
+    () => AppEnvironment.usesFakeDataSources
+        ? _fakePaymentDataSource()
+        : PaymentRemoteDataSourceImpl(sl(), sl()),
+  );
+}
+
+PaymentFakeDataSource _fakePaymentDataSource() {
+  final members = sl<MemberRemoteDataSource>();
+
+  return PaymentFakeDataSource(
+    members: members,
+    onDelinquencyChanged:
+        members is MemberFakeDataSource ? members.setDaysOverdue : null,
+  );
+}
+
+void _registerPaymentDomain() {
+  sl.registerLazySingleton<PaymentRepository>(
+    () => PaymentRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+  );
+
+  sl.registerLazySingleton(() => LoadMemberLedgerUseCase(sl()));
+  sl.registerLazySingleton(() => RegisterPaymentUseCase(sl()));
+  sl.registerLazySingleton(() => VoidPaymentUseCase(sl()));
+  sl.registerLazySingleton(() => WatchPaymentChangesUseCase(sl()));
+}
+
 void _registerPresentation() {
   sl.registerLazySingleton<AuthBloc>(
     () => AuthBloc(
@@ -147,7 +188,22 @@ void _registerPresentation() {
   sl.registerFactory(() => LoginCubit(sl()));
   sl.registerFactory(() => AdminHomeCubit(sl()));
   sl.registerFactory(
-    () => AdminPaymentsCubit(loadMembers: sl(), watchRosterChanges: sl()),
+    () => AdminPaymentsCubit(
+      loadMembers: sl(),
+      watchRosterChanges: sl(),
+      watchPaymentChanges: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => MemberLedgerCubit(
+      loadLedger: sl(),
+      voidPayment: sl(),
+      watchRosterChanges: sl(),
+      watchPaymentChanges: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => RegisterPaymentCubit(loadLedger: sl(), registerPayment: sl()),
   );
   sl.registerFactory(
     () => MemberFormCubit(

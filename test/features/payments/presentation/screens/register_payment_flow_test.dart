@@ -1,0 +1,523 @@
+import 'package:club_management_app/core/constants/app_strings.dart';
+import 'package:club_management_app/core/errors/exceptions.dart';
+import 'package:club_management_app/core/di/injection_container.dart' as di;
+import 'package:club_management_app/core/router/app_router.dart';
+import 'package:club_management_app/core/router/app_routes.dart';
+import 'package:club_management_app/features/auth/domain/entities/user.dart';
+import 'package:club_management_app/features/members/data/models/member_model.dart';
+import 'package:club_management_app/features/members/data/datasources/member_remote_data_source.dart';
+import 'package:club_management_app/features/members/domain/entities/member.dart';
+import 'package:club_management_app/features/payments/domain/entities/payment_draft.dart';
+import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
+import 'package:club_management_app/features/payments/data/models/member_ledger_model.dart';
+import 'package:club_management_app/features/payments/presentation/screens/payment_member_picker_screen.dart';
+import 'package:club_management_app/features/payments/presentation/widgets/payment_history_tile.dart';
+import 'package:club_management_app/features/payments/data/datasources/payment_fake_data_source.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../../../../helpers/app_test_harness.dart';
+import '../../../../helpers/member_roster_data_source.dart';
+import '../../../../helpers/payment_builders.dart';
+
+class DroppingPaymentSource extends PaymentFakeDataSource {
+  int dropsLeft;
+  int recorded = 0;
+
+  DroppingPaymentSource({
+    required super.members,
+    this.dropsLeft = 1,
+  }) : super(
+          latency: Duration.zero,
+          clock: () => DateTime(2026, 10, 14),
+        );
+
+  @override
+  Future<void> recordPayment(PaymentDraft draft) async {
+    if (dropsLeft > 0) {
+      dropsLeft--;
+      throw NetworkException('offline');
+    }
+    recorded++;
+    await super.recordPayment(draft);
+  }
+}
+
+class LongHistoryPaymentSource extends PaymentFakeDataSource {
+  static const int paymentCount = 60;
+
+  LongHistoryPaymentSource({required super.members})
+      : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
+
+  @override
+  Future<MemberLedgerModel> fetchLedger(int memberId) async {
+    final current = await super.fetchLedger(memberId);
+    var month = const BillingMonth(2026, 9);
+
+    return MemberLedgerModel(
+      member: current.member,
+      familyMembers: current.familyMembers,
+      memberNames: current.memberNames,
+      monthlyFeeCents: current.monthlyFeeCents,
+      payments: [
+        for (var id = 1; id <= paymentCount; id++, month = month.previous)
+          buildPayment(id: id, memberId: memberId, month: month),
+      ],
+    );
+  }
+}
+
+class CountingLedgerSource extends PaymentFakeDataSource {
+  int ledgerReads = 0;
+
+  CountingLedgerSource({required super.members})
+      : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
+
+  @override
+  Future<MemberLedgerModel> fetchLedger(int memberId) {
+    ledgerReads++;
+
+    return super.fetchLedger(memberId);
+  }
+}
+
+class DeactivatableRosterSource extends MemberRosterDataSource {
+  DeactivatableRosterSource(super.roster);
+
+  @override
+  Future<void> setMemberActive(int memberId, {required bool isActive}) async {
+    final index = roster.indexWhere((member) => member.id == memberId);
+    final current = roster[index];
+
+    roster[index] = buildMember(
+      id: current.id,
+      firstName: current.firstName,
+      lastName: current.lastName,
+      status: isActive ? MemberStatus.active : MemberStatus.inactive,
+    );
+  }
+}
+
+void main() {
+  final roster = <MemberModel>[
+    buildMember(id: 1, firstName: 'Juan', lastName: 'Zárate', daysOverdue: 42),
+    buildMember(id: 2, firstName: 'Ana', lastName: 'Álvarez'),
+    buildMember(
+      id: 3,
+      firstName: 'Luis',
+      lastName: 'Gómez',
+      status: MemberStatus.inactive,
+    ),
+  ];
+
+  String currentLocation() => di
+      .sl<AppRouter>()
+      .router
+      .routerDelegate
+      .currentConfiguration
+      .last
+      .matchedLocation;
+
+  Future<void> bootClub(
+    WidgetTester tester, {
+    PaymentFakeDataSource Function(MemberRemoteDataSource members)? payments,
+    MemberRosterDataSource? memberSource,
+  }) async {
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    final members = memberSource ?? MemberRosterDataSource(roster);
+    await bootApp(
+      tester,
+      signedInAs: UserRole.admin,
+      memberSource: members,
+      paymentSource: payments?.call(members) ??
+          PaymentFakeDataSource(
+            members: members,
+            latency: Duration.zero,
+            clock: () => DateTime(2026, 10, 14),
+          ),
+    );
+  }
+
+  Future<void> openPaymentsTab(WidgetTester tester) async {
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text(AppStrings.adminTabPayments),
+      ),
+    );
+    await settleSession(tester);
+  }
+
+  Future<void> openLedgerOf(WidgetTester tester, String name) async {
+    await openPaymentsTab(tester);
+    await tester.tap(find.text(name));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> reviewAndConfirm(WidgetTester tester, String total) async {
+    await tester.tap(
+      find.text(AppStrings.registerPaymentReviewWithTotal(total)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppStrings.confirmPaymentAction(total)));
+    await tester.pumpAndSettle();
+  }
+
+  group('from the Pagos tab', () {
+    testWidgets('tapping a member opens their ledger', (tester) async {
+      await bootClub(tester);
+      await openPaymentsTab(tester);
+
+      await tester.tap(find.text('Juan Zárate'));
+      await tester.pumpAndSettle();
+
+      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
+      expect(find.text(AppStrings.daysOverdueBadge(42)), findsOneWidget);
+      expect(
+        find.text(AppStrings.ledgerLastPaid('agosto 2026')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a payment registered from the ledger shows up in it', (
+      tester,
+    ) async {
+      await bootClub(tester);
+      await openPaymentsTab(tester);
+      await tester.tap(find.text('Juan Zárate'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(AppStrings.ledgerRegisterAction));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          AppStrings.registerPaymentSuggestionAfterLastPaid('septiembre'),
+        ),
+        findsOneWidget,
+      );
+      await reviewAndConfirm(tester, r'$15.000');
+
+      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
+      expect(
+        find.text(
+          AppStrings.paymentRegistered('septiembre de 2026', r'$15.000'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(AppStrings.ledgerNewTag), findsOneWidget);
+    });
+  });
+
+  group('from the home card', () {
+    Future<void> openPicker(WidgetTester tester) async {
+      await bootClub(tester);
+      await tester.tap(find.text(AppStrings.adminHomeRegisterPaymentAccess));
+      await settleSession(tester);
+    }
+
+    testWidgets('lists the members who owe first and leaves out inactives', (
+      tester,
+    ) async {
+      await openPicker(tester);
+
+      expect(
+        find.text(AppStrings.paymentPickerOverdueSection(1)),
+        findsOneWidget,
+      );
+      expect(
+        find.text(AppStrings.paymentPickerUpToDateSection(1)),
+        findsOneWidget,
+      );
+      expect(find.text('Luis Gómez'), findsNothing);
+
+      final overdueTop = tester.getTopLeft(find.text('Juan Zárate')).dy;
+      final upToDateTop = tester.getTopLeft(find.text('Ana Álvarez')).dy;
+      expect(overdueTop, lessThan(upToDateTop));
+    });
+
+    testWidgets('finds a member by dni', (tester) async {
+      await openPicker(tester);
+
+      await tester.enterText(find.byType(TextField), roster[1].dni);
+      await settleSession(tester);
+
+      expect(find.text('Ana Álvarez'), findsOneWidget);
+      expect(find.text('Juan Zárate'), findsNothing);
+    });
+
+    testWidgets('ends on the ledger of the member that just paid', (
+      tester,
+    ) async {
+      await openPicker(tester);
+
+      await tester.tap(find.text('Ana Álvarez'));
+      await tester.pumpAndSettle();
+      await reviewAndConfirm(tester, r'$15.000');
+
+      expect(currentLocation(), AppRoutes.adminMemberLedger(2));
+      expect(
+        find.text(
+          AppStrings.paymentRegistered('noviembre de 2026', r'$15.000'),
+        ),
+        findsOneWidget,
+      );
+
+      di.sl<AppRouter>().router.pop();
+      await settleSession(tester);
+      expect(currentLocation(), AppRoutes.adminHome);
+    });
+  });
+
+  group('recovering from a failed attempt', () {
+    testWidgets('retrying after losing the connection asks to confirm again', (
+      tester,
+    ) async {
+      late DroppingPaymentSource source;
+      await bootClub(
+        tester,
+        payments: (members) => source = DroppingPaymentSource(members: members),
+      );
+      await openLedgerOf(tester, 'Juan Zárate');
+      await tester.tap(find.text(AppStrings.ledgerRegisterAction));
+      await tester.pumpAndSettle();
+      await reviewAndConfirm(tester, r'$15.000');
+
+      expect(
+        find.textContaining(
+          AppStrings.registerPaymentOfflineTitle,
+          findRichText: true,
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text(AppStrings.retryAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.confirmPaymentTitle), findsOneWidget);
+      expect(source.recorded, 0);
+
+      await tester.tap(find.text(AppStrings.confirmPaymentAction(r'$15.000')));
+      await tester.pumpAndSettle();
+
+      expect(source.recorded, 1);
+      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
+    });
+  });
+
+  group('a member deactivated from their ledger', () {
+    testWidgets('can no longer be charged when the admin comes back', (
+      tester,
+    ) async {
+      await bootClub(
+        tester,
+        memberSource: DeactivatableRosterSource([...roster]),
+      );
+      await openLedgerOf(tester, 'Ana Álvarez');
+
+      await tester.tap(find.byTooltip(AppStrings.memberEditAction));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(AppStrings.memberDeactivateAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppStrings.memberDeactivateAction));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(AppStrings.memberDeactivateAction),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(currentLocation(), AppRoutes.adminMemberLedger(2));
+      expect(find.text(AppStrings.ledgerInactiveHint), findsOneWidget);
+      expect(find.text(AppStrings.ledgerRegisterAction), findsNothing);
+
+      await tester.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('cannot be charged by opening the payment screen directly', (
+      tester,
+    ) async {
+      await bootClub(tester);
+      await openPaymentsTab(tester);
+
+      di.sl<AppRouter>().router.push(AppRoutes.adminPaymentRegistration(3));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(AppStrings.registerPaymentInactiveTitle),
+        findsOneWidget,
+      );
+      expect(find.text(AppStrings.confirmPaymentTitle), findsNothing);
+    });
+  });
+
+  group('voiding a payment from the ledger', () {
+    Future<void> openVoidSheetOfLastPayment(WidgetTester tester) async {
+      await bootClub(tester);
+      await openLedgerOf(tester, 'Juan Zárate');
+
+      await tester.tap(find.byType(PaymentHistoryTile).first);
+      await tester.pumpAndSettle();
+      expect(
+        find.text(AppStrings.paymentDetailTitle('agosto 2026')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text(AppStrings.paymentDetailVoidAction));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('asks to confirm and explains it cannot be undone', (
+      tester,
+    ) async {
+      await openVoidSheetOfLastPayment(tester);
+
+      expect(
+        find.text(AppStrings.voidPaymentTitle('agosto 2026')),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(AppStrings.voidPaymentEffect, findRichText: true),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('keeps the payment struck through with its reason', (
+      tester,
+    ) async {
+      await openVoidSheetOfLastPayment(tester);
+
+      await tester.enterText(find.byType(TextField), 'Socio equivocado');
+      await tester.tap(find.text(AppStrings.voidPaymentConfirmAction));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(AppStrings.voidPaymentDone('agosto 2026')),
+        findsOneWidget,
+      );
+      expect(find.text(AppStrings.paymentVoidedTag), findsOneWidget);
+      expect(
+        find.text(AppStrings.paymentVoidReason('Socio equivocado')),
+        findsOneWidget,
+      );
+      expect(find.text(AppStrings.ledgerLastPaid('julio 2026')), findsWidgets);
+
+      await tester.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('cancelling leaves the payment as it was', (tester) async {
+      await openVoidSheetOfLastPayment(tester);
+
+      await tester.tap(find.text(AppStrings.cancelAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.paymentVoidedTag), findsNothing);
+      expect(
+        find.text(AppStrings.ledgerLastPaid('agosto 2026')),
+        findsWidgets,
+      );
+    });
+  });
+
+  group('a long list', () {
+    Finder scrollableAround(Finder child) =>
+        find.ancestor(of: child, matching: find.byType(Scrollable)).first;
+
+    testWidgets('of members to pick builds only the tiles on screen', (
+      tester,
+    ) async {
+      final crowd = [
+        for (var id = 1; id <= 200; id++)
+          buildMember(
+            id: id,
+            firstName: 'Socio',
+            lastName: 'Apellido${id.toString().padLeft(3, '0')}',
+          ),
+      ];
+      await bootClub(tester, memberSource: MemberRosterDataSource(crowd));
+      await tester.tap(find.text(AppStrings.adminHomeRegisterPaymentAccess));
+      await settleSession(tester);
+
+      final last = find.text('Socio Apellido200');
+      expect(last, findsNothing);
+
+      await tester.scrollUntilVisible(
+        last,
+        2000,
+        scrollable: scrollableAround(find.byType(PaymentMemberPickerTile)),
+      );
+      expect(last, findsOneWidget);
+    });
+
+    testWidgets('of payments in the ledger builds only the tiles on screen', (
+      tester,
+    ) async {
+      await bootClub(
+        tester,
+        payments: (members) => LongHistoryPaymentSource(members: members),
+      );
+      await openLedgerOf(tester, 'Juan Zárate');
+
+      final oldest = find.byWidgetPredicate(
+        (widget) =>
+            widget is PaymentHistoryTile &&
+            widget.payment.id == LongHistoryPaymentSource.paymentCount,
+      );
+      expect(oldest, findsNothing);
+
+      await tester.scrollUntilVisible(
+        oldest,
+        2000,
+        scrollable: scrollableAround(find.byType(PaymentHistoryTile)),
+      );
+      expect(oldest, findsOneWidget);
+    });
+  });
+
+  testWidgets('pulling the ledger down reloads it', (tester) async {
+    late CountingLedgerSource source;
+    await bootClub(
+      tester,
+      payments: (members) => source = CountingLedgerSource(members: members),
+    );
+    await openLedgerOf(tester, 'Juan Zárate');
+    final readsBefore = source.ledgerReads;
+
+    await tester.fling(
+      find.byType(CustomScrollView),
+      const Offset(0, 400),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(source.ledgerReads, readsBefore + 1);
+  });
+
+  group('the ledger of an inactive member', () {
+    testWidgets('explains why it cannot be charged and offers to edit', (
+      tester,
+    ) async {
+      await bootClub(tester);
+      await openLedgerOf(tester, 'Luis Gómez');
+
+      expect(find.text(AppStrings.ledgerInactive), findsOneWidget);
+      expect(find.text(AppStrings.ledgerInactiveHint), findsOneWidget);
+      expect(find.text(AppStrings.ledgerRegisterAction), findsNothing);
+      expect(find.text(AppStrings.ledgerRegisterFirstAction), findsNothing);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(SafeArea),
+          matching: find.text(AppStrings.memberEditAction),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(currentLocation(), AppRoutes.adminMemberEdition(3));
+    });
+  });
+}

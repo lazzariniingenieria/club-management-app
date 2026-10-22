@@ -7,6 +7,8 @@ import 'package:club_management_app/features/auth/data/datasources/auth_remote_d
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
 import 'package:club_management_app/features/members/data/datasources/member_fake_data_source.dart';
 import 'package:club_management_app/features/members/data/datasources/member_remote_data_source.dart';
+import 'package:club_management_app/features/payments/data/datasources/payment_fake_data_source.dart';
+import 'package:club_management_app/features/payments/data/datasources/payment_remote_data_source.dart';
 import 'package:club_management_app/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,6 +19,7 @@ Future<InMemorySecureStorage> bootApp(
   UserRole? signedInAs,
   AdminSummaryRemoteDataSource? adminSummarySource,
   MemberRemoteDataSource? memberSource,
+  PaymentRemoteDataSource? paymentSource,
 }) async {
   final storage = InMemorySecureStorage();
   if (signedInAs != null) storage.seedSession(signedInAs);
@@ -44,10 +47,26 @@ Future<InMemorySecureStorage> bootApp(
     () => memberSource ?? MemberFakeDataSource(latency: Duration.zero),
   );
 
+  di.sl.unregister<PaymentRemoteDataSource>();
+  di.sl.registerLazySingleton<PaymentRemoteDataSource>(
+    () => paymentSource ?? _instantPaymentSource(),
+  );
+
   await tester.pumpWidget(const ClubManagementApp());
   await settleSession(tester);
 
   return storage;
+}
+
+PaymentFakeDataSource _instantPaymentSource() {
+  final members = di.sl<MemberRemoteDataSource>();
+
+  return PaymentFakeDataSource(
+    members: members,
+    latency: Duration.zero,
+    onDelinquencyChanged:
+        members is MemberFakeDataSource ? members.setDaysOverdue : null,
+  );
 }
 
 Future<void> settleSession(WidgetTester tester) async {
