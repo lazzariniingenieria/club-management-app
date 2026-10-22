@@ -5,6 +5,8 @@ import 'package:club_management_app/features/admin/data/datasources/admin_summar
 import 'package:club_management_app/features/auth/data/datasources/auth_fake_data_source.dart';
 import 'package:club_management_app/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
+import 'package:club_management_app/features/family_groups/data/datasources/family_group_fake_data_source.dart';
+import 'package:club_management_app/features/family_groups/data/datasources/family_group_remote_data_source.dart';
 import 'package:club_management_app/features/members/data/datasources/member_fake_data_source.dart';
 import 'package:club_management_app/features/members/data/datasources/member_remote_data_source.dart';
 import 'package:club_management_app/features/payments/data/datasources/payment_fake_data_source.dart';
@@ -20,6 +22,7 @@ Future<InMemorySecureStorage> bootApp(
   AdminSummaryRemoteDataSource? adminSummarySource,
   MemberRemoteDataSource? memberSource,
   PaymentRemoteDataSource? paymentSource,
+  FamilyGroupRemoteDataSource? familyGroupSource,
 }) async {
   final storage = InMemorySecureStorage();
   if (signedInAs != null) storage.seedSession(signedInAs);
@@ -50,6 +53,12 @@ Future<InMemorySecureStorage> bootApp(
   di.sl.unregister<PaymentRemoteDataSource>();
   di.sl.registerLazySingleton<PaymentRemoteDataSource>(
     () => paymentSource ?? _instantPaymentSource(),
+  );
+
+  di.sl.unregister<FamilyGroupRemoteDataSource>();
+  di.sl.registerLazySingleton<FamilyGroupRemoteDataSource>(
+    () =>
+        familyGroupSource ?? FamilyGroupFakeDataSource(latency: Duration.zero),
   );
 
   await tester.pumpWidget(const ClubManagementApp());

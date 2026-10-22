@@ -6,8 +6,15 @@ abstract final class ApiConstants {
   static const String payments = '/payments';
   static const String paymentDelinquency = '/payments/delinquency';
   static const String currentClub = '/clubs/me';
+  static const String familyGroups = '/family-groups';
 
   static String member(int memberId) => '$members/$memberId';
+
+  static String memberFamilyGroup(int memberId) =>
+      '${member(memberId)}/family-group';
+
+  static String familyGroup(int familyGroupId) =>
+      '$familyGroups/$familyGroupId';
 
   static String memberPaymentHistory(int memberId) =>
       '$payments/members/$memberId?includeVoided=true';

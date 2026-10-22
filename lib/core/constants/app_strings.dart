@@ -335,6 +335,142 @@ class AppStrings {
   static String monthsSpread(int count, String from, String to) =>
       '$count meses, entre $from y $to';
 
+  static const String familyGroupSectionLabel = 'Grupo familiar';
+  static const String familyGroupNone = 'Sin grupo familiar';
+  static const String familyGroupNoneHint =
+      'Armalo si un familiar le paga la cuota.';
+  static const String familyGroupBuildAction = 'Armar grupo familiar';
+  static const String familyGroupFallbackName = 'Grupo familiar';
+  static const String familyGroupOpenHint = 'Ver grupo';
+
+  static String familyGroupWithOne(String name) => 'Con $name';
+
+  static String familyGroupWithTwo(String first, String second) =>
+      'Con $first y $second';
+
+  static String familyGroupWithMore(String first, String second, int more) =>
+      'Con $first, $second y $more más';
+
+  static String familyGroupMemberCount(int count) =>
+      count == 1 ? '1 integrante' : '$count integrantes';
+
+  static String familyGroupDefaultName(String lastName) => 'Familia $lastName';
+
+  static const String familyGroupPickerBuildTitle = 'Armar grupo familiar';
+  static const String familyGroupPickerAddTitle = 'Sumar al grupo';
+  static const String familyGroupPickerHint =
+      'Solo socios activos. Si alguno ya está en otro grupo, lo vas a ver indicado.';
+  static const String familyGroupPickerOthers = 'OTROS SOCIOS';
+  static const String familyGroupPickerEmptyHint =
+      'Revisá cómo se escribe o buscá por DNI. Un socio dado de baja hay que reactivarlo antes de sumarlo.';
+  static const String familyGroupPickerNoCandidates =
+      'No hay otros socios activos para sumar.';
+  static const String familyGroupPickerErrorTitle =
+      'No pudimos cargar los socios';
+
+  static String familyGroupPickerBuildPrompt(String memberName) =>
+      '¿Con quién arma el grupo $memberName?';
+
+  static String familyGroupPickerAddPrompt(String groupName) =>
+      '¿A quién sumás a $groupName?';
+
+  static String familyGroupPickerSameSurname(int count) =>
+      'MISMO APELLIDO · $count';
+
+  static String familyGroupMembershipChip(String groupName) => 'En $groupName';
+
+  static String familyGroupPickerEmpty(String query) =>
+      'No encontramos socios activos con «$query»';
+
+  static const String familyGroupConfirmBuildTitle = 'Armar el grupo familiar';
+  static const String familyGroupRowMembers = 'Integrantes';
+  static const String familyGroupRowGroup = 'Grupo';
+  static const String familyGroupRowCurrentMembers = 'Integrantes hoy';
+  static const String familyGroupRowJoining = 'Se suma';
+  static const String familyGroupRowAlreadyIn = 'Ya está';
+  static const String familyGroupRowMissing = 'Falta sumar';
+  static const String familyGroupNameLabel = 'Nombre del grupo (opcional)';
+  static const String familyGroupNameHelp = 'Podés dejarlo vacío.';
+  static const String familyGroupIndividualFeePair =
+      'Cada uno sigue pagando su propia cuota. Lo que cambia: cualquiera de los dos puede pagar la del otro.';
+  static const String familyGroupIndividualFeeGroup =
+      'Cada uno sigue pagando su propia cuota. Lo que cambia: cualquiera del grupo puede pagar la de otro.';
+  static const String familyGroupBuildConfirm = 'Armar grupo';
+  static const String familyGroupJoinConfirm = 'Sumar al grupo';
+  static const String familyGroupOfflineTitle = 'Sin conexión.';
+  static const String familyGroupBuildOffline =
+      'No se armó el grupo. Revisá la conexión y probá de nuevo: lo que cargaste queda igual.';
+  static const String familyGroupServerTitle = 'No pudimos guardar el cambio.';
+  static const String familyGroupServerMessage =
+      'El sistema del club tuvo un problema. Probá de nuevo en unos minutos.';
+  static const String familyGroupPartialTitle = 'Falta un paso.';
+
+  static String familyGroupConfirmJoinTitle(String member, String group) =>
+      '¿Sumar a $member a $group?';
+
+  static String familyGroupBuilt(String relative) =>
+      'Grupo familiar armado con $relative';
+
+  static String familyGroupJoined(String member, String group) =>
+      '$member se sumó a $group';
+
+  static String familyGroupBuildPartial(String names) =>
+      'El grupo se creó, pero no pudimos sumar a $names. Reintentá para terminar: no se crea otro grupo.';
+
+  static const String familyGroupScreenTitle = 'Grupo familiar';
+  static const String familyGroupEditNameAction = 'Editar nombre del grupo';
+  static const String familyGroupNote =
+      'Cada integrante paga su propia cuota. Al registrar un pago, cualquiera del grupo puede figurar como quien pagó.';
+  static const String familyGroupSingleMemberNote =
+      'Este grupo tiene un solo integrante. Sumá a un familiar para que puedan pagarse la cuota entre ellos.';
+  static const String familyGroupEmptyTitle = 'Este grupo no tiene integrantes';
+  static const String familyGroupEmptyHint = 'Sumá a los socios de la familia.';
+  static const String familyGroupAddAction = 'Sumar integrante';
+  static const String familyGroupRemoveTooltip = 'Quitar del grupo';
+  static const String familyGroupDeleteAction = 'Eliminar grupo';
+  static const String familyGroupDeleteUnavailable =
+      'Eliminar un grupo todavía no está disponible. Mientras tanto, podés quitar a cada integrante.';
+  static const String familyGroupLoadOfflineMessage =
+      'No pudimos cargar el grupo familiar. Revisá la conexión y probá de nuevo.';
+  static const String familyGroupLoadServerTitle = 'No pudimos cargar el grupo';
+  static const String familyGroupMissingTitle = 'No encontramos este grupo';
+  static const String familyGroupMissingMessage =
+      'Puede que lo hayan eliminado. Volvé para ver los datos actualizados.';
+  static const String familyGroupOfflineAction =
+      'Sin conexión. No se guardó el cambio: revisá la conexión y probá de nuevo.';
+
+  static String familyGroupMembersSection(int count) => 'INTEGRANTES · $count';
+
+  static String familyGroupRemoveSemantics(String member) =>
+      'Quitar a $member del grupo';
+
+  static String familyGroupMemberAdded(String member) =>
+      '$member se sumó al grupo';
+
+  static String familyGroupMemberRemoved(String member) =>
+      '$member ya no está en el grupo';
+
+  static const String familyGroupNameSheetTitle = 'Nombre del grupo';
+  static const String familyGroupNameSheetLabel = 'Nombre (opcional)';
+  static const String familyGroupNameSheetHelp =
+      'Si lo dejás vacío, se muestra como «Grupo familiar».';
+  static const String familyGroupNameSave = 'Guardar';
+  static const String familyGroupNameSaved = 'Nombre del grupo actualizado';
+
+  static const String familyGroupMoveConfirm = 'Pasar de grupo';
+  static const String familyGroupRemoveMessage =
+      'Sigue siendo socio y sus pagos no cambian. Vas a poder volver a sumarlo cuando quieras.';
+  static const String familyGroupRemoveConfirm = 'Quitar';
+
+  static String familyGroupMoveTitle(String member, String group) =>
+      '¿Pasar a $member a $group?';
+
+  static String familyGroupMoveMessage(String currentGroup) =>
+      'Hoy está en $currentGroup y va a dejar ese grupo. Sus pagos no cambian.';
+
+  static String familyGroupRemoveTitle(String member) =>
+      '¿Quitar a $member del grupo?';
+
   static const String adminCourtsTitle = 'Canchas';
   static const String adminCourtsPending =
       'La gestión de canchas se habilita junto con la agenda de reservas.';

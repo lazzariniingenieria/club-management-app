@@ -18,8 +18,15 @@ abstract final class AppRoutes {
   static const String adminPaymentRegistrationPattern =
       '/admin/members/:memberId/payments/new';
   static const String adminPaymentMemberPicker = '/admin/payments/new';
+  static const String adminFamilyGroupCreationPattern =
+      '/admin/members/:memberId/family-group/new';
+  static const String adminFamilyGroupPattern =
+      '/admin/family-groups/:familyGroupId';
+  static const String adminFamilyGroupMemberPickerPattern =
+      '/admin/family-groups/:familyGroupId/add';
 
   static const String memberIdPathParameter = 'memberId';
+  static const String familyGroupIdPathParameter = 'familyGroupId';
 
   static const String memberSurfacePending = '/member';
 
@@ -38,6 +45,15 @@ abstract final class AppRoutes {
 
   static String adminPaymentRegistration(int memberId) =>
       '${adminMemberLedger(memberId)}/new';
+
+  static String adminFamilyGroupCreation(int memberId) =>
+      '/admin/members/$memberId/family-group/new';
+
+  static String adminFamilyGroup(int familyGroupId) =>
+      '/admin/family-groups/$familyGroupId';
+
+  static String adminFamilyGroupMemberPicker(int familyGroupId) =>
+      '${adminFamilyGroup(familyGroupId)}/add';
 
   static bool isAuthRoute(String location) => location == login;
 

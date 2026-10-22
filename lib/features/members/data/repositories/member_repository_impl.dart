@@ -61,6 +61,27 @@ class MemberRepositoryImpl implements MemberRepository {
     });
   }
 
+  @override
+  Future<Either<Failure, void>> assignFamilyGroup(
+    int memberId,
+    int familyGroupId,
+  ) {
+    return _guard('assignFamilyGroup', () async {
+      await remoteDataSource.assignFamilyGroup(memberId, familyGroupId);
+
+      return _announceRosterChange();
+    });
+  }
+
+  @override
+  Future<Either<Failure, void>> removeFromFamilyGroup(int memberId) {
+    return _guard('removeFromFamilyGroup', () async {
+      await remoteDataSource.removeFromFamilyGroup(memberId);
+
+      return _announceRosterChange();
+    });
+  }
+
   Either<Failure, void> _announceRosterChange() {
     _rosterChanges.add(null);
 

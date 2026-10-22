@@ -88,6 +88,9 @@ Rutas push, fuera de los tabs:
 | Pantalla | Ruta | Rol | Entrega |
 | :--- | :--- | :--- | :--- |
 | Alta / edición de socio | `/admin/members/new`, `/admin/members/:memberId/edit` | admin | E5 |
+| Grupo familiar | `/admin/family-groups/:familyGroupId` | admin | E6.5 |
+| Armar grupo familiar (elegir familiar) | `/admin/members/:memberId/family-group/new` | admin | E6.5 |
+| Sumar integrante | `/admin/family-groups/:familyGroupId/add` | admin | E6.5 |
 | Reporte de pagos | `/admin/payments/report` | admin | E10 |
 | Gestión de canchas | `/admin/courts` | admin | E9 |
 | Gestión de administradores | `/admin/admins` (+ `/new`, `/:adminId/edit`) | **superAdmin** | E8 |
@@ -252,6 +255,74 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 
 **Los pagos anulados siguen en el historial**, tachados, con la marca *ANULADO*, la fecha y el motivo. Desaparecer sin rastro haría creer que nunca se cobró. Un pago anulado no se puede tocar ni des-anular.
 
+### 4.2.2 Grupos familiares
+
+```
+Cuotas del socio ──[card Grupo familiar]
+     │
+     ├─ sin grupo ──[Armar grupo familiar]──► Elegir familiar ──┬─ familiar sin grupo ──► Confirmar (grupo nuevo + nombre) ──┐
+     │                                                          └─ familiar con grupo ──► Confirmar (sumarse a su grupo)   ──┴► Cuotas (card con el grupo)
+     │
+     └─ con grupo ──► Grupo familiar ──┬─[lápiz]──────────► Nombre del grupo
+                                       ├─[Sumar integrante]─► Sumar al grupo ──(ya está en otro grupo)──► Pasar de grupo
+                                       ├─[quitar en la fila]─► Quitar integrante
+                                       ├─[fila]─────────────► Cuotas de ese integrante
+                                       └─[Eliminar grupo]───► Eliminar  (falta backend)
+```
+
+**Para qué existe el grupo**: solo para que un integrante pueda figurar como quien pagó la cuota de otro (*¿Quién pagó?* en Registrar pago, §4.2). **La cuota sigue siendo individual**: no hay abono familiar ni importe compartido, y la pantalla lo repite donde se arma o se mira un grupo, porque es la duda natural.
+
+**Se entra desde las cuotas del socio, no desde un listado de grupos.** Un grupo siempre se busca a partir de una persona ("¿con quién paga Marcos?"), y un listado de grupos mostraría para siempre los grupos que quedaron vacíos, porque la API no los borra. Las cuotas del socio son, en la práctica, su ficha: ya tienen al socio, su situación y su historial. Pagos, el alta y la edición de socio no cambian.
+
+**Card "Grupo familiar"** en las cuotas del socio, entre la situación de la cuota y el historial:
+
+| Caso | Qué muestra |
+| :--- | :--- |
+| Sin grupo | "Sin grupo familiar" + "Armalo si un familiar le paga la cuota." + botón secundario *Armar grupo familiar* |
+| Con grupo | Nombre del grupo, los otros integrantes ("Con Laura Gómez y Tomás Gómez"; con más de tres, "Con Laura Gómez, Tomás Gómez y 2 más") y un chevron. Toda la card abre el grupo |
+| No se pudo leer el nombre | Igual que *con grupo*, con "Grupo familiar" como nombre. No es un error: el nombre es una comodidad y los integrantes ya están en el padrón cargado |
+| Socio inactivo | Igual. Se puede armar o editar su grupo; la nota de inactivo de §4.2 sigue en el pie |
+
+**Armar un grupo — tres toques desde las cuotas**: *Armar grupo familiar* → familiar → *Armar grupo*. No es un flujo principal desde el Inicio (se hace una vez por familia), así que el tope de §1 no aplica.
+
+- **Elegir familiar**: buscador con foco al entrar, **solo socios activos**, sin el propio socio. Dos grupos: **mismo apellido** primero (es el caso más común) y **otros socios** de la A a la Z. Si un socio ya está en un grupo, la fila lo dice con un chip ("En Familia Torres"). Búsqueda sin resultados: "No encontramos socios activos con «…»" + *Limpiar búsqueda*.
+- **Familiar sin grupo → grupo nuevo**. Hoja de confirmación con los dos integrantes, el campo **Nombre del grupo (opcional)** precargado con "Familia" y el apellido del socio, editable y borrable, y la nota de la cuota individual. *Armar grupo* crea el grupo y suma a los dos. Al terminar se vuelve a las cuotas con la card actualizada y un snackbar "Grupo familiar armado con Sofía Acosta".
+- **Familiar con grupo → sumarse a ese grupo**. Hoja con el grupo, quiénes están hoy y quién se suma, y *Sumar al grupo*. No hay campo de nombre, porque el grupo ya existe. Al terminar se vuelve a las cuotas con un snackbar ("Lucía Álvarez se sumó a Familia Álvarez").
+
+**Grupo familiar** (`/admin/family-groups/:familyGroupId`), de arriba abajo:
+
+- **Encabezado** con el nombre (o "Grupo familiar" si no tiene), la cantidad de integrantes y un lápiz que abre *Nombre del grupo*.
+- **Nota**: "Cada integrante paga su propia cuota. Al registrar un pago, cualquiera del grupo puede figurar como quien pagó."
+- **Integrantes**, ordenados por apellido y nombre: nombre, badge **Activo / Inactivo** y, a la derecha, *Quitar* (ícono con `tooltip` y `Semantics`, 48×48). Tocar el resto de la fila abre las cuotas de ese integrante. Un integrante dado de baja **sigue en el grupo** hasta que alguien lo quite.
+- **Eliminar grupo**, como acción de texto al pie de la lista. Hasta que exista el endpoint se dibuja en gris y, al tocarla, explica que todavía no está disponible (regla de §3.2.2).
+- **Pie fijo** con *Sumar integrante*.
+
+**Sumar integrante** reutiliza la pantalla de elegir familiar ("¿A quién sumás a Familia Gómez?"), sin los integrantes actuales. Elegir a alguien sin grupo lo suma directo, sin confirmación: es reversible con un toque. Elegir a alguien que ya está en otro grupo pide confirmación, porque lo saca de ese grupo: *"¿Pasar a Valeria Gómez a Familia Gómez? Hoy está en Familia Torres y va a dejar ese grupo. Sus pagos no cambian."*
+
+**Quitar** y **Eliminar** usan el diálogo estándar de bajas reversibles (§4.3), no el patrón de escribir el nombre:
+
+- Quitar: *"¿Quitar a Tomás Gómez del grupo? Sigue siendo socio y sus pagos no cambian. Vas a poder volver a sumarlo cuando quieras."*
+- Eliminar: *"¿Eliminar Familia Gómez? Los 4 integrantes siguen siendo socios, con todos sus pagos. Solo dejan de estar agrupados y ya no van a poder pagarse la cuota entre ellos."*
+
+**Casos límite**:
+
+| Caso | Tratamiento |
+| :--- | :--- |
+| Grupo con un solo integrante | Se permite (la API lo permite). La nota cambia a "Este grupo tiene un solo integrante. Sumá a un familiar para que puedan pagarse la cuota entre ellos." |
+| Grupo sin integrantes | Vacío con mensaje ("Este grupo no tiene integrantes") y el pie *Sumar integrante* |
+| Grupo inexistente (`404`) | "No encontramos este grupo" + *Volver*. Pasa con un id inválido o, cuando exista el borrado, con un grupo que eliminó otro admin |
+| Se quita al socio desde el que se entró | Se queda en el grupo, que ya no lo lista. Al volver, su card dice "Sin grupo familiar" |
+| Pagos viejos hechos por un ex integrante | No cambian: el historial sigue mostrando "Pagó Laura Gómez (familiar)", porque el nombre sale del padrón y no del grupo |
+| Armar a medias | Crear un grupo son tres llamadas sin transacción. Si una de las asignaciones falla, la hoja dice "El grupo se creó, pero no pudimos sumar a Sofía Acosta" y *Reintentar* repite **solo lo que falta**, sobre el mismo grupo. Nunca se crea un segundo grupo |
+| Sin conexión / error del servidor al guardar | Aviso arriba de la hoja. Lo cargado (nombre incluido) queda igual. *Reintentar* |
+| El servidor no respondió a tiempo | Asignar y quitar son idempotentes: se relee el padrón y, si el cambio ya figura, se da por hecho. Si no figura, se reintenta sin preguntar dos veces |
+
+Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la nota y tres filas; sin conexión y error del servidor con *Reintentar*; vacío; inexistente. En *Elegir familiar*, el mismo skeleton de la pantalla de elegir socio (§4.2).
+
+**Cualquier admin o super admin** arma, edita y desarma grupos: no es una acción de SUPER_ADMIN.
+
+**Pantalla ancha (notebook)**: *Grupo familiar* se abre como panel de detalle a la derecha de las cuotas del socio, y *Elegir familiar* como diálogo centrado de hasta 560 dp. Las hojas inferiores pasan a diálogos. Nada cambia de contenido.
+
 ### 4.3 ABM de administradores (solo superAdmin)
 
 `Perfil → Administradores → [+ | lápiz | baja | reactivar] → Confirmar`
@@ -320,6 +391,11 @@ GoRouter
 │   ├── /admin/members/new, /admin/members/:memberId/edit  ← se suman en E5
 │   ├── /admin/payments/new                            ← elegir socio (E6)
 │   ├── /admin/members/:memberId/payments  (+ /new)    ← cuotas y registro (E6)
+│   ├── /admin/members/:memberId/family-group/new      ← armar grupo (E6.5)
+│   ├── /admin/family-groups/:familyGroupId  (+ /add)  ← grupo y sumar integrante (E6.5)
+
+
+Una ruta con un `:familyGroupId` que no es un número vuelve a Pagos, igual que con `:memberId`.
 │   ├── /admin/payments/report                        ← se suma en E10
 │   ├── /admin/courts
 │   └── /admin/admins   (+ /new, /:adminId/edit)      ← solo superAdmin
@@ -402,6 +478,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E4 | Pagos: padrón de socios, búsqueda, chips y selección para el reporte | — | ✅ Entregada |
 | E5 | Alta y edición de socio | No bloquea | ✅ Entregada — sin el scroll al socio recién creado (§4.1) |
 | E6 | Registrar un pago, cuotas del socio y anulación, sobre el listado de E4 | No bloquea | 🚧 En revisión |
+| E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar | No bloquea (eliminar grupo: **Sí**) | — |
 | E7 | Perfil del admin + cambiar contraseña + logout | **Sí** | — |
 | E8 | ABM de administradores (superAdmin) | No bloquea | — |
 | E9 | Agenda / Reservas + canchas + bloqueos | **Bloqueada** | — |
@@ -498,6 +575,22 @@ La primera escritura que mueve plata. Las pantallas y sus decisiones están en �
 - El `404` de la API pasa a tener su propia falla (`NotFoundFailure`) en lugar de caer como error genérico del servidor.
 
 **Terminado cuando**: se puede cobrar desde el Inicio en cuatro toques y desde la fila del socio, anular un pago desde su historial, los cinco casos de error de §4.2 conservan lo cargado, un mes ya pago no se cobra dos veces, Pagos refleja la mora nueva al volver, y hay tests de dominio, del mapeo DTO ↔ dominio, de los dos Cubits y del flujo completo en pantalla.
+
+### E6.5 — Grupos familiares
+
+El último requisito de la Etapa 1 de V6 sin pantalla. Las decisiones están en §4.2.2; el contrato, en [backend_api.md](backend_api.md) §5. Se numera E6.5 para no renumerar E7 a E12, que ya se citan en el código (`TODO(E11)`).
+
+- **Feature `family_groups`** con sus tres capas. El dominio expone `FamilyGroup` (`id`, `name` nullable) y un `displayName` que cae en "Grupo familiar" cuando no hay nombre.
+- **Endpoints**: `POST /api/family-groups`, `GET /api/family-groups/{id}`, `PATCH /api/family-groups/{id}`, `PATCH /api/members/{id}/family-group` con `{ "familyGroupId": … }` (requerido; si el socio ya estaba en otro grupo, lo mueve) y `DELETE /api/members/{id}/family-group` (idempotente: sin grupo devuelve `200` igual). Se suman a `api_constants.dart`.
+- **Elegir familiar** lee el padrón y `GET /api/family-groups` en paralelo: el listado de grupos solo pone nombre a los chips ("En Familia Torres"), nunca se muestra como lista.
+- **Integrantes = padrón filtrado por `familyGroupId`**. La API no los devuelve, así que *Grupo familiar* hace dos llamadas en paralelo (grupo y padrón) y las cuotas reutilizan el padrón que el ledger ya trae, más una sola llamada por el nombre.
+- **`PATCH` del grupo es reemplazo completo**: renombrar manda `name` siempre, y un campo vacío (o solo con espacios) se manda como `null`.
+- **Armar un grupo** = `POST` + dos `PATCH` de socio. El Cubit guarda el `familyGroupId` creado, así *Reintentar* completa solo las asignaciones que faltan.
+- **Toda asignación o quita avisa al padrón** (el mismo aviso de cambio que usan el alta y la baja), así Pagos, las cuotas y *¿Quién pagó?* quedan al día sin pull-to-refresh.
+- **Fake de grupos** coherente con el padrón fake (que ya trae `familyGroupId`): crea, renombra, asigna, mueve y quita; da `404` a un grupo inexistente.
+- `MemberListTile` suma una variante de acción a la derecha (editar, como hoy, o quitar), sin cambiar la fila de Pagos.
+
+**Terminado cuando**: desde las cuotas de un socio sin grupo se arma un grupo en tres toques; un socio se suma al grupo de un familiar y otro pasa de un grupo a otro con confirmación; se renombra y se quita un integrante; el grupo armado aparece en *¿Quién pagó?* al registrar un pago; armar a medias se completa con *Reintentar* sin duplicar el grupo; los estados de §5 se ven a 130 % y 200 % sin overflow; hay tests de dominio, del mapeo DTO ↔ dominio, de los Cubits y del flujo de armar en pantalla.
 
 El orden E4 → E5 → E6 → E10 es intencional: listado antes de escrituras, y el reporte al final porque lista los pagos que E6 registra y depende de un filtro que el backend todavía no tiene.
 

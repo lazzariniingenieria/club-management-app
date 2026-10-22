@@ -81,6 +81,35 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
     );
   }
 
+  @override
+  Future<void> assignFamilyGroup(int memberId, int familyGroupId) async {
+    await Future<void>.delayed(latency);
+
+    _replace(memberId, (current) => _inGroup(current, familyGroupId));
+  }
+
+  @override
+  Future<void> removeFromFamilyGroup(int memberId) async {
+    await Future<void>.delayed(latency);
+
+    _replace(memberId, (current) => _inGroup(current, null));
+  }
+
+  static MemberModel _inGroup(MemberModel current, int? familyGroupId) {
+    return MemberModel(
+      id: current.id,
+      firstName: current.firstName,
+      lastName: current.lastName,
+      dni: current.dni,
+      status: current.status,
+      daysOverdue: current.daysOverdue,
+      phone: current.phone,
+      email: current.email,
+      familyGroupId: familyGroupId,
+      joinedAt: current.joinedAt,
+    );
+  }
+
   void setDaysOverdue(int memberId, int daysOverdue) {
     _replace(
       memberId,

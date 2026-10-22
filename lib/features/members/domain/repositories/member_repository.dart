@@ -17,4 +17,11 @@ abstract class MemberRepository {
     int memberId, {
     required bool isActive,
   });
+
+  Future<Either<Failure, void>> assignFamilyGroup(
+    int memberId,
+    int familyGroupId,
+  );
+
+  Future<Either<Failure, void>> removeFromFamilyGroup(int memberId);
 }

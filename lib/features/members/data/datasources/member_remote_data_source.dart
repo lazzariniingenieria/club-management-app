@@ -14,6 +14,10 @@ abstract class MemberRemoteDataSource {
   Future<void> updateMember(int memberId, MemberDraft draft);
 
   Future<void> setMemberActive(int memberId, {required bool isActive});
+
+  Future<void> assignFamilyGroup(int memberId, int familyGroupId);
+
+  Future<void> removeFromFamilyGroup(int memberId);
 }
 
 class MemberRemoteDataSourceImpl implements MemberRemoteDataSource {
@@ -65,5 +69,18 @@ class MemberRemoteDataSourceImpl implements MemberRemoteDataSource {
           ? ApiConstants.memberReactivation(memberId)
           : ApiConstants.memberDeactivation(memberId),
     );
+  }
+
+  @override
+  Future<void> assignFamilyGroup(int memberId, int familyGroupId) {
+    return _writer.patch(
+      ApiConstants.memberFamilyGroup(memberId),
+      body: MemberModel.bodyForFamilyGroup(familyGroupId),
+    );
+  }
+
+  @override
+  Future<void> removeFromFamilyGroup(int memberId) {
+    return _writer.delete(ApiConstants.memberFamilyGroup(memberId));
   }
 }

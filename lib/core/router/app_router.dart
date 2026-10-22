@@ -12,6 +12,8 @@ import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/dev/presentation/screens/component_gallery_screen.dart';
+import '../../features/family_groups/presentation/screens/family_group_picker_screen.dart';
+import '../../features/family_groups/presentation/screens/family_group_screen.dart';
 import '../../features/member/presentation/screens/member_surface_pending_screen.dart';
 import '../../features/members/domain/entities/member.dart';
 import '../../features/members/domain/entities/member_collection_filter.dart';
@@ -146,6 +148,26 @@ class AppRouter {
           RegisterPaymentScreen(memberId: _memberIdOf(state)!),
     ),
     GoRoute(
+      path: AppRoutes.adminFamilyGroupCreationPattern,
+      redirect: _requireMemberId,
+      builder: (context, state) => FamilyGroupPickerScreen(
+        mode: BuildGroupForMember(_memberIdOf(state)!),
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.adminFamilyGroupPattern,
+      redirect: _requireFamilyGroupId,
+      builder: (context, state) =>
+          FamilyGroupScreen(familyGroupId: _familyGroupIdOf(state)!),
+    ),
+    GoRoute(
+      path: AppRoutes.adminFamilyGroupMemberPickerPattern,
+      redirect: _requireFamilyGroupId,
+      builder: (context, state) => FamilyGroupPickerScreen(
+        mode: AddToFamilyGroup(_familyGroupIdOf(state)!),
+      ),
+    ),
+    GoRoute(
       path: AppRoutes.adminCourts,
       builder: (context, state) => const AdminPendingScreen(
         title: AppStrings.adminCourtsTitle,
@@ -166,6 +188,16 @@ class AppRouter {
   static int? _memberIdOf(GoRouterState state) => int.tryParse(
         state.pathParameters[AppRoutes.memberIdPathParameter] ?? '',
       );
+
+  static int? _familyGroupIdOf(GoRouterState state) => int.tryParse(
+        state.pathParameters[AppRoutes.familyGroupIdPathParameter] ?? '',
+      );
+
+  static String? _requireFamilyGroupId(
+    BuildContext context,
+    GoRouterState state,
+  ) =>
+      _familyGroupIdOf(state) == null ? AppRoutes.adminPayments : null;
 
   static String? _requireMemberId(
     BuildContext context,

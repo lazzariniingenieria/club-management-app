@@ -15,6 +15,13 @@ mixin _ReadOnlyMemberSource implements MemberRemoteDataSource {
   Future<void> setMemberActive(int memberId, {required bool isActive}) =>
       _unsupported();
 
+  @override
+  Future<void> assignFamilyGroup(int memberId, int familyGroupId) =>
+      _unsupported();
+
+  @override
+  Future<void> removeFromFamilyGroup(int memberId) => _unsupported();
+
   Future<void> _unsupported() =>
       throw UnsupportedError('This test source only serves reads');
 }

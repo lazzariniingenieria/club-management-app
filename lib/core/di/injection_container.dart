@@ -18,6 +18,22 @@ import '../../features/auth/domain/usecases/logout_use_case.dart';
 import '../../features/auth/domain/usecases/restore_session_use_case.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/cubit/login_cubit.dart';
+import '../../features/family_groups/data/datasources/family_group_fake_data_source.dart';
+import '../../features/family_groups/data/datasources/family_group_remote_data_source.dart';
+import '../../features/family_groups/data/repositories/family_group_repository_impl.dart';
+import '../../features/family_groups/domain/repositories/family_group_repository.dart';
+import '../../features/family_groups/domain/usecases/build_family_group_use_case.dart';
+import '../../features/family_groups/domain/usecases/join_family_group_use_case.dart';
+import '../../features/family_groups/domain/usecases/leave_family_group_use_case.dart';
+import '../../features/family_groups/domain/usecases/load_family_group_candidates_use_case.dart';
+import '../../features/family_groups/domain/usecases/load_family_group_detail_use_case.dart';
+import '../../features/family_groups/domain/usecases/load_family_group_use_case.dart';
+import '../../features/family_groups/domain/usecases/rename_family_group_use_case.dart';
+import '../../features/family_groups/domain/usecases/watch_family_group_changes_use_case.dart';
+import '../../features/family_groups/presentation/cubit/family_group_builder_cubit.dart';
+import '../../features/family_groups/presentation/cubit/family_group_cubit.dart';
+import '../../features/family_groups/presentation/cubit/family_group_name_cubit.dart';
+import '../../features/family_groups/presentation/cubit/family_group_picker_cubit.dart';
 import '../../features/members/data/datasources/member_fake_data_source.dart';
 import '../../features/members/data/datasources/member_remote_data_source.dart';
 import '../../features/members/data/repositories/member_repository_impl.dart';
@@ -58,6 +74,7 @@ Future<void> init() async {
   _registerMemberDomain();
   _registerPaymentDataSources();
   _registerPaymentDomain();
+  _registerFamilyGroups();
   _registerPresentation();
 }
 
@@ -172,6 +189,49 @@ void _registerPaymentDomain() {
   sl.registerLazySingleton(() => RegisterPaymentUseCase(sl()));
   sl.registerLazySingleton(() => VoidPaymentUseCase(sl()));
   sl.registerLazySingleton(() => WatchPaymentChangesUseCase(sl()));
+}
+
+void _registerFamilyGroups() {
+  sl.registerLazySingleton<FamilyGroupRemoteDataSource>(
+    () => AppEnvironment.usesFakeDataSources
+        ? FamilyGroupFakeDataSource()
+        : FamilyGroupRemoteDataSourceImpl(sl(), sl()),
+  );
+  sl.registerLazySingleton<FamilyGroupRepository>(
+    () => FamilyGroupRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+  );
+
+  sl.registerLazySingleton(() => LoadFamilyGroupUseCase(sl()));
+  sl.registerLazySingleton(
+    () => LoadFamilyGroupDetailUseCase(groups: sl(), members: sl()),
+  );
+  sl.registerLazySingleton(
+    () => LoadFamilyGroupCandidatesUseCase(groups: sl(), members: sl()),
+  );
+  sl.registerLazySingleton(
+    () => BuildFamilyGroupUseCase(groups: sl(), members: sl()),
+  );
+  sl.registerLazySingleton(() => RenameFamilyGroupUseCase(sl()));
+  sl.registerLazySingleton(() => JoinFamilyGroupUseCase(sl()));
+  sl.registerLazySingleton(() => LeaveFamilyGroupUseCase(sl()));
+  sl.registerLazySingleton(() => WatchFamilyGroupChangesUseCase(sl()));
+
+  sl.registerFactory(
+    () => FamilyGroupNameCubit(loadGroup: sl(), watchChanges: sl()),
+  );
+  sl.registerFactory(
+    () => FamilyGroupCubit(
+      loadDetail: sl(),
+      rename: sl(),
+      leave: sl(),
+      watchRosterChanges: sl(),
+      watchGroupChanges: sl(),
+    ),
+  );
+  sl.registerFactory(() => FamilyGroupPickerCubit(sl()));
+  sl.registerFactory(
+    () => FamilyGroupBuilderCubit(buildGroup: sl(), joinGroup: sl()),
+  );
 }
 
 void _registerPresentation() {
