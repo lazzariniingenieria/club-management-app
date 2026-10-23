@@ -31,7 +31,11 @@ class PaymentReportRemoteDataSourceImpl
       final response = await _apiClient.dio.get<List<int>>(
         ApiConstants.feeReceipts,
         queryParameters: FeeReceiptsRequest.queryOf(period),
-        options: Options(responseType: ResponseType.bytes),
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {ApiConstants.acceptHeader: ApiConstants.pdfMediaType},
+          receiveTimeout: ApiConstants.reportReceiveTimeout,
+        ),
       );
 
       return _documentFrom(response, period);

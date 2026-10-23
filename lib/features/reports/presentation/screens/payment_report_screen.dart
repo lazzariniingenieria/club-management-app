@@ -188,20 +188,40 @@ class _ReportOutcome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (state.status) {
-      ReportStatus.failed => AppNotice(
-          tone: AppNoticeTone.danger,
-          title: state.isOffline
-              ? AppStrings.reportOfflineTitle
-              : AppStrings.reportServerTitle,
-          message: state.isOffline
-              ? AppStrings.reportOffline
-              : AppStrings.reportServer,
-        ),
+      ReportStatus.failed => _FailureNotice(state: state),
       ReportStatus.ready when state.hadNoCollections =>
         const AppNotice(message: AppStrings.reportEmpty),
       ReportStatus.ready => _ReadyReport(period: state.period),
       _ => const SizedBox.shrink(),
     };
+  }
+}
+
+class _FailureNotice extends StatelessWidget {
+  final PaymentReportState state;
+
+  const _FailureNotice({required this.state});
+
+  (String, String) get _copy {
+    if (state.timedOut) {
+      return (AppStrings.reportTimeoutTitle, AppStrings.reportTimeout);
+    }
+    if (state.isOffline) {
+      return (AppStrings.reportOfflineTitle, AppStrings.reportOffline);
+    }
+
+    return (AppStrings.reportServerTitle, AppStrings.reportServer);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (title, message) = _copy;
+
+    return AppNotice(
+      tone: AppNoticeTone.danger,
+      title: title,
+      message: message,
+    );
   }
 }
 

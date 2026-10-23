@@ -39,6 +39,10 @@ abstract final class ApiConstants {
 
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
+  static const Duration reportReceiveTimeout = Duration(seconds: 60);
+
+  static const String acceptHeader = 'Accept';
+  static const String pdfMediaType = 'application/pdf';
 
   static const Map<String, String> defaultHeaders = {
     'Content-Type': 'application/json',

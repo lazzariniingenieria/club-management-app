@@ -84,6 +84,15 @@ void main() {
     expect(offered.last, const BillingMonth(2024, 11));
   });
 
+  test('a slow server is told apart from being offline', () async {
+    when(() => download(any()))
+        .thenAnswer((_) async => const Left(ResponseTimeoutFailure()));
+
+    await cubit.generate();
+
+    expect(cubit.state.timedOut, isTrue);
+  });
+
   test('the PDF of the period still selected is kept', () async {
     when(() => download(any())).thenAnswer((_) async => Right(octoberPdf));
 

@@ -72,6 +72,16 @@ void main() {
     });
   });
 
+  test('asks for a PDF and gives the server time to build it', () async {
+    final source = buildDataSource((_, __) => pdfResponse([37, 80, 68, 70]));
+
+    await source.fetchFeeReceipts(october);
+
+    final request = adapter.requests.single;
+    expect(request.headers['Accept'], ApiConstants.pdfMediaType);
+    expect(request.receiveTimeout, ApiConstants.reportReceiveTimeout);
+  });
+
   test('returns the PDF with the file name the backend chose', () async {
     final source = buildDataSource(
       (_, __) => pdfResponse(

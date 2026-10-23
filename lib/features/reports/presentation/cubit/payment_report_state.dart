@@ -36,6 +36,8 @@ class PaymentReportState extends Equatable {
 
   bool get canGenerate => period.isValid && !isGenerating;
 
+  bool get timedOut => failure is ResponseTimeoutFailure;
+
   bool get isOffline => failure is NetworkFailure;
 
   bool get hadNoCollections =>

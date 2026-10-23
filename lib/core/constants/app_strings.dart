@@ -521,6 +521,9 @@ class AppStrings {
   static const String reportOfflineTitle = 'Sin conexión.';
   static const String reportOffline =
       'No pudimos generar el PDF. Revisá la conexión y probá de nuevo.';
+  static const String reportTimeoutTitle = 'El PDF tardó demasiado.';
+  static const String reportTimeout =
+      'El servidor tardó demasiado en armar el PDF. Probá con menos meses o de nuevo en un rato.';
   static const String reportServerTitle = 'No pudimos generar el PDF.';
   static const String reportServer =
       'El sistema del club tuvo un problema. Probá de nuevo en unos minutos.';
