@@ -5,6 +5,7 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/errors/failure_mapper.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/logging/app_logger.dart';
+import '../../domain/entities/family_group_assignment.dart';
 import '../../domain/entities/member.dart';
 import '../../domain/entities/member_draft.dart';
 import '../../domain/repositories/member_repository.dart';
@@ -75,6 +76,29 @@ class MemberRepositoryImpl implements MemberRepository {
   }
 
   @override
+  Future<FamilyGroupAssignment> assignFamilyGroupToAll(
+    List<int> memberIds,
+    int familyGroupId,
+  ) async {
+    final assigned = <int>{};
+    Failure? failure;
+    for (final memberId in memberIds) {
+      final result = await _send(
+        'assignFamilyGroup',
+        () => remoteDataSource.assignFamilyGroup(memberId, familyGroupId),
+      );
+      failure = result.getLeft().toNullable();
+      if (failure != null) break;
+      assigned.add(memberId);
+    }
+    final assignment =
+        FamilyGroupAssignment(assignedMemberIds: assigned, failure: failure);
+    if (assignment.mayHaveChangedRoster) _rosterChanges.add(null);
+
+    return assignment;
+  }
+
+  @override
   Future<Either<Failure, void>> removeFromFamilyGroup(int memberId) {
     return _write(
       'removeFromFamilyGroup',
@@ -86,14 +110,21 @@ class MemberRepositoryImpl implements MemberRepository {
     String operation,
     Future<void> Function() send,
   ) async {
-    final result = await _guard<void>(operation, () async {
+    final result = await _send(operation, send);
+    if (_mayHaveChangedRoster(result)) _rosterChanges.add(null);
+
+    return result;
+  }
+
+  Future<Either<Failure, void>> _send(
+    String operation,
+    Future<void> Function() send,
+  ) {
+    return _guard<void>(operation, () async {
       await send();
 
       return const Right(null);
     });
-    if (_mayHaveChangedRoster(result)) _rosterChanges.add(null);
-
-    return result;
   }
 
   static bool _mayHaveChangedRoster(Either<Failure, void> result) {

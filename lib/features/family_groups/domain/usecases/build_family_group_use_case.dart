@@ -40,17 +40,17 @@ class BuildFamilyGroupUseCase {
     FamilyGroupBuildRequest request,
     FamilyGroupBuildProgress progress,
   ) async {
-    var current = progress;
     final familyGroupId = progress.familyGroupId!;
+    final assignment = await members.assignFamilyGroupToAll(
+      progress.pendingOf(request),
+      familyGroupId,
+    );
+    final failure = assignment.failure;
+    if (failure == null) return FamilyGroupBuilt(familyGroupId);
 
-    for (final memberId in progress.pendingOf(request)) {
-      final assigned = await members.assignFamilyGroup(memberId, familyGroupId);
-      final failure = assigned.getLeft().toNullable();
-      if (failure != null) return FamilyGroupBuildFailed(failure, current);
-
-      current = current.withAssigned(memberId);
-    }
-
-    return FamilyGroupBuilt(familyGroupId);
+    return FamilyGroupBuildFailed(
+      failure,
+      progress.withAssigned(assignment.assignedMemberIds),
+    );
   }
 }

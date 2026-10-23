@@ -650,7 +650,7 @@ El último requisito de la Etapa 1 de V6 sin pantalla. Las decisiones están en 
 - **Integrantes = padrón filtrado por `familyGroupId`**. La API no los devuelve, así que *Grupo familiar* hace dos llamadas en paralelo (grupo y padrón) y las cuotas reutilizan el padrón que el ledger ya trae, más una sola llamada por el nombre.
 - **`PATCH` del grupo es reemplazo completo**: renombrar manda `name` siempre, y un campo vacío (o solo con espacios) se manda como `null`.
 - **Armar un grupo** = `POST` + dos `PATCH` de socio. El Cubit guarda el `familyGroupId` creado, así *Reintentar* completa solo las asignaciones que faltan.
-- **Toda asignación o quita avisa al padrón** (el mismo aviso de cambio que usan el alta y la baja), así Pagos, las cuotas y *¿Quién pagó?* quedan al día sin pull-to-refresh.
+- **Toda asignación o quita avisa al padrón** (el mismo aviso de cambio que usan el alta y la baja), así Pagos, las cuotas y *¿Quién pagó?* quedan al día sin pull-to-refresh. Armar un grupo asigna a sus integrantes en lote (`MemberRepository.assignFamilyGroupToAll`) y avisa **una sola vez** al terminar, haya salido bien o a medias: cada aviso recarga el padrón y la mora en todas las pantallas que escuchan.
 - **Fake de grupos** coherente con el padrón fake (que ya trae `familyGroupId`): crea, renombra, asigna, mueve y quita; da `404` a un grupo inexistente.
 - `MemberListTile` suma una variante de acción a la derecha (editar, como hoy, o quitar), sin cambiar la fila de Pagos.
 

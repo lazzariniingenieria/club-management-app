@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/errors/failures.dart';
+import '../entities/family_group_assignment.dart';
 import '../entities/member.dart';
 import '../entities/member_draft.dart';
 
@@ -22,6 +23,11 @@ abstract class MemberRepository {
 
   Future<Either<Failure, void>> assignFamilyGroup(
     int memberId,
+    int familyGroupId,
+  );
+
+  Future<FamilyGroupAssignment> assignFamilyGroupToAll(
+    List<int> memberIds,
     int familyGroupId,
   );
 

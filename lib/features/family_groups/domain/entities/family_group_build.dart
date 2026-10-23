@@ -35,10 +35,10 @@ class FamilyGroupBuildProgress extends Equatable {
         assignedMemberIds: assignedMemberIds,
       );
 
-  FamilyGroupBuildProgress withAssigned(int memberId) =>
+  FamilyGroupBuildProgress withAssigned(Iterable<int> memberIds) =>
       FamilyGroupBuildProgress(
         familyGroupId: familyGroupId,
-        assignedMemberIds: {...assignedMemberIds, memberId},
+        assignedMemberIds: {...assignedMemberIds, ...memberIds},
       );
 
   List<int> pendingOf(FamilyGroupBuildRequest request) => request.memberIds

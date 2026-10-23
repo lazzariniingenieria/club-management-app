@@ -3,6 +3,7 @@ import 'package:club_management_app/features/family_groups/domain/entities/famil
 import 'package:club_management_app/features/family_groups/domain/entities/family_group_build.dart';
 import 'package:club_management_app/features/family_groups/domain/repositories/family_group_repository.dart';
 import 'package:club_management_app/features/family_groups/domain/usecases/build_family_group_use_case.dart';
+import 'package:club_management_app/features/members/domain/entities/family_group_assignment.dart';
 import 'package:club_management_app/features/members/domain/repositories/member_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
@@ -22,14 +23,18 @@ void main() {
     name: '  Familia Gómez ',
   );
 
+  void assignmentAnswers(FamilyGroupAssignment assignment) {
+    when(() => members.assignFamilyGroupToAll(any(), any()))
+        .thenAnswer((_) async => assignment);
+  }
+
   setUp(() {
     groups = MockFamilyGroupRepository();
     members = MockMemberRepository();
     buildGroup = BuildFamilyGroupUseCase(groups: groups, members: members);
     when(() => groups.createGroup(name: any(named: 'name')))
         .thenAnswer((_) async => const Right(FamilyGroup(id: 7)));
-    when(() => members.assignFamilyGroup(any(), any()))
-        .thenAnswer((_) async => const Right(null));
+    assignmentAnswers(const FamilyGroupAssignment(assignedMemberIds: {1, 2}));
   });
 
   test('creates the group with the trimmed name and assigns both', () async {
@@ -37,8 +42,7 @@ void main() {
 
     expect(result, const FamilyGroupBuilt(7));
     verify(() => groups.createGroup(name: 'Familia Gómez')).called(1);
-    verify(() => members.assignFamilyGroup(1, 7)).called(1);
-    verify(() => members.assignFamilyGroup(2, 7)).called(1);
+    verify(() => members.assignFamilyGroupToAll([1, 2], 7)).called(1);
   });
 
   test('an empty name creates a group without name', () async {
@@ -55,12 +59,16 @@ void main() {
 
     expect(result, isA<FamilyGroupBuildFailed>());
     expect((result as FamilyGroupBuildFailed).isPartial, isFalse);
-    verifyNever(() => members.assignFamilyGroup(any(), any()));
+    verifyNever(() => members.assignFamilyGroupToAll(any(), any()));
   });
 
   test('remembers what was done when an assignment fails', () async {
-    when(() => members.assignFamilyGroup(2, 7))
-        .thenAnswer((_) async => const Left(ServerFailure()));
+    assignmentAnswers(
+      const FamilyGroupAssignment(
+        assignedMemberIds: {1},
+        failure: ServerFailure(),
+      ),
+    );
 
     final result = await buildGroup(request) as FamilyGroupBuildFailed;
 
@@ -79,7 +87,6 @@ void main() {
 
     expect(result, const FamilyGroupBuilt(7));
     verifyNever(() => groups.createGroup(name: any(named: 'name')));
-    verifyNever(() => members.assignFamilyGroup(1, any()));
-    verify(() => members.assignFamilyGroup(2, 7)).called(1);
+    verify(() => members.assignFamilyGroupToAll([2], 7)).called(1);
   });
 }
