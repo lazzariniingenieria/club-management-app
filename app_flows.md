@@ -348,7 +348,7 @@ Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la not
 - Un admin dado de baja sigue en el listado, marcado como inactivo, con la acción de reactivar en su fila. Desaparecer de la lista al desactivar hace creer que se borró.
 - **No hace falta lógica defensiva contra la auto-baja del superAdmin**: el listado de la API nunca devuelve esa cuenta, así que no existe la fila que se podría tocar por error.
 
-**Listado** (`/admin/admins`): activos primero y después los dados de baja. Cada fila muestra el nombre del socio vinculado o, si no tiene, "DNI 30.222.333"; el email (o "Sin email") y el badge Activo / Inactivo. Tocar la fila abre la edición; las filas dadas de baja suman *Reactivar*. FAB extendido *Nuevo administrador*. Estados de §5: skeleton, vacío con mensaje y error con *Reintentar*.
+**Listado** (`/admin/admins`): activos primero y después los dados de baja. Dentro de cada bloque, los vinculados a un socio por apellido y nombre (sin acentos) y al final los sin vincular por DNI numérico: el orden sigue lo que se ve en la fila. Cada fila muestra el nombre del socio vinculado o, si no tiene, "DNI 30.222.333"; el email (o "Sin email") y el badge Activo / Inactivo. Tocar la fila abre la edición; las filas dadas de baja suman *Reactivar*. FAB extendido *Nuevo administrador*. Estados de §5: skeleton, vacío con mensaje y error con *Reintentar*.
 
 **Alta y edición** (`/admin/admins/new`, `/admin/admins/:adminId/edit`), con etiquetas visibles en cada campo:
 

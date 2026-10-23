@@ -23,16 +23,33 @@ class LoadAdminsUseCase {
 
     return adminList.flatMap(
       (adminList) => roster.map(
-        (roster) => AdminsOverview(admins: _sorted(adminList), members: roster),
+        (roster) => AdminsOverview(
+          admins: _sorted(adminList, roster),
+          members: roster,
+        ),
       ),
     );
   }
 
-  static List<Admin> _sorted(List<Admin> admins) {
-    return [...admins]..sort((a, b) {
-        if (a.isActive != b.isActive) return a.isActive ? -1 : 1;
+  static List<Admin> _sorted(List<Admin> admins, List<Member> roster) {
+    final membersById = {for (final member in roster) member.id: member};
 
-        return a.dni.compareTo(b.dni);
-      });
+    return [...admins]..sort((a, b) => _compare(a, b, membersById));
   }
+
+  static int _compare(Admin a, Admin b, Map<int, Member> membersById) {
+    if (a.isActive != b.isActive) return a.isActive ? -1 : 1;
+
+    final first = membersById[a.memberId];
+    final second = membersById[b.memberId];
+    if (first != null && second != null) {
+      return first.sortKey.compareTo(second.sortKey);
+    }
+    if (first != null || second != null) return first != null ? -1 : 1;
+
+    return _compareDni(a.dni, b.dni);
+  }
+
+  static int _compareDni(String a, String b) =>
+      a.length != b.length ? a.length.compareTo(b.length) : a.compareTo(b);
 }
