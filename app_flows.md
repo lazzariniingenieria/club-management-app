@@ -635,7 +635,7 @@ Las decisiones están en §4.3; el contrato, en [backend_api.md](backend_api.md)
 
 ### E10 — Reporte de cuotas cobradas en PDF
 
-Las decisiones están en §4.6. **Depende de que se mergee `feature/add-fee-receipt-report` en el backend**: hasta entonces, contra la API real la pantalla responde con el error del servidor (`404`).
+Las decisiones están en §4.6. **Depende de que se mergee `feature/add-fee-receipt-report` en el backend**: ni `develop` ni `main` (producción) tienen `GET /api/payments/receipts`, y una ruta sin handler probablemente vuelve `500` por el `@ExceptionHandler(Exception.class)` genérico. Por eso el reporte va detrás de un flag de compilación: con data sources remotos **se habilita con `--dart-define=FEE_RECEIPTS_ENABLED=true`** cuando el backend mergee esa rama; apagado, Pagos no muestra el ícono y `/admin/payments/report` redirige a Pagos. Con los fakes está siempre habilitado. Cuando el endpoint llegue a producción, el flag se saca en un PR aparte.
 
 - **Feature `reports`**: el dominio solo modela el período y el documento (bytes y nombre). El repositorio baja el PDF con `responseType: bytes`, lee el nombre del `Content-Disposition` y traduce el `204` a "sin cobros".
 - Compartir e imprimir con `printing`, detrás de una interfaz para probar el flujo sin el plugin. El fake devuelve un PDF mínimo de prueba.

@@ -8,6 +8,10 @@ void main() {
     expect(AppEnvironment.usesRemoteDataSources, isFalse);
   });
 
+  test('offers the fee receipts against the fakes', () {
+    expect(AppEnvironment.feeReceiptsEnabled, isTrue);
+  });
+
   test('ships no baked-in API host', () {
     expect(AppEnvironment.apiBaseUrl, isEmpty);
   });

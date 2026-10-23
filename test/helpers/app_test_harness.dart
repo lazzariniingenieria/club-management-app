@@ -1,3 +1,4 @@
+import 'package:club_management_app/core/config/app_features.dart';
 import 'package:club_management_app/core/di/injection_container.dart' as di;
 import 'package:club_management_app/core/storage/secure_storage_service.dart';
 import 'package:club_management_app/features/admin/data/datasources/admin_summary_fake_data_source.dart';
@@ -32,6 +33,7 @@ Future<InMemorySecureStorage> bootApp(
   ClubRemoteDataSource? clubSource,
   AdminRemoteDataSource? adminSource,
   PaymentReportRemoteDataSource? reportSource,
+  AppFeatures? features,
 }) async {
   final storage = InMemorySecureStorage();
   if (signedInAs != null) storage.seedSession(signedInAs);
@@ -84,6 +86,11 @@ Future<InMemorySecureStorage> bootApp(
   di.sl.registerLazySingleton<PaymentReportRemoteDataSource>(
     () => reportSource ?? PaymentReportFakeDataSource(latency: Duration.zero),
   );
+
+  if (features != null) {
+    di.sl.unregister<AppFeatures>();
+    di.sl.registerLazySingleton<AppFeatures>(() => features);
+  }
 
   await tester.pumpWidget(const ClubManagementApp());
   await settleSession(tester);

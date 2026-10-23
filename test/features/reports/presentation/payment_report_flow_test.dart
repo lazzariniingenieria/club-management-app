@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:club_management_app/core/config/app_features.dart';
 import 'package:club_management_app/core/constants/app_strings.dart';
 import 'package:club_management_app/core/errors/exceptions.dart';
 import 'package:club_management_app/core/di/injection_container.dart' as di;
@@ -113,5 +114,40 @@ void main() {
       find.textContaining(AppStrings.reportOffline, findRichText: true),
       findsNothing,
     );
+  });
+
+  group('while the backend has no receipts endpoint', () {
+    const withoutReceipts = AppFeatures(feeReceipts: false);
+
+    testWidgets('Pagos does not offer the report', (tester) async {
+      await bootApp(
+        tester,
+        signedInAs: UserRole.admin,
+        features: withoutReceipts,
+      );
+      di.sl<AppRouter>().router.go(AppRoutes.adminPayments);
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip(AppStrings.reportTitle), findsNothing);
+    });
+
+    testWidgets('a link to the report lands on Pagos', (tester) async {
+      await bootApp(
+        tester,
+        signedInAs: UserRole.admin,
+        features: withoutReceipts,
+      );
+      di.sl<AppRouter>().router.go(AppRoutes.adminPaymentReport);
+      await tester.pumpAndSettle();
+
+      final location = di
+          .sl<AppRouter>()
+          .router
+          .routerDelegate
+          .currentConfiguration
+          .last
+          .matchedLocation;
+      expect(location, AppRoutes.adminPayments);
+    });
   });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/config/app_features.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/router/app_routes.dart';
@@ -32,7 +33,9 @@ class AdminPaymentsScreen extends StatelessWidget {
       child: AdminScaffold(
         title: AppStrings.adminPaymentsTitle,
         showsRoleBadge: true,
-        actions: const [_ReportAction()],
+        actions: [
+          if (sl<AppFeatures>().feeReceipts) const _ReportAction(),
+        ],
         floatingActionButton: const _CreateMemberButton(),
         body: _AdminPaymentsBody(filter: filter),
       ),

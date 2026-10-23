@@ -82,6 +82,7 @@ import '../../features/reports/domain/usecases/download_fee_receipts_use_case.da
 import '../../features/reports/presentation/cubit/payment_report_cubit.dart';
 import '../../features/reports/presentation/export/report_file_exporter.dart';
 import '../config/app_environment.dart';
+import '../config/app_features.dart';
 import '../logging/app_logger.dart';
 import '../network/api_client.dart';
 import '../router/app_router.dart';
@@ -344,7 +345,10 @@ void _registerPresentation() {
     ),
   );
 
-  sl.registerLazySingleton<AppRouter>(() => AppRouter(sl()));
+  sl.registerLazySingleton(AppFeatures.fromEnvironment);
+  sl.registerLazySingleton<AppRouter>(
+    () => AppRouter(authBloc: sl(), features: sl()),
+  );
 
   sl.registerFactory(() => LoginCubit(sl()));
   sl.registerFactory(() => AdminHomeCubit(sl()));
