@@ -358,6 +358,13 @@ class AppStrings {
   static String familyGroupWithTwo(String first, String second) =>
       'Con $first y $second';
 
+  static String familyGroupWithThree(
+    String first,
+    String second,
+    String third,
+  ) =>
+      'Con $first, $second y $third';
+
   static String familyGroupWithMore(String first, String second, int more) =>
       'Con $first, $second y $more más';
 

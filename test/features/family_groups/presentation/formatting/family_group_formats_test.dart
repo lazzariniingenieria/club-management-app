@@ -38,6 +38,10 @@ void main() {
       'Con Laura Gómez y Tomás Gómez',
     );
     expect(
+      FamilyGroupFormats.relatives([laura, tomas, ana]),
+      'Con Laura Gómez, Tomás Gómez y Ana Gómez',
+    );
+    expect(
       FamilyGroupFormats.relatives([laura, tomas, ana, juan]),
       'Con Laura Gómez, Tomás Gómez y 2 más',
     );

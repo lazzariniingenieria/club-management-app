@@ -293,7 +293,7 @@ Cuotas del socio ──[card Grupo familiar]
 | Caso | Qué muestra |
 | :--- | :--- |
 | Sin grupo | "Sin grupo familiar" + "Armalo si un familiar le paga la cuota." + botón secundario *Armar grupo familiar* |
-| Con grupo | Nombre del grupo, los otros integrantes ("Con Laura Gómez y Tomás Gómez"; con más de tres, "Con Laura Gómez, Tomás Gómez y 2 más") y un chevron. Toda la card abre el grupo |
+| Con grupo | Nombre del grupo, los otros integrantes ("Con Laura Gómez y Tomás Gómez"; con tres, los tres nombres; con más de tres, "Con Laura Gómez, Tomás Gómez y 2 más") y un chevron. Toda la card abre el grupo |
 | No se pudo leer el nombre | Igual que *con grupo*, con "Grupo familiar" como nombre. No es un error: el nombre es una comodidad y los integrantes ya están en el padrón cargado |
 | Socio inactivo | Igual. Se puede armar o editar su grupo; la nota de inactivo de §4.2 sigue en el pie |
 

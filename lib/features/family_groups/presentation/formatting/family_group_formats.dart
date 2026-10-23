@@ -18,6 +18,7 @@ abstract final class FamilyGroupFormats {
       0 => AppStrings.familyGroupMemberCount(1),
       1 => AppStrings.familyGroupWithOne(names[0]),
       2 => AppStrings.familyGroupWithTwo(names[0], names[1]),
+      3 => AppStrings.familyGroupWithThree(names[0], names[1], names[2]),
       _ => AppStrings.familyGroupWithMore(names[0], names[1], names.length - 2),
     };
   }
