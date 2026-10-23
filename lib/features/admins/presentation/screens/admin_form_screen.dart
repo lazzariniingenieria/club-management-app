@@ -184,7 +184,12 @@ class _AdminFormState extends State<_AdminForm> {
       ),
       if (admin != null) ...[
         const SizedBox(height: AppSpacing.xl),
-        AdminAccountActions(admin: admin, members: widget.args.members),
+        AdminAccountActions(
+          admin: admin,
+          members: widget.args.members,
+          enabled: state is! AdminFormSubmitting,
+          hasUnsavedChanges: () => _hasChanges,
+        ),
       ],
     ];
   }
@@ -302,4 +307,3 @@ class _InitialPasswordField extends StatelessWidget {
     );
   }
 }
-

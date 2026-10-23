@@ -567,6 +567,8 @@ class AppStrings {
   static const String adminReactivate = 'Reactivar administrador';
   static const String adminDeactivateMessage =
       'No va a poder volver a ingresar. Si ahora tiene la app abierta, la sesión se le cierra sola en menos de una hora. Vas a poder reactivarlo cuando quieras.';
+  static const String adminUnsavedChangesLost =
+      'Los cambios sin guardar del formulario se descartan.';
   static const String adminReactivateMessage =
       'Va a poder volver a ingresar con su DNI y su contraseña.';
   static const String adminDeactivated = 'Administrador dado de baja';

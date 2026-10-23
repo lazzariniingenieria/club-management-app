@@ -16,11 +16,15 @@ import 'new_password_sheet.dart';
 class AdminAccountActions extends StatelessWidget {
   final Admin admin;
   final List<Member> members;
+  final bool enabled;
+  final ValueGetter<bool> hasUnsavedChanges;
 
   const AdminAccountActions({
     super.key,
     required this.admin,
     required this.members,
+    required this.enabled,
+    required this.hasUnsavedChanges,
   });
 
   String get _name {
@@ -57,9 +61,7 @@ class AdminAccountActions extends StatelessWidget {
         title: deactivating
             ? AppStrings.adminDeactivateTitle(_name)
             : AppStrings.adminReactivateTitle(_name),
-        message: deactivating
-            ? AppStrings.adminDeactivateMessage
-            : AppStrings.adminReactivateMessage,
+        message: _toggleMessage(deactivating),
         confirmLabel: deactivating
             ? AppStrings.adminDeactivate
             : AppStrings.adminReactivateShort,
@@ -69,6 +71,16 @@ class AdminAccountActions extends StatelessWidget {
     if (confirmed) await cubit.setActive(admin.id, isActive: !deactivating);
   }
 
+  String _toggleMessage(bool deactivating) {
+    final message = deactivating
+        ? AppStrings.adminDeactivateMessage
+        : AppStrings.adminReactivateMessage;
+
+    return hasUnsavedChanges()
+        ? '$message ${AppStrings.adminUnsavedChangesLost}'
+        : message;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -76,11 +88,11 @@ class AdminAccountActions extends StatelessWidget {
       children: [
         AppSecondaryButton(
           label: AppStrings.adminResetPassword,
-          onPressed: () => _resetPassword(context),
+          onPressed: enabled ? () => _resetPassword(context) : null,
         ),
         const SizedBox(height: AppSpacing.md),
         OutlinedButton.icon(
-          onPressed: () => _toggleActive(context),
+          onPressed: enabled ? () => _toggleActive(context) : null,
           icon: Icon(
             admin.isActive
                 ? Icons.person_off_outlined
