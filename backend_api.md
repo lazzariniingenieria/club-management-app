@@ -4,7 +4,7 @@ Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, 
 
 **Verificado contra** [`club-management-api`](https://github.com/lazzariniingenieria/club-management-api) `develop`, commit `02ff70e` — 2026-10-15.
 
-**Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/`, `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
+**Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/` (incluido `JwtAuthenticationFilter`), `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
 **Qué no va acá**: pantallas, flujos y entregas van en [app_flows.md](app_flows.md); reglas de código, en [CLAUDE.md](CLAUDE.md).
 
@@ -187,7 +187,7 @@ Todo lo demás sale con este envelope:
 
 **Dos fuentes de `409` acá**: DNI repetido, y `memberId` ya tomado por otra cuenta (`UNIQUE (member_id)`). Sin `code` estable (§4), distinguirlas obliga a leer el `message`. Un `memberId` que no es un socio del club da `404`.
 
-**`PATCH /api/admins/{id}/password`** — `{ "newPassword": "..." }`, de 8 a 100 caracteres. Es la única ruta de `/api/admins` abierta también a `ADMIN`, y el servidor **no verifica que sea la propia cuenta**: un admin puede resetear la contraseña de otro admin del club. Revoca todos los refresh tokens vivos de esa cuenta, así que sus sesiones abiertas caen en el próximo refresh. Devuelve el `AdminResponse`. Busca la cuenta con `role = ADMIN`, así que **con el id del SUPER_ADMIN da `404`**: si el SUPER_ADMIN olvida su contraseña, no hay endpoint y se cambia directamente en la base.
+**`PATCH /api/admins/{id}/password`** — `{ "newPassword": "..." }`, de 8 a 100 caracteres. Es la única ruta de `/api/admins` abierta también a `ADMIN`, y el servidor **no verifica que sea la propia cuenta**: un admin puede resetear la contraseña de otro admin del club. Revoca todos los refresh tokens vivos de esa cuenta, así que sus sesiones abiertas caen en el próximo refresh: **el access token vigente sigue valiendo hasta su `exp` (hasta 1 hora)**, porque `JwtAuthenticationFilter` solo valida firma y vencimiento. Devuelve el `AdminResponse`. Busca la cuenta con `role = ADMIN`, así que **con el id del SUPER_ADMIN da `404`**: si el SUPER_ADMIN olvida su contraseña, no hay endpoint y se cambia directamente en la base.
 
 ### Bajas lógicas
 
@@ -199,6 +199,8 @@ Nunca hay borrado físico, y los dos modelos son reversibles con `/reactivate`:
 | `user_account` (admin) | `active: false` |
 
 Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistinguible de una contraseña incorrecta (§3).
+
+**La baja de un admin no es inmediata.** `PATCH /api/admins/{id}/deactivate` solo pone `active = false`, sin revocar tokens, y `JwtAuthenticationFilter` no mira si la cuenta sigue activa. El admin dado de baja **sigue operando con su access token hasta que vence (hasta 1 hora)**: puede cobrar, anular pagos o editar socios. Recién en el próximo `/auth/refresh` recibe `401` y la sesión se cierra.
 
 ### Club — `/api/clubs/me`
 
@@ -373,6 +375,7 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Asignar grupo en el alta y en la edición de forma pareja: `POST /api/members` acepta `familyGroupId` y `PATCH` no | Nada hoy: el grupo se arma desde las cuotas del socio (E6.5) |
 | `DELETE /api/family-groups/{id}`, que saque a los integrantes y borre el grupo sin tocar socios ni pagos | "Eliminar grupo" de E6.5 |
 | Crear un grupo con sus integrantes en una sola operación | Que armar un grupo nunca deje uno vacío (E6.5). La app completa un armado a medias con "Reintentar" sobre el mismo grupo, pero si el `POST /api/family-groups` da timeout no puede saber si el grupo se creó: un reintento puede dejar un grupo vacío para siempre, porque tampoco hay `DELETE` |
+| Corte inmediato de la sesión al dar de baja a un admin o al restablecer su contraseña: chequear `active` o una versión de credenciales en `JwtAuthenticationFilter`, o bajar el TTL del access token | Que la baja de un admin sea inmediata (E8). Hoy el access token vigente sigue valiendo hasta 1 hora (§5) |
 | `PATCH /api/clubs/me` abierto también a `ADMIN` | Que un ADMIN edite la cuota de referencia desde Perfil (E7) |
 | Reset de contraseña de un **socio** por un ADMIN / SUPER_ADMIN | E11 — existe solo para cuentas de admin (§5) |
 | Flag de "debe cambiar la contraseña en el próximo ingreso" | Primer ingreso (E11) |
