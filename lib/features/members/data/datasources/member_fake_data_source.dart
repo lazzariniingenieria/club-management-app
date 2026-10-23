@@ -26,6 +26,16 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
   }
 
   @override
+  Future<MemberModel> fetchMember(int memberId) async {
+    await Future<void>.delayed(latency);
+
+    for (final member in _roster) {
+      if (member.id == memberId) return member;
+    }
+    throw NotFoundException('Unknown member $memberId');
+  }
+
+  @override
   Future<void> createMember(MemberDraft draft) async {
     await Future<void>.delayed(latency);
     _rejectDuplicatedDni(draft.dni);

@@ -2,12 +2,15 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_list_reader.dart';
+import '../../../../core/network/api_object_reader.dart';
 import '../../../../core/network/api_writer.dart';
 import '../../domain/entities/member_draft.dart';
 import '../models/member_model.dart';
 
 abstract class MemberRemoteDataSource {
   Future<List<MemberModel>> fetchMembers();
+
+  Future<MemberModel> fetchMember(int memberId);
 
   Future<void> createMember(MemberDraft draft);
 
@@ -27,6 +30,11 @@ class MemberRemoteDataSourceImpl implements MemberRemoteDataSource {
           logger: logger,
           logContext: _logContext,
         ),
+        _objectReader = ApiObjectReader(
+          apiClient: apiClient,
+          logger: logger,
+          logContext: _logContext,
+        ),
         _writer = ApiWriter(
           apiClient: apiClient,
           logger: logger,
@@ -34,6 +42,7 @@ class MemberRemoteDataSourceImpl implements MemberRemoteDataSource {
         );
 
   final ApiListReader _reader;
+  final ApiObjectReader _objectReader;
   final ApiWriter _writer;
 
   static const String _logContext = 'MemberRemoteDataSource';
@@ -46,6 +55,14 @@ class MemberRemoteDataSourceImpl implements MemberRemoteDataSource {
         members: responses.first,
         delinquency: responses.last,
       ),
+    );
+  }
+
+  @override
+  Future<MemberModel> fetchMember(int memberId) {
+    return _objectReader.readObject(
+      path: ApiConstants.member(memberId),
+      build: MemberModel.fromJson,
     );
   }
 

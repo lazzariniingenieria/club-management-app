@@ -100,6 +100,20 @@ void main() {
     expect(roster.last.isOverdue, isFalse);
   });
 
+  test('reads a single member from its own endpoint', () async {
+    final dataSource = buildDataSource(
+      (options, _) => options.path == ApiConstants.member(1)
+          ? jsonResponse(200, _members.first as Map<String, dynamic>)
+          : emptyResponse(404),
+    );
+
+    final member = await dataSource.fetchMember(1);
+
+    expect(member.fullName, 'Juan Pérez');
+    expect(adapter.callsTo(ApiConstants.members), 0);
+    expect(adapter.callsTo(ApiConstants.paymentDelinquency), 0);
+  });
+
   test('maps a connection failure to a network error', () {
     final dataSource = buildDataSource((options, _) {
       throw DioException.connectionError(

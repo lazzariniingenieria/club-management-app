@@ -32,21 +32,24 @@ class MemberRepositoryImpl implements MemberRepository {
   }
 
   @override
-  Future<Either<Failure, void>> createMember(MemberDraft draft) {
-    return _guard('createMember', () async {
-      await remoteDataSource.createMember(draft);
+  Future<Either<Failure, Member>> loadMember(int memberId) {
+    return _guard(
+      'loadMember',
+      () async => Right(await remoteDataSource.fetchMember(memberId)),
+    );
+  }
 
-      return _announceRosterChange();
-    });
+  @override
+  Future<Either<Failure, void>> createMember(MemberDraft draft) {
+    return _write('createMember', () => remoteDataSource.createMember(draft));
   }
 
   @override
   Future<Either<Failure, void>> updateMember(int memberId, MemberDraft draft) {
-    return _guard('updateMember', () async {
-      await remoteDataSource.updateMember(memberId, draft);
-
-      return _announceRosterChange();
-    });
+    return _write(
+      'updateMember',
+      () => remoteDataSource.updateMember(memberId, draft),
+    );
   }
 
   @override
@@ -54,11 +57,10 @@ class MemberRepositoryImpl implements MemberRepository {
     int memberId, {
     required bool isActive,
   }) {
-    return _guard('setMemberActive', () async {
-      await remoteDataSource.setMemberActive(memberId, isActive: isActive);
-
-      return _announceRosterChange();
-    });
+    return _write(
+      'setMemberActive',
+      () => remoteDataSource.setMemberActive(memberId, isActive: isActive),
+    );
   }
 
   @override
@@ -66,26 +68,39 @@ class MemberRepositoryImpl implements MemberRepository {
     int memberId,
     int familyGroupId,
   ) {
-    return _guard('assignFamilyGroup', () async {
-      await remoteDataSource.assignFamilyGroup(memberId, familyGroupId);
-
-      return _announceRosterChange();
-    });
+    return _write(
+      'assignFamilyGroup',
+      () => remoteDataSource.assignFamilyGroup(memberId, familyGroupId),
+    );
   }
 
   @override
   Future<Either<Failure, void>> removeFromFamilyGroup(int memberId) {
-    return _guard('removeFromFamilyGroup', () async {
-      await remoteDataSource.removeFromFamilyGroup(memberId);
-
-      return _announceRosterChange();
-    });
+    return _write(
+      'removeFromFamilyGroup',
+      () => remoteDataSource.removeFromFamilyGroup(memberId),
+    );
   }
 
-  Either<Failure, void> _announceRosterChange() {
-    _rosterChanges.add(null);
+  Future<Either<Failure, void>> _write(
+    String operation,
+    Future<void> Function() send,
+  ) async {
+    final result = await _guard<void>(operation, () async {
+      await send();
 
-    return const Right(null);
+      return const Right(null);
+    });
+    if (_mayHaveChangedRoster(result)) _rosterChanges.add(null);
+
+    return result;
+  }
+
+  static bool _mayHaveChangedRoster(Either<Failure, void> result) {
+    return result.fold(
+      (failure) => failure is ResponseTimeoutFailure,
+      (_) => true,
+    );
   }
 
   Future<Either<Failure, T>> _guard<T>(

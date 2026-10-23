@@ -57,6 +57,7 @@ import '../../features/members/data/datasources/member_remote_data_source.dart';
 import '../../features/members/data/repositories/member_repository_impl.dart';
 import '../../features/members/domain/repositories/member_repository.dart';
 import '../../features/members/domain/usecases/create_member_use_case.dart';
+import '../../features/members/domain/usecases/load_member_use_case.dart';
 import '../../features/members/domain/usecases/load_members_use_case.dart';
 import '../../features/members/domain/usecases/set_member_active_use_case.dart';
 import '../../features/members/domain/usecases/update_member_use_case.dart';
@@ -184,6 +185,7 @@ void _registerMemberDomain() {
   );
 
   sl.registerLazySingleton(() => LoadMembersUseCase(sl()));
+  sl.registerLazySingleton(() => LoadMemberUseCase(sl()));
   sl.registerLazySingleton(() => CreateMemberUseCase(sl()));
   sl.registerLazySingleton(() => UpdateMemberUseCase(sl()));
   sl.registerLazySingleton(() => SetMemberActiveUseCase(sl()));

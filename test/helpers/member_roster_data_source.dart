@@ -6,6 +6,16 @@ import 'package:club_management_app/features/members/domain/entities/member_draf
 
 mixin _ReadOnlyMemberSource implements MemberRemoteDataSource {
   @override
+  Future<MemberModel> fetchMember(int memberId) async {
+    final roster = await fetchMembers();
+
+    return roster.firstWhere(
+      (member) => member.id == memberId,
+      orElse: () => throw NotFoundException('Unknown member $memberId'),
+    );
+  }
+
+  @override
   Future<void> createMember(MemberDraft draft) => _unsupported();
 
   @override

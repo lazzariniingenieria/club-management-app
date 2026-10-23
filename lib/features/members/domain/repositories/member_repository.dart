@@ -9,6 +9,8 @@ abstract class MemberRepository {
 
   Future<Either<Failure, List<Member>>> loadMembers();
 
+  Future<Either<Failure, Member>> loadMember(int memberId);
+
   Future<Either<Failure, void>> createMember(MemberDraft draft);
 
   Future<Either<Failure, void>> updateMember(int memberId, MemberDraft draft);

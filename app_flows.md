@@ -329,7 +329,7 @@ Cuotas del socio ──[card Grupo familiar]
 | Pagos viejos hechos por un ex integrante | No cambian: el historial sigue mostrando "Pagó Laura Gómez (familiar)", porque el nombre sale del padrón y no del grupo |
 | Armar a medias | Crear un grupo son tres llamadas sin transacción. Si una de las asignaciones falla, la hoja dice "El grupo se creó, pero no pudimos sumar a Sofía Acosta" y *Reintentar* repite **solo lo que falta**, sobre el mismo grupo. Nunca se crea un segundo grupo |
 | Sin conexión / error del servidor al guardar | Aviso arriba de la hoja. Lo cargado (nombre incluido) queda igual. *Reintentar* |
-| El servidor no respondió a tiempo | Asignar y quitar son idempotentes: se relee el padrón y, si el cambio ya figura, se da por hecho. Si no figura, se reintenta sin preguntar dos veces |
+| El servidor no respondió a tiempo | Asignar y quitar son idempotentes: se relee el socio (al sumar, `GET /api/members/{id}`) o el grupo (al quitar) y, si el cambio ya figura, se da por hecho. Si no figura, se reintenta sin preguntar dos veces. Un timeout también avisa al padrón, porque el cambio pudo haber entrado |
 
 Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la nota y tres filas; sin conexión y error del servidor con *Reintentar*; vacío; inexistente. En *Elegir familiar*, el mismo skeleton de la pantalla de elegir socio (§4.2).
 
