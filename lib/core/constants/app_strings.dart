@@ -14,10 +14,12 @@ class AppStrings {
   static const String loginInvalidCredentials =
       'DNI o contraseña incorrectos. Verificá los datos e intentá de nuevo.';
   static const String loginInvalidData = 'Revisá los datos ingresados.';
-  static const String loginNetworkError =
+  static const String networkErrorMessage =
       'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
-  static const String loginServerError =
+  static const String serverErrorMessage =
       'Tuvimos un problema. Intentá de nuevo en unos minutos.';
+  static const String loginNetworkError = networkErrorMessage;
+  static const String loginServerError = serverErrorMessage;
 
   static const String loginSubmitButton = 'Ingresar';
   static const String loginForgotPassword = '¿Olvidaste tu contraseña?';
@@ -200,6 +202,8 @@ class AppStrings {
   static const String ledgerMissingMessage =
       'Ya no figura en el padrón del club. No se registró ningún pago. Volvé al listado para ver los datos actualizados.';
   static const String ledgerMissingAction = 'Volver a Pagos';
+  static const String familyGroupMemberMissingMessage =
+      'Ya no figura en el padrón del club. Volvé para ver los datos actualizados.';
   static const String ledgerNewTag = 'NUEVO';
 
   static String ledgerLastPaid(String month) => 'Último mes pago: $month';

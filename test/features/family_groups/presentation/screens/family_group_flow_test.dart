@@ -216,6 +216,16 @@ void main() {
     });
   });
 
+  testWidgets('building a group for an unknown member says nothing of payments',
+      (tester) async {
+    await boot(tester);
+    await openRoute(tester, AppRoutes.adminFamilyGroupCreation(999));
+
+    expect(find.text(AppStrings.ledgerMissingTitle), findsOneWidget);
+    expect(find.text(AppStrings.familyGroupMemberMissingMessage), findsOneWidget);
+    expect(find.textContaining('pago'), findsNothing);
+  });
+
   testWidgets('an unknown group explains it was not found', (tester) async {
     await boot(tester);
     await openRoute(tester, AppRoutes.adminFamilyGroup(99));

@@ -75,7 +75,7 @@ class _AdminsBody extends StatelessWidget {
             icon: isOffline ? Icons.wifi_off_rounded : Icons.dns_outlined,
             title: AppStrings.adminsErrorTitle,
             message: isOffline
-                ? AppStrings.loginNetworkError
+                ? AppStrings.networkErrorMessage
                 : AppStrings.ledgerServerErrorMessage,
             actionLabel: AppStrings.retryAction,
             onAction: context.read<AdminsCubit>().load,

@@ -81,7 +81,7 @@ class _PickerBody extends StatelessWidget {
             icon: isOffline ? Icons.wifi_off_rounded : Icons.dns_outlined,
             title: AppStrings.familyGroupPickerErrorTitle,
             message: isOffline
-                ? AppStrings.loginNetworkError
+                ? AppStrings.networkErrorMessage
                 : AppStrings.familyGroupServerMessage,
             actionLabel: AppStrings.retryAction,
             onAction: context.read<FamilyGroupPickerCubit>().load,
@@ -105,7 +105,7 @@ class _PickerAnchor extends StatelessWidget {
       return StatusMessageView(
         icon: Icons.person_search_outlined,
         title: AppStrings.ledgerMissingTitle,
-        message: AppStrings.ledgerMissingMessage,
+        message: AppStrings.familyGroupMemberMissingMessage,
         actionLabel: AppStrings.backAction,
         onAction: () => context.pop(),
         isError: false,

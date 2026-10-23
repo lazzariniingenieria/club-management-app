@@ -5,7 +5,7 @@ extension FailureUserMessage on Failure {
   String get userMessage => switch (this) {
         AuthFailure() => AppStrings.loginInvalidCredentials,
         ValidationFailure() => AppStrings.loginInvalidData,
-        NetworkFailure() => AppStrings.loginNetworkError,
-        _ => AppStrings.loginServerError,
+        NetworkFailure() => AppStrings.networkErrorMessage,
+        _ => AppStrings.serverErrorMessage,
       };
 }
