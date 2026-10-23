@@ -46,7 +46,7 @@ void main() {
       find.text(AppStrings.familyGroupBuilt('Martín Álvarez')),
       findsOneWidget,
     );
-    final roster = await members.fetchMembers();
+    final roster = (await tester.runAsync(members.fetchMembers))!;
     final lucia = roster.firstWhere((member) => member.id == 4);
     final martin = roster.firstWhere((member) => member.id == 5);
     expect(lucia.familyGroupId, isNotNull);
@@ -76,7 +76,7 @@ void main() {
     await tester.tap(find.text(AppStrings.familyGroupJoinConfirm));
     await tester.pumpAndSettle();
 
-    final roster = await members.fetchMembers();
+    final roster = (await tester.runAsync(members.fetchMembers))!;
     expect(roster.firstWhere((member) => member.id == 4).familyGroupId, 1);
   });
 

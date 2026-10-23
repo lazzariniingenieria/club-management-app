@@ -47,8 +47,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(AppStrings.adminFormCreated), findsOneWidget);
-    final stored = await admins.fetchAdmins();
-    expect(stored.map((admin) => admin.dni), contains('40111222'));
+    final stored = await tester.runAsync(admins.fetchAdmins);
+    expect(stored!.map((admin) => admin.dni), contains('40111222'));
   });
 
   testWidgets('a short initial password is explained in the field', (

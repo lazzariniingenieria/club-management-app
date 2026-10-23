@@ -7,8 +7,13 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../helpers/app_test_harness.dart';
 
 void main() {
-  String currentLocation() =>
-      di.sl<AppRouter>().router.routerDelegate.currentConfiguration.uri.path;
+  String currentLocation() => di
+      .sl<AppRouter>()
+      .router
+      .routerDelegate
+      .currentConfiguration
+      .last
+      .matchedLocation;
 
   testWidgets('the login explains how to recover a password', (tester) async {
     await bootApp(tester);

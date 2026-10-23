@@ -43,6 +43,8 @@ class AdminScaffold extends StatelessWidget {
 class _CurrentRoleBadge extends StatelessWidget {
   const _CurrentRoleBadge();
 
+  static const double _maxBadgeTextScale = 1.3;
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
@@ -52,7 +54,10 @@ class _CurrentRoleBadge extends StatelessWidget {
         if (role == null || role == UserRole.member) {
           return const SizedBox.shrink();
         }
-        return RoleBadge(role: role);
+        return MediaQuery.withClampedTextScaling(
+          maxScaleFactor: _maxBadgeTextScale,
+          child: RoleBadge(role: role),
+        );
       },
     );
   }
