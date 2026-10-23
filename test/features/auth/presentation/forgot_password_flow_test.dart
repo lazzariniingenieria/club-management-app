@@ -23,6 +23,7 @@ void main() {
 
     expect(currentLocation(), AppRoutes.loginForgotPassword);
     expect(find.text(AppStrings.forgotPasswordAskAdmin), findsOneWidget);
+    expect(find.text(AppStrings.forgotPasswordMember), findsOneWidget);
 
     await tester.tap(find.text(AppStrings.forgotPasswordBack));
     await tester.pumpAndSettle();

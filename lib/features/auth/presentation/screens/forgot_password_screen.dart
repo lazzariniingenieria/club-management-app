@@ -52,6 +52,11 @@ class ForgotPasswordScreen extends StatelessWidget {
                 AppStrings.forgotPasswordAskAdmin,
                 style: AppTextStyles.bodyLarge,
               ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                AppStrings.forgotPasswordMember,
+                style: AppTextStyles.bodyLarge,
+              ),
               const SizedBox(height: AppSpacing.lg),
               const AppNotice(message: AppStrings.forgotPasswordMainAccount),
               const SizedBox(height: AppSpacing.xl),

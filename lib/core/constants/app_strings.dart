@@ -28,7 +28,9 @@ class AppStrings {
   static const String forgotPasswordNoEmail =
       'La app no puede enviarte una contraseña nueva por email.';
   static const String forgotPasswordAskAdmin =
-      'Pedile al administrador principal del club que te asigne una contraseña nueva. Después podés cambiarla desde tu Perfil.';
+      'Si sos administrador, pedile al administrador principal del club que te asigne una contraseña nueva desde Administradores. Después podés cambiarla desde tu Perfil.';
+  static const String forgotPasswordMember =
+      'Si sos socio, todavía no se puede recuperar desde la app: consultá en la administración del club.';
   static const String forgotPasswordMainAccount =
       'Si sos el administrador principal, comunicate con quien mantiene el sistema del club.';
   static const String forgotPasswordBack = 'Volver al ingreso';
