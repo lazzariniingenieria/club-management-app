@@ -616,7 +616,7 @@ Las pantallas están en §3.2.3.
 
 - **Feature `club`**: `GET` y `PATCH /api/clubs/me`. La cuota viaja en pesos y se modela en centavos, igual que los pagos.
 - **Cambio de contraseña propio** sobre `PATCH /api/admins/{id}/password` con el `userAccountId` de la sesión: funciona para ADMIN y no pide la actual. `UserRole.canChangeOwnPassword` lo habilita solo para `admin`; `canEditClubFee`, la cuota solo para `superAdmin`. Un solo lugar cada una, como `canManageAdmins`.
-- El socio vinculado sale del padrón ya cargado por `memberId`.
+- El socio vinculado se lee con `GET /api/members/{id}` por `memberId`, sin bajar el padrón ni la mora del club. Si esa lectura falla, *Tu cuenta* lo omite y el resto del Perfil sigue usable.
 
 **Terminado cuando**: el ADMIN cambia su contraseña y vuelve al login; el SUPER_ADMIN edita y borra la cuota y la ve precargada al registrar un pago; un fallo del club no impide cerrar sesión; hay tests del mapeo de la cuota, de las reglas de contraseña y del Perfil por rol.
 

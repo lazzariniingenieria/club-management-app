@@ -7,22 +7,22 @@ import '../../../club/domain/entities/club.dart';
 import '../../../club/domain/usecases/load_club_use_case.dart';
 import '../../../club/domain/usecases/update_monthly_fee_use_case.dart';
 import '../../../members/domain/entities/member.dart';
-import '../../../members/domain/usecases/load_members_use_case.dart';
+import '../../../members/domain/usecases/load_member_use_case.dart';
 import 'admin_profile_state.dart';
 
 class AdminProfileCubit extends Cubit<AdminProfileState> {
   final LoadClubUseCase _loadClub;
-  final LoadMembersUseCase _loadMembers;
+  final LoadMemberUseCase _loadMember;
   final UpdateMonthlyFeeUseCase _updateMonthlyFee;
   final ResetAdminPasswordUseCase _resetPassword;
 
   AdminProfileCubit({
     required LoadClubUseCase loadClub,
-    required LoadMembersUseCase loadMembers,
+    required LoadMemberUseCase loadMember,
     required UpdateMonthlyFeeUseCase updateMonthlyFee,
     required ResetAdminPasswordUseCase resetPassword,
   })  : _loadClub = loadClub,
-        _loadMembers = loadMembers,
+        _loadMember = loadMember,
         _updateMonthlyFee = updateMonthlyFee,
         _resetPassword = resetPassword,
         super(const AdminProfileState());
@@ -35,7 +35,7 @@ class AdminProfileCubit extends Cubit<AdminProfileState> {
 
     final results = await Future.wait<Object?>([
       _loadClub(),
-      if (memberId != null) _loadMembers(),
+      if (memberId != null) _loadMember(memberId),
     ]);
     if (isClosed) return;
 
@@ -44,7 +44,7 @@ class AdminProfileCubit extends Cubit<AdminProfileState> {
         clubStatus: _statusOf(results[0] as Either<Failure, Club>),
         club: (results[0] as Either<Failure, Club>).getRight().toNullable(),
         linkedMember: results.length > 1
-            ? _linkedMemberIn(results[1] as Either<Failure, List<Member>>)
+            ? (results[1] as Either<Failure, Member>).getRight().toNullable()
             : null,
       ),
     );
@@ -67,16 +67,6 @@ class AdminProfileCubit extends Cubit<AdminProfileState> {
     final result = await _resetPassword(accountId, newPassword);
 
     return result.getLeft().toNullable();
-  }
-
-  Member? _linkedMemberIn(Either<Failure, List<Member>> roster) {
-    final members = roster.getRight().toNullable() ?? const <Member>[];
-
-    for (final member in members) {
-      if (member.id == _memberId) return member;
-    }
-
-    return null;
   }
 
   static ProfileClubStatus _statusOf(Either<Failure, Club> club) {

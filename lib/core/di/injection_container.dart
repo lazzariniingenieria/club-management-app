@@ -351,7 +351,7 @@ void _registerPresentation() {
   sl.registerFactory(
     () => AdminProfileCubit(
       loadClub: sl(),
-      loadMembers: sl(),
+      loadMember: sl(),
       updateMonthlyFee: sl(),
       resetPassword: sl(),
     ),
