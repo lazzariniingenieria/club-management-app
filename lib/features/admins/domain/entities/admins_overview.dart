@@ -17,6 +17,11 @@ class AdminsOverview extends Equatable {
     return null;
   }
 
+  Set<int> memberIdsTakenBesides(Admin? edited) => {
+        for (final admin in admins)
+          if (admin.memberId != null && admin.id != edited?.id) admin.memberId!,
+      };
+
   @override
   List<Object?> get props => [admins, members];
 }

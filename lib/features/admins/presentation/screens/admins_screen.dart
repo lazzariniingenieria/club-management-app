@@ -53,7 +53,7 @@ class _NewAdminButton extends StatelessWidget {
         return FloatingActionButton.extended(
           onPressed: () => context.push(
             AppRoutes.adminAdminCreation,
-            extra: AdminFormArgs(members: state.overview.members),
+            extra: AdminFormArgs.from(state.overview),
           ),
           icon: const Icon(Icons.person_add_alt_outlined),
           label: const Text(AppStrings.adminsNew),
@@ -129,7 +129,7 @@ class _AdminTile extends StatelessWidget {
   void _edit(BuildContext context) {
     context.push(
       AppRoutes.adminAdminEdition(admin.id),
-      extra: AdminFormArgs(admin: admin, members: overview.members),
+      extra: AdminFormArgs.from(overview, admin: admin),
     );
   }
 

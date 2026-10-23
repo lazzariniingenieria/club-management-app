@@ -171,6 +171,7 @@ class _AdminFormState extends State<_AdminForm> {
       const SizedBox(height: AppSpacing.lg),
       LinkedMemberField(
         members: widget.args.members,
+        takenMemberIds: widget.args.takenMemberIds,
         selectedMemberId: _memberId,
         onSelected: (memberId) => setState(() => _memberId = memberId),
       ),

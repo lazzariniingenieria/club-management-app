@@ -357,7 +357,7 @@ Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la not
 | DNI | Requerido, solo números, hasta 20; se agrupa con puntos y viaja sin ellos |
 | Email (opcional) | Formato y hasta 150 |
 | Contraseña inicial | Solo en el alta, 8 a 100 caracteres, con mostrar/ocultar. La define el SUPER_ADMIN: la API no genera ninguna |
-| Socio vinculado (opcional) | Desplegable con búsqueda sobre los socios activos (más el vinculado, si está inactivo) y "Sin vincular" |
+| Socio vinculado (opcional) | Campo que abre una hoja con buscador y lista perezosa sobre los socios activos (más el vinculado, si está inactivo) y "Sin vincular". Los socios ya vinculados a otra cuenta se ven deshabilitados con "Ya tiene una cuenta de administrador", para no terminar en un `409` evitable |
 
 **La edición manda siempre `memberId`** (o `null` si se eligió "Sin vincular"): un `PATCH` sin el campo desvincula al admin de su socio ([backend_api.md](backend_api.md) §9). El `409` puede ser DNI repetido o socio ya vinculado a otra cuenta y la API no los distingue sin leer el `message`, así que el formulario avisa arriba "Ese DNI o ese socio ya los usa otra cuenta del club" y conserva lo cargado.
 

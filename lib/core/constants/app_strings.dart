@@ -551,6 +551,11 @@ class AppStrings {
       'Entre 8 y 100 caracteres. Pasásela a la persona por un canal seguro.';
   static const String adminFormMember = 'Socio vinculado (opcional)';
   static const String adminFormNoMember = 'Sin vincular';
+  static const String adminFormMemberPickerTitle = 'Elegí el socio vinculado';
+  static const String adminFormMemberTaken = 'Ya tiene una cuenta de administrador';
+
+  static String adminFormMemberEmpty(String query) =>
+      'No encontramos socios activos con «$query»';
   static const String adminFormMemberHelp =
       'Si además es socio del club, vinculalo para que figure con su nombre.';
   static const String adminFormCreate = 'Crear administrador';
