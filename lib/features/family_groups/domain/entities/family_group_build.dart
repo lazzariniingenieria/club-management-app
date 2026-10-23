@@ -70,6 +70,9 @@ class FamilyGroupBuildFailed extends FamilyGroupBuildResult {
 
   bool get isPartial => progress.hasCreatedGroup;
 
+  bool get isCreationUnconfirmed =>
+      !isPartial && failure is ResponseTimeoutFailure;
+
   @override
   List<Object?> get props => [failure, progress];
 }

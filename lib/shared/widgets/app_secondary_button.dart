@@ -4,7 +4,7 @@ import '../../core/theme/app_radius.dart';
 
 class AppSecondaryButton extends StatelessWidget {
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const AppSecondaryButton({
     super.key,

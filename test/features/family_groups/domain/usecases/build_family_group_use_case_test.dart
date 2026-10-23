@@ -62,6 +62,25 @@ void main() {
     verifyNever(() => members.assignFamilyGroupToAll(any(), any()));
   });
 
+  test('a creation that timed out is told apart from being offline', () async {
+    when(() => groups.createGroup(name: any(named: 'name')))
+        .thenAnswer((_) async => const Left(ResponseTimeoutFailure()));
+
+    final result = await buildGroup(request) as FamilyGroupBuildFailed;
+
+    expect(result.isCreationUnconfirmed, isTrue);
+    expect(result.isPartial, isFalse);
+  });
+
+  test('an offline creation is known not to have happened', () async {
+    when(() => groups.createGroup(name: any(named: 'name')))
+        .thenAnswer((_) async => const Left(NetworkFailure()));
+
+    final result = await buildGroup(request) as FamilyGroupBuildFailed;
+
+    expect(result.isCreationUnconfirmed, isFalse);
+  });
+
   test('remembers what was done when an assignment fails', () async {
     assignmentAnswers(
       const FamilyGroupAssignment(

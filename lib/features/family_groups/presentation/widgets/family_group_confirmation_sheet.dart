@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_strings.dart';
-import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_notice.dart';
@@ -39,14 +38,20 @@ class FamilyGroupConfirmationSheet extends StatefulWidget {
     BuildContext context,
     FamilyGroupConfirmationSheet sheet,
   ) {
+    final cubit = context.read<FamilyGroupBuilderCubit>()
+      ..prepareFor(sheet._memberIds);
+
     return showAppSheet<String>(
       context,
-      (_) => BlocProvider<FamilyGroupBuilderCubit>(
-        create: (_) => sl<FamilyGroupBuilderCubit>(),
+      (_) => BlocProvider<FamilyGroupBuilderCubit>.value(
+        value: cubit,
         child: sheet,
       ),
+      dismissible: false,
     );
   }
+
+  List<int> get _memberIds => [member.id, relative.id];
 
   @override
   State<FamilyGroupConfirmationSheet> createState() =>
@@ -77,7 +82,7 @@ class _FamilyGroupConfirmationSheetState
   }
 
   FamilyGroupBuildRequest _buildRequest() => FamilyGroupBuildRequest(
-        memberIds: [widget.member.id, widget.relative.id],
+        memberIds: widget._memberIds,
         name: _name.text,
       );
 
@@ -96,24 +101,31 @@ class _FamilyGroupConfirmationSheetState
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<FamilyGroupBuilderCubit, FamilyGroupBuilderState>(
-      builder: (context, state) => AppSheetFrame(
-        title: _title(),
-        children: [
-          if (state.failure != null) ...[
-            _FailureNotice(state: state, pending: _pendingMembers(state)),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-          SummaryTable(rows: _rows(state)),
-          if (_joinTarget == null && !state.isPartial) ...[
-            const SizedBox(height: AppSpacing.lg),
-            _GroupNameField(controller: _name, enabled: !state.isSaving),
-          ],
-          const SizedBox(height: AppSpacing.lg),
-          AppNotice(message: _note()),
-          const SizedBox(height: AppSpacing.lg),
-          ..._actions(state),
-        ],
+      builder: (context, state) => PopScope(
+        canPop: !state.isSaving,
+        child: _sheet(state),
       ),
+    );
+  }
+
+  Widget _sheet(FamilyGroupBuilderState state) {
+    return AppSheetFrame(
+      title: _title(),
+      children: [
+        if (state.failure != null) ...[
+          _FailureNotice(state: state, pending: _pendingMembers(state)),
+          const SizedBox(height: AppSpacing.lg),
+        ],
+        SummaryTable(rows: _rows(state)),
+        if (_joinTarget == null && !state.isPartial) ...[
+          const SizedBox(height: AppSpacing.lg),
+          _GroupNameField(controller: _name, enabled: !state.isSaving),
+        ],
+        const SizedBox(height: AppSpacing.lg),
+        AppNotice(message: _note()),
+        const SizedBox(height: AppSpacing.lg),
+        ..._actions(state),
+      ],
     );
   }
 
@@ -189,7 +201,7 @@ class _FamilyGroupConfirmationSheetState
         const SizedBox(height: AppSpacing.sm),
         AppSecondaryButton(
           label: AppStrings.cancelAction,
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: state.isSaving ? null : () => Navigator.of(context).pop(),
         ),
       ];
 
@@ -245,6 +257,12 @@ class _FailureNotice extends StatelessWidget {
       return (
         AppStrings.familyGroupPartialTitle,
         AppStrings.familyGroupBuildPartial(FamilyGroupFormats.namesList(pending)),
+      );
+    }
+    if (state.isCreationUnconfirmed) {
+      return (
+        AppStrings.familyGroupUnconfirmedTitle,
+        AppStrings.familyGroupUnconfirmedMessage,
       );
     }
     if (state.isOffline) {

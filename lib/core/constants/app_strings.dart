@@ -412,6 +412,10 @@ class AppStrings {
   static const String familyGroupServerMessage =
       'El sistema del club tuvo un problema. Probá de nuevo en unos minutos.';
   static const String familyGroupPartialTitle = 'Falta un paso.';
+  static const String familyGroupUnconfirmedTitle =
+      'No sabemos si el grupo se creó.';
+  static const String familyGroupUnconfirmedMessage =
+      'El sistema del club no respondió a tiempo. Si reintentás, puede quedar un grupo vacío sin usar, que no afecta a nadie.';
 
   static String familyGroupConfirmJoinTitle(String member, String group) =>
       '¿Sumar a $member a $group?';

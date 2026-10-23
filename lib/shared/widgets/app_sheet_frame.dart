@@ -39,11 +39,17 @@ class AppSheetFrame extends StatelessWidget {
   }
 }
 
-Future<T?> showAppSheet<T>(BuildContext context, WidgetBuilder builder) {
+Future<T?> showAppSheet<T>(
+  BuildContext context,
+  WidgetBuilder builder, {
+  bool dismissible = true,
+}) {
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
-    showDragHandle: true,
+    isDismissible: dismissible,
+    enableDrag: dismissible,
+    showDragHandle: dismissible,
     builder: builder,
   );
 }

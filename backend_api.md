@@ -372,7 +372,7 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Datos de contacto del club en `GET /api/clubs/me` | El canal de contacto de Recuperar contraseña (E11) |
 | Asignar grupo en el alta y en la edición de forma pareja: `POST /api/members` acepta `familyGroupId` y `PATCH` no | Nada hoy: el grupo se arma desde las cuotas del socio (E6.5) |
 | `DELETE /api/family-groups/{id}`, que saque a los integrantes y borre el grupo sin tocar socios ni pagos | "Eliminar grupo" de E6.5 |
-| Crear un grupo con sus integrantes en una sola operación | Nada: la app completa un armado a medias con "Reintentar" (E6.5) |
+| Crear un grupo con sus integrantes en una sola operación | Que armar un grupo nunca deje uno vacío (E6.5). La app completa un armado a medias con "Reintentar" sobre el mismo grupo, pero si el `POST /api/family-groups` da timeout no puede saber si el grupo se creó: un reintento puede dejar un grupo vacío para siempre, porque tampoco hay `DELETE` |
 | `PATCH /api/clubs/me` abierto también a `ADMIN` | Que un ADMIN edite la cuota de referencia desde Perfil (E7) |
 | Reset de contraseña de un **socio** por un ADMIN / SUPER_ADMIN | E11 — existe solo para cuentas de admin (§5) |
 | Flag de "debe cambiar la contraseña en el próximo ingreso" | Primer ingreso (E11) |
