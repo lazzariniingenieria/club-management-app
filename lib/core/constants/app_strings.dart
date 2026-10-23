@@ -607,6 +607,8 @@ class AppStrings {
   static const String passwordSheetTitle = 'Cambiar contraseña';
   static const String passwordNewLabel = 'Contraseña nueva';
   static const String passwordHelp = 'Entre 8 y 100 caracteres.';
+  static const String passwordBlank =
+      'La contraseña no puede ser solo espacios.';
   static const String passwordTooShort =
       'Tiene que tener al menos 8 caracteres';
   static const String passwordTooLong = 'Puede tener hasta 100 caracteres';

@@ -72,6 +72,29 @@ void main() {
     expect(find.text(AppStrings.passwordTooShort), findsOneWidget);
   });
 
+  testWidgets('a blank initial password is explained and never sent', (
+    tester,
+  ) async {
+    await openAdmins(tester);
+    final before = (await tester.runAsync(admins.fetchAdmins))!.length;
+
+    await tester.tap(find.text(AppStrings.adminsNew));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, AppStrings.adminFormDni),
+      '40111222',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, AppStrings.adminFormPassword),
+      '        ',
+    );
+    await tester.tap(find.text(AppStrings.adminFormCreate));
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppStrings.passwordBlank), findsOneWidget);
+    expect((await tester.runAsync(admins.fetchAdmins))!, hasLength(before));
+  });
+
   testWidgets('a repeated dni is reported without losing the form', (
     tester,
   ) async {

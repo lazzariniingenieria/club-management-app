@@ -32,6 +32,7 @@ class NewPasswordSheet extends StatefulWidget {
 
   static String? messageFor(PasswordProblem? problem) {
     return switch (problem) {
+      PasswordProblem.blank => AppStrings.passwordBlank,
       PasswordProblem.tooShort => AppStrings.passwordTooShort,
       PasswordProblem.tooLong => AppStrings.passwordTooLong,
       null => null,

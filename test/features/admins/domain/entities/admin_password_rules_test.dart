@@ -7,6 +7,16 @@ void main() {
     expect(AdminPasswordRules.check('a' * 100), isNull);
   });
 
+  test('rejects a password made only of spaces, like @NotBlank', () {
+    expect(AdminPasswordRules.check(' ' * 8), PasswordProblem.blank);
+    expect(AdminPasswordRules.check(''), PasswordProblem.blank);
+  });
+
+  test('keeps spaces inside a password that is not blank', () {
+    expect(AdminPasswordRules.check('abc 1234'), isNull);
+    expect(AdminPasswordRules.check(' abc1234 '), isNull);
+  });
+
   test('rejects shorter and longer passwords', () {
     expect(AdminPasswordRules.check('1234567'), PasswordProblem.tooShort);
     expect(AdminPasswordRules.check('a' * 101), PasswordProblem.tooLong);
