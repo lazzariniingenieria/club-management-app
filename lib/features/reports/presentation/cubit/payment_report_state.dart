@@ -30,7 +30,9 @@ class PaymentReportState extends Equatable {
       ? PaymentReportPeriod.single(from)
       : PaymentReportPeriod(from: from, to: to);
 
-  bool get canGenerate => period.isValid && status != ReportStatus.generating;
+  bool get isGenerating => status == ReportStatus.generating;
+
+  bool get canGenerate => period.isValid && !isGenerating;
 
   bool get isOffline => failure is NetworkFailure;
 

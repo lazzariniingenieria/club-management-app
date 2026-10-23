@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/logging/app_logger.dart';
 import '../../../payments/domain/entities/billing_month.dart';
+import '../../domain/entities/payment_report_period.dart';
 import '../../domain/usecases/download_fee_receipts_use_case.dart';
 import '../export/report_file_exporter.dart';
 import 'payment_report_state.dart';
@@ -36,10 +37,11 @@ class PaymentReportCubit extends Cubit<PaymentReportState> {
 
   Future<void> generate() async {
     if (!state.canGenerate) return;
+    final requested = state.period;
     emit(state.withStatus(ReportStatus.generating));
 
-    final result = await _downloadReceipts(state.period);
-    if (isClosed) return;
+    final result = await _downloadReceipts(requested);
+    if (isClosed || !_isStillWaitingFor(requested)) return;
 
     emit(
       result.fold(
@@ -48,6 +50,9 @@ class PaymentReportCubit extends Cubit<PaymentReportState> {
       ),
     );
   }
+
+  bool _isStillWaitingFor(PaymentReportPeriod requested) =>
+      state.status == ReportStatus.generating && state.period == requested;
 
   Future<bool> share() => _export(_exporter.share);
 

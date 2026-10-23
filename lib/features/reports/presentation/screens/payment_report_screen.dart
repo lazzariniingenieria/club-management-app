@@ -93,8 +93,10 @@ class _ModeSelector extends StatelessWidget {
         ),
       ],
       selected: {state.mode},
-      onSelectionChanged: (selection) =>
-          context.read<PaymentReportCubit>().selectMode(selection.single),
+      onSelectionChanged: state.isGenerating
+          ? null
+          : (selection) =>
+              context.read<PaymentReportCubit>().selectMode(selection.single),
     );
   }
 }
@@ -107,11 +109,12 @@ class _PeriodFields extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<PaymentReportCubit>();
+    final locked = state.isGenerating;
     if (state.mode == ReportRangeMode.single) {
       return _MonthField(
         label: AppStrings.reportMonthLabel,
         value: state.from,
-        onChanged: cubit.selectFrom,
+        onChanged: locked ? null : cubit.selectFrom,
       );
     }
 
@@ -121,13 +124,13 @@ class _PeriodFields extends StatelessWidget {
         _MonthField(
           label: AppStrings.reportFromLabel,
           value: state.from,
-          onChanged: cubit.selectFrom,
+          onChanged: locked ? null : cubit.selectFrom,
         ),
         const SizedBox(height: AppSpacing.md),
         _MonthField(
           label: AppStrings.reportToLabel,
           value: state.to,
-          onChanged: cubit.selectTo,
+          onChanged: locked ? null : cubit.selectTo,
           errorText:
               state.period.isValid ? null : AppStrings.reportInvalidRange,
         ),
@@ -139,7 +142,7 @@ class _PeriodFields extends StatelessWidget {
 class _MonthField extends StatelessWidget {
   final String label;
   final BillingMonth value;
-  final ValueChanged<BillingMonth> onChanged;
+  final ValueChanged<BillingMonth>? onChanged;
   final String? errorText;
 
   const _MonthField({
@@ -176,9 +179,11 @@ class _MonthField extends StatelessWidget {
             child: Text(PaymentFormats.monthTitle(month)),
           ),
       ],
-      onChanged: (month) {
-        if (month != null) onChanged(month);
-      },
+      onChanged: onChanged == null
+          ? null
+          : (month) {
+              if (month != null) onChanged!(month);
+            },
     );
   }
 }

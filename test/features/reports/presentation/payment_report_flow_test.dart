@@ -5,7 +5,11 @@ import 'package:club_management_app/core/di/injection_container.dart' as di;
 import 'package:club_management_app/core/router/app_router.dart';
 import 'package:club_management_app/core/router/app_routes.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
+import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
+import 'package:club_management_app/features/reports/data/datasources/payment_report_fake_data_source.dart';
+import 'package:club_management_app/features/reports/presentation/cubit/payment_report_state.dart';
 import 'package:club_management_app/features/reports/presentation/export/report_file_exporter.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/app_test_harness.dart';
@@ -46,5 +50,34 @@ void main() {
 
     expect(exporter.shared, hasLength(1));
     expect(exporter.shared.single, startsWith('cuotas-cobradas-'));
+  });
+
+  testWidgets('the period cannot change while the PDF is generated', (
+    tester,
+  ) async {
+    await bootApp(
+      tester,
+      signedInAs: UserRole.admin,
+      reportSource: PaymentReportFakeDataSource(
+        latency: const Duration(seconds: 1),
+      ),
+    );
+    di.sl<AppRouter>().router.push(AppRoutes.adminPaymentReport);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(AppStrings.reportGenerate));
+    await tester.pump();
+
+    final modes = tester.widget<SegmentedButton<ReportRangeMode>>(
+      find.byType(SegmentedButton<ReportRangeMode>),
+    );
+    final month = tester.widget<DropdownButton<BillingMonth>>(
+      find.byType(DropdownButton<BillingMonth>),
+    );
+    expect(modes.onSelectionChanged, isNull);
+    expect(month.onChanged, isNull);
+
+    await tester.pumpAndSettle();
+    expect(find.text(AppStrings.reportReadyTitle), findsOneWidget);
   });
 }

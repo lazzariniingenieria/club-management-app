@@ -385,7 +385,7 @@ Si el bloqueo pisa reservas existentes, la confirmación **debe listar las reser
 
 - **Entrada**: ícono de PDF con `tooltip` "Reporte de cuotas cobradas" en la barra superior de Pagos (`/admin/payments/report`). Ícono solo, como permite §1 para el admin, para no quitarle lugar al título.
 - **Período por fecha de cobro**: *Un mes* o *Varios meses* (desde / hasta) entre los últimos 24 meses. La app lo traduce a días (`paidFrom` = día 1 del primer mes, `paidTo` = último día del último mes). Se eligen meses y no días sueltos porque así rinde el club, y porque el selector de fechas de Flutter sale en inglés mientras la app no tenga la localización en español. Un rango invertido se explica en el campo y deshabilita *Generar PDF*.
-- **Estados**: generando (botón con progreso y "Generando el PDF…"), listo ("Tabletas listas", el período, *Compartir PDF* y *Ver o imprimir*), **sin cobros** (el `204`: "No hubo cobros en ese período, así que no hay tabletas para imprimir"), y error sin conexión o del servidor. Si el dispositivo no puede abrir o compartir el PDF, un snackbar lo dice.
+- **Estados**: generando (botón con progreso y "Generando el PDF…"; el modo y los meses quedan bloqueados hasta que responda, y una respuesta de un período que ya no está elegido se descarta), listo ("Tabletas listas", el período, *Compartir PDF* y *Ver o imprimir*), **sin cobros** (el `204`: "No hubo cobros en ese período, así que no hay tabletas para imprimir"), y error sin conexión o del servidor. Si el dispositivo no puede abrir o compartir el PDF, un snackbar lo dice.
 - El archivo conserva el nombre que manda el backend (`cuotas-cobradas-2026-10-01-al-2026-10-31.pdf`).
 
 ---
