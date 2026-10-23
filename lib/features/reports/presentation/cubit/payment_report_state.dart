@@ -16,10 +16,12 @@ class PaymentReportState extends Equatable {
   final ReportStatus status;
   final FeeReceiptsDocument? document;
   final Failure? failure;
+  final List<BillingMonth> offeredMonths;
 
   const PaymentReportState({
     required this.from,
     required this.to,
+    required this.offeredMonths,
     this.mode = ReportRangeMode.single,
     this.status = ReportStatus.editing,
     this.document,
@@ -48,6 +50,7 @@ class PaymentReportState extends Equatable {
       mode: mode ?? this.mode,
       from: from ?? this.from,
       to: to ?? this.to,
+      offeredMonths: offeredMonths,
     );
   }
 
@@ -60,6 +63,7 @@ class PaymentReportState extends Equatable {
       mode: mode,
       from: from,
       to: to,
+      offeredMonths: offeredMonths,
       status: status,
       document: document,
       failure: failure,
@@ -67,5 +71,6 @@ class PaymentReportState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [mode, from, to, status, document, failure];
+  List<Object?> get props =>
+      [mode, from, to, offeredMonths, status, document, failure];
 }

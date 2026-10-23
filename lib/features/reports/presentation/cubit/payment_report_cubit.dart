@@ -22,12 +22,26 @@ class PaymentReportCubit extends Cubit<PaymentReportState> {
   })  : _downloadReceipts = downloadReceipts,
         _exporter = exporter,
         _logger = logger,
-        super(
-          PaymentReportState(
-            from: BillingMonth.of(clock()),
-            to: BillingMonth.of(clock()),
-          ),
-        );
+        super(_initialState(BillingMonth.of(clock())));
+
+  static const int monthsOffered = 24;
+
+  static PaymentReportState _initialState(BillingMonth current) {
+    return PaymentReportState(
+      from: current,
+      to: current,
+      offeredMonths: _monthsEndingAt(current),
+    );
+  }
+
+  static List<BillingMonth> _monthsEndingAt(BillingMonth last) {
+    final months = [last];
+    while (months.length < monthsOffered) {
+      months.add(months.last.previous);
+    }
+
+    return months;
+  }
 
   void selectMode(ReportRangeMode mode) => emit(state.editing(mode: mode));
 

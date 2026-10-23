@@ -75,6 +75,15 @@ void main() {
     expect(cubit.state.document, isNull);
   });
 
+  test('offers the 24 months ending at the clock, newest first', () {
+    final offered = cubit.state.offeredMonths;
+
+    expect(offered, hasLength(PaymentReportCubit.monthsOffered));
+    expect(offered.first, october);
+    expect(offered[1], const BillingMonth(2026, 9));
+    expect(offered.last, const BillingMonth(2024, 11));
+  });
+
   test('the PDF of the period still selected is kept', () async {
     when(() => download(any())).thenAnswer((_) async => Right(octoberPdf));
 

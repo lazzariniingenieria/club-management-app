@@ -113,6 +113,7 @@ class _PeriodFields extends StatelessWidget {
     if (state.mode == ReportRangeMode.single) {
       return _MonthField(
         label: AppStrings.reportMonthLabel,
+        options: state.offeredMonths,
         value: state.from,
         onChanged: locked ? null : cubit.selectFrom,
       );
@@ -123,12 +124,14 @@ class _PeriodFields extends StatelessWidget {
       children: [
         _MonthField(
           label: AppStrings.reportFromLabel,
+          options: state.offeredMonths,
           value: state.from,
           onChanged: locked ? null : cubit.selectFrom,
         ),
         const SizedBox(height: AppSpacing.md),
         _MonthField(
           label: AppStrings.reportToLabel,
+          options: state.offeredMonths,
           value: state.to,
           onChanged: locked ? null : cubit.selectTo,
           errorText:
@@ -141,39 +144,28 @@ class _PeriodFields extends StatelessWidget {
 
 class _MonthField extends StatelessWidget {
   final String label;
+  final List<BillingMonth> options;
   final BillingMonth value;
   final ValueChanged<BillingMonth>? onChanged;
   final String? errorText;
 
   const _MonthField({
     required this.label,
+    required this.options,
     required this.value,
     required this.onChanged,
     this.errorText,
   });
 
-  static const int _monthsOffered = 24;
-
-  List<BillingMonth> get _options {
-    final months = <BillingMonth>[];
-    var month = BillingMonth.of(DateTime.now());
-    for (var index = 0; index < _monthsOffered; index++) {
-      months.add(month);
-      month = month.previous;
-    }
-    if (!months.contains(value)) months.add(value);
-
-    return months;
-  }
-
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<BillingMonth>(
-      value: value,
+      key: ValueKey(value),
+      initialValue: value,
       isExpanded: true,
       decoration: InputDecoration(labelText: label, errorText: errorText),
       items: [
-        for (final month in _options)
+        for (final month in options)
           DropdownMenuItem(
             value: month,
             child: Text(PaymentFormats.monthTitle(month)),
