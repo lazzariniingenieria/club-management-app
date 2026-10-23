@@ -6,12 +6,12 @@ import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 
-class ErrorRetryView extends StatelessWidget {
+class InlineErrorCard extends StatelessWidget {
   final String title;
   final String message;
   final VoidCallback onRetry;
 
-  const ErrorRetryView({
+  const InlineErrorCard({
     super.key,
     required this.title,
     required this.message,

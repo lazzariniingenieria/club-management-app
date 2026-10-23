@@ -9,7 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/widgets/error_retry_view.dart';
+import '../../../../shared/widgets/inline_error_card.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../members/domain/entities/member.dart';
@@ -47,7 +47,7 @@ class _PickerBody extends StatelessWidget {
           _PickerContent(roster: roster),
         AdminPaymentsFailure(:final message) => Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            child: ErrorRetryView(
+            child: InlineErrorCard(
               title: AppStrings.adminPaymentsErrorTitle,
               message: message,
               onRetry: context.read<AdminPaymentsCubit>().load,
