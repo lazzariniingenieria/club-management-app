@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_radius.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_radius.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_text_styles.dart';
 
-enum PaymentPillTone { danger, success, neutral, highlight }
+enum AppPillTone { danger, success, neutral, highlight }
 
-class PaymentPill extends StatelessWidget {
+class AppPill extends StatelessWidget {
   final String label;
-  final PaymentPillTone tone;
+  final AppPillTone tone;
 
-  const PaymentPill({super.key, required this.label, required this.tone});
+  const AppPill({super.key, required this.label, required this.tone});
 
   @override
   Widget build(BuildContext context) {
@@ -33,18 +33,18 @@ class PaymentPill extends StatelessWidget {
     );
   }
 
-  static (Color, Color) _colorsOf(PaymentPillTone tone) {
+  static (Color, Color) _colorsOf(AppPillTone tone) {
     return switch (tone) {
-      PaymentPillTone.danger => (AppColors.dangerSurface, AppColors.dangerText),
-      PaymentPillTone.success => (
+      AppPillTone.danger => (AppColors.dangerSurface, AppColors.dangerText),
+      AppPillTone.success => (
           AppColors.successSurface,
           AppColors.successText
         ),
-      PaymentPillTone.neutral => (
+      AppPillTone.neutral => (
           AppColors.disabledSurface,
           AppColors.textSecondary
         ),
-      PaymentPillTone.highlight => (AppColors.accentBlue, AppColors.textOnDark),
+      AppPillTone.highlight => (AppColors.accentBlue, AppColors.textOnDark),
     };
   }
 }

@@ -4,10 +4,11 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../domain/entities/payment.dart';
-import '../formatting/payment_formats.dart';
+import '../../../../shared/formatters/display_formats.dart';
 import '../../../../shared/widgets/app_notice.dart';
 import '../../../../shared/widgets/app_secondary_button.dart';
+import '../../domain/entities/payment.dart';
+import '../formatting/payment_formats.dart';
 
 class VoidPaymentSheet extends StatefulWidget {
   final Payment payment;
@@ -50,7 +51,7 @@ class _VoidPaymentSheetState extends State<VoidPaymentSheet> {
 
   String get _summary => [
         widget.memberName,
-        PaymentFormats.pesos(widget.payment.amountCents),
+        DisplayFormats.pesos(widget.payment.amountCents),
         PaymentFormats.method(widget.payment.method),
         PaymentFormats.day(widget.payment.paidAt),
       ].join(' · ');

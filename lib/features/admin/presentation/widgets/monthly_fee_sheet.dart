@@ -4,12 +4,12 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/formatters/peso_amount.dart';
+import '../../../../shared/widgets/amount_field.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_notice.dart';
 import '../../../../shared/widgets/app_secondary_button.dart';
 import '../../../../shared/widgets/app_sheet_frame.dart';
-import '../../../payments/presentation/formatting/peso_amount.dart';
-import '../../../payments/presentation/widgets/payment_amount_field.dart';
 
 typedef MonthlyFeeSave = Future<Failure?> Function(int? monthlyFeeCents);
 
@@ -70,7 +70,7 @@ class _MonthlyFeeSheetState extends State<MonthlyFeeSheet> {
           ),
           const SizedBox(height: AppSpacing.lg),
         ],
-        PaymentAmountField(
+        AmountField(
           initialCents: widget.initialCents,
           label: AppStrings.feeSheetLabel,
           onChanged: (text) => setState(() => _text = text),

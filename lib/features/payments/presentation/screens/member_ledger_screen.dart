@@ -11,6 +11,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/formatters/display_formats.dart';
+import '../../../../shared/widgets/app_notice.dart';
+import '../../../../shared/widgets/app_secondary_button.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
@@ -27,8 +30,6 @@ import '../widgets/fee_standing_card.dart';
 import '../widgets/member_header_card.dart';
 import '../widgets/payment_detail_sheet.dart';
 import '../widgets/payment_history_tile.dart';
-import '../../../../shared/widgets/app_notice.dart';
-import '../../../../shared/widgets/app_secondary_button.dart';
 import '../widgets/payment_unavailable_view.dart';
 import '../widgets/void_payment_sheet.dart';
 
@@ -80,7 +81,7 @@ class _MemberLedgerViewState extends State<_MemberLedgerView> {
       context,
       AppStrings.paymentRegistered(
         PaymentFormats.monthsSummary(receipt.months).toLowerCase(),
-        PaymentFormats.pesos(receipt.totalCents),
+        DisplayFormats.pesos(receipt.totalCents),
       ),
     );
   }

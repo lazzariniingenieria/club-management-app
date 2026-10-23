@@ -8,6 +8,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/formatters/display_formats.dart';
+import '../../../../shared/widgets/amount_field.dart';
+import '../../../../shared/widgets/app_notice.dart';
+import '../../../../shared/widgets/app_pill.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../cubit/payment_form.dart';
@@ -17,11 +21,8 @@ import '../formatting/payment_formats.dart';
 import '../widgets/billing_month_grid.dart';
 import '../widgets/member_header_card.dart';
 import '../widgets/payer_selector.dart';
-import '../widgets/payment_amount_field.dart';
 import '../widgets/payment_confirmation_sheet.dart';
 import '../widgets/payment_method_selector.dart';
-import '../../../../shared/widgets/app_notice.dart';
-import '../widgets/payment_pill.dart';
 import '../widgets/payment_total_summary.dart';
 import '../widgets/payment_unavailable_view.dart';
 
@@ -136,13 +137,13 @@ class _StandingLine extends StatelessWidget {
       runSpacing: AppSpacing.xs,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        PaymentPill(
+        AppPill(
           label: member.isOverdue
               ? AppStrings.daysOverdueBadge(member.daysOverdue)
               : AppStrings.memberUpToDateBadge,
           tone: member.isOverdue
-              ? PaymentPillTone.danger
-              : PaymentPillTone.success,
+              ? AppPillTone.danger
+              : AppPillTone.success,
         ),
         Text(
           lastPaid == null
@@ -289,7 +290,8 @@ class _AmountSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        PaymentAmountField(
+        AmountField(
+          label: AppStrings.registerPaymentAmountLabel,
           initialCents: form.amountCents,
           onChanged: context.read<RegisterPaymentCubit>().changeAmount,
         ),
@@ -298,7 +300,7 @@ class _AmountSection extends StatelessWidget {
           fee == null
               ? AppStrings.registerPaymentAmountWithoutFee
               : AppStrings.registerPaymentAmountWithFee(
-                  PaymentFormats.pesos(fee),
+                  DisplayFormats.pesos(fee),
                 ),
           style: AppTextStyles.bodyMedium,
         ),
@@ -407,7 +409,7 @@ class _ReviewBar extends StatelessWidget {
 
   String get _label => form.canReview
       ? AppStrings.registerPaymentReviewWithTotal(
-          PaymentFormats.pesos(form.totalCents),
+          DisplayFormats.pesos(form.totalCents),
         )
       : AppStrings.registerPaymentReviewAction;
 }

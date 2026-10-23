@@ -1,4 +1,4 @@
-import 'package:club_management_app/features/payments/presentation/formatting/peso_amount.dart';
+import 'package:club_management_app/shared/formatters/peso_amount.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 

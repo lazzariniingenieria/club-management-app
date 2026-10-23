@@ -9,6 +9,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/formatters/display_formats.dart';
+import '../../../../shared/widgets/app_pill.dart';
 import '../../../../shared/widgets/inline_error_card.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
@@ -16,8 +18,6 @@ import '../../../members/domain/entities/member.dart';
 import '../../domain/entities/payment_receipt.dart';
 import '../cubit/admin_payments_cubit.dart';
 import '../cubit/admin_payments_state.dart';
-import '../formatting/payment_formats.dart';
-import '../widgets/payment_pill.dart';
 
 class PaymentMemberPickerScreen extends StatelessWidget {
   const PaymentMemberPickerScreen({super.key});
@@ -266,20 +266,20 @@ class _PickerTileContent extends StatelessWidget {
               children: [
                 Text(member.fullName, style: AppTextStyles.labelLarge),
                 Text(
-                  AppStrings.memberDni(PaymentFormats.dni(member.dni)),
+                  AppStrings.memberDni(DisplayFormats.dni(member.dni)),
                   style: AppTextStyles.bodyMedium,
                 ),
               ],
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          PaymentPill(
+          AppPill(
             label: member.isOverdue
                 ? AppStrings.daysOverdueBadge(member.daysOverdue)
                 : AppStrings.memberUpToDateBadge,
             tone: member.isOverdue
-                ? PaymentPillTone.danger
-                : PaymentPillTone.success,
+                ? AppPillTone.danger
+                : AppPillTone.success,
           ),
         ],
       ),

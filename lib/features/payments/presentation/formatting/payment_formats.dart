@@ -1,15 +1,9 @@
 import '../../../../core/constants/app_strings.dart';
-import '../../../../shared/formatters/digit_layout_formatter.dart';
 import '../../domain/entities/billing_month.dart';
 import '../../domain/entities/payment_method.dart';
-import 'peso_amount.dart';
 
 abstract final class PaymentFormats {
   static const int _longListThreshold = 3;
-
-  static String pesos(int cents) => '\$${PesoAmount.textFor(cents)}';
-
-  static String dni(String digits) => DigitLayouts.groupedByThousands(digits);
 
   static String day(DateTime instant) {
     final local = instant.toLocal();

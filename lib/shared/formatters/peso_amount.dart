@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/services.dart';
 
-import '../../../../shared/formatters/digit_layout_formatter.dart';
+import 'digit_layout_formatter.dart';
 
 abstract final class PesoAmount {
   static const int maxWholeDigits = 8;

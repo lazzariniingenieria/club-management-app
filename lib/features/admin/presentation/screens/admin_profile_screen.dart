@@ -9,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/formatters/display_formats.dart';
 import '../../../../shared/widgets/app_notice.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/logout_button.dart';
@@ -18,7 +19,6 @@ import '../../../auth/domain/entities/user.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
-import '../../../payments/presentation/formatting/payment_formats.dart';
 import '../cubit/admin_profile_cubit.dart';
 import '../cubit/admin_profile_state.dart';
 import '../widgets/admin_scaffold.dart';
@@ -152,7 +152,7 @@ class _AccountCard extends StatelessWidget {
 
     return Text(
       '${AppStrings.profileLinkedMember(member.fullName)} · '
-      '${AppStrings.memberDni(PaymentFormats.dni(member.dni))}',
+      '${AppStrings.memberDni(DisplayFormats.dni(member.dni))}',
       style: AppTextStyles.bodyMedium,
     );
   }
@@ -229,7 +229,7 @@ class _MonthlyFeeRow extends StatelessWidget {
                 Text(
                   fee == null
                       ? AppStrings.profileMonthlyFeeUnset
-                      : PaymentFormats.pesos(fee),
+                      : DisplayFormats.pesos(fee),
                   style: AppTextStyles.labelLarge,
                 ),
               ],

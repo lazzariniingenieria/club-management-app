@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/constants/app_strings.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../formatting/peso_amount.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../formatters/peso_amount.dart';
 
-class PaymentAmountField extends StatefulWidget {
+class AmountField extends StatefulWidget {
   final int? initialCents;
   final ValueChanged<String> onChanged;
   final String label;
 
-  const PaymentAmountField({
+  const AmountField({
     super.key,
     required this.initialCents,
     required this.onChanged,
-    this.label = AppStrings.registerPaymentAmountLabel,
+    required this.label,
   });
 
   @override
-  State<PaymentAmountField> createState() => _PaymentAmountFieldState();
+  State<AmountField> createState() => _AmountFieldState();
 }
 
-class _PaymentAmountFieldState extends State<PaymentAmountField> {
+class _AmountFieldState extends State<AmountField> {
   late final TextEditingController _controller = TextEditingController(
     text: PesoAmount.textFor(widget.initialCents),
   );

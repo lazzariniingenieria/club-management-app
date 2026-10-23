@@ -11,6 +11,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_notice.dart';
+import '../../../../shared/widgets/app_pill.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/confirmation_dialog.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
@@ -18,7 +19,6 @@ import '../../../../shared/widgets/status_message_view.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../../members/presentation/widgets/member_list_tile.dart';
-import '../../../payments/presentation/widgets/payment_pill.dart';
 import '../../domain/entities/family_group_detail.dart';
 import '../cubit/family_group_cubit.dart';
 import '../cubit/family_group_state.dart';
@@ -279,9 +279,9 @@ class _GroupMemberTile extends StatelessWidget {
       onOpen: () => context.push(AppRoutes.adminMemberLedger(member.id)),
       onRemove: () => _remove(context),
       tag: isNew
-          ? const PaymentPill(
+          ? const AppPill(
               label: AppStrings.ledgerNewTag,
-              tone: PaymentPillTone.highlight,
+              tone: AppPillTone.highlight,
             )
           : null,
     );

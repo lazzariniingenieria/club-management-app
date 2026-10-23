@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure_messages.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../shared/formatters/peso_amount.dart';
 import '../../domain/entities/billing_month.dart';
 import '../../domain/entities/member_ledger.dart';
 import '../../domain/entities/payment_draft.dart';
@@ -9,7 +10,6 @@ import '../../domain/entities/payment_method.dart';
 import '../../domain/failures/payment_failures.dart';
 import '../../domain/usecases/load_member_ledger_use_case.dart';
 import '../../domain/usecases/register_payment_use_case.dart';
-import '../formatting/peso_amount.dart';
 import 'payment_form.dart';
 import 'register_payment_state.dart';
 

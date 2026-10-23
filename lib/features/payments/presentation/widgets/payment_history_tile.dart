@@ -5,10 +5,11 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/formatters/display_formats.dart';
+import '../../../../shared/widgets/app_pill.dart';
 import '../../domain/entities/member_ledger.dart';
 import '../../domain/entities/payment.dart';
 import '../formatting/payment_formats.dart';
-import 'payment_pill.dart';
 
 class PaymentHistoryTile extends StatelessWidget {
   final Payment payment;
@@ -32,7 +33,7 @@ class PaymentHistoryTile extends StatelessWidget {
       button: true,
       label: AppStrings.paymentRowSemantics(
         PaymentFormats.monthWithYear(payment.month),
-        PaymentFormats.pesos(payment.amountCents),
+        DisplayFormats.pesos(payment.amountCents),
       ),
       excludeSemantics: true,
       child: Material(
@@ -97,7 +98,7 @@ class _LivePaymentContent extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           Text(
-            PaymentFormats.pesos(payment.amountCents),
+            DisplayFormats.pesos(payment.amountCents),
             style: AppTextStyles.labelLarge.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -138,9 +139,9 @@ class _LivePaymentLines extends StatelessWidget {
               style: AppTextStyles.labelLarge,
             ),
             if (isNew)
-              const PaymentPill(
+              const AppPill(
                 label: AppStrings.ledgerNewTag,
-                tone: PaymentPillTone.highlight,
+                tone: AppPillTone.highlight,
               ),
           ],
         ),
@@ -178,7 +179,7 @@ class _VoidedPaymentTile extends StatelessWidget {
           Expanded(child: _VoidedLines(payment: payment)),
           const SizedBox(width: AppSpacing.sm),
           Text(
-            PaymentFormats.pesos(payment.amountCents),
+            DisplayFormats.pesos(payment.amountCents),
             style: AppTextStyles.labelLarge.copyWith(
               color: AppColors.textSecondary,
               decoration: TextDecoration.lineThrough,
@@ -214,9 +215,9 @@ class _VoidedLines extends StatelessWidget {
                 decoration: TextDecoration.lineThrough,
               ),
             ),
-            const PaymentPill(
+            const AppPill(
               label: AppStrings.paymentVoidedTag,
-              tone: PaymentPillTone.neutral,
+              tone: AppPillTone.neutral,
             ),
           ],
         ),
