@@ -335,7 +335,9 @@ class AppStrings {
 
   static String monthsInYear(String months, int year) => '$months de $year';
 
-  static String monthsListed(String head, String last) => '$head y $last';
+  static String listed(String head, String last) => '$head y $last';
+
+  static String monthsListed(String head, String last) => listed(head, last);
 
   static String monthsRange(int count, String from, String to) =>
       '$count meses, de $from a $to';

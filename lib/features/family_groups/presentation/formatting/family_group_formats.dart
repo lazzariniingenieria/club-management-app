@@ -31,7 +31,7 @@ abstract final class FamilyGroupFormats {
 
     final head = names.sublist(0, names.length - 1).join(', ');
 
-    return AppStrings.monthsListed(head, names.last);
+    return AppStrings.listed(head, names.last);
   }
 
   static String namesInLines(List<Member> members) =>

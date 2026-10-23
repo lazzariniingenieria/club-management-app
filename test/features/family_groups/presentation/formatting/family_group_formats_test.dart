@@ -43,6 +43,22 @@ void main() {
     );
   });
 
+  test('lists names with commas and a final "y"', () {
+    final laura = _member('Laura', 'Gómez');
+    final tomas = _member('Tomás', 'Gómez');
+    final ana = _member('Ana', 'Gómez');
+
+    expect(FamilyGroupFormats.namesList([laura]), 'Laura Gómez');
+    expect(
+      FamilyGroupFormats.namesList([laura, tomas]),
+      'Laura Gómez y Tomás Gómez',
+    );
+    expect(
+      FamilyGroupFormats.namesList([laura, tomas, ana]),
+      'Laura Gómez, Tomás Gómez y Ana Gómez',
+    );
+  });
+
   test('suggests a name from the member surname', () {
     expect(
       FamilyGroupFormats.defaultName(_member('Marcos', 'Gómez')),
