@@ -1,3 +1,4 @@
+import '../../../../core/network/money_json.dart';
 import '../../domain/entities/club.dart';
 
 class ClubModel extends Club {
@@ -13,16 +14,14 @@ class ClubModel extends Club {
     return ClubModel(
       id: (json[_idKey] as num).toInt(),
       name: json[_nameKey] as String,
-      monthlyFeeCents: fee == null ? null : (fee * 100).round(),
+      monthlyFeeCents: fee == null ? null : centsFromJson(fee),
     );
   }
 
   static Map<String, dynamic> bodyForMonthlyFee(int? monthlyFeeCents) {
     return {
-      _monthlyFeeKey: monthlyFeeCents == null ? null : _amountOf(monthlyFeeCents),
+      _monthlyFeeKey:
+          monthlyFeeCents == null ? null : amountToJson(monthlyFeeCents),
     };
   }
-
-  static num _amountOf(int cents) =>
-      cents % 100 == 0 ? cents ~/ 100 : cents / 100;
 }

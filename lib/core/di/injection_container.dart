@@ -216,7 +216,9 @@ void _registerPaymentDomain() {
     () => PaymentRepositoryImpl(remoteDataSource: sl(), logger: sl()),
   );
 
-  sl.registerLazySingleton(() => LoadMemberLedgerUseCase(sl()));
+  sl.registerLazySingleton(
+    () => LoadMemberLedgerUseCase(payments: sl(), club: sl()),
+  );
   sl.registerLazySingleton(() => RegisterPaymentUseCase(sl()));
   sl.registerLazySingleton(() => VoidPaymentUseCase(sl()));
   sl.registerLazySingleton(() => WatchPaymentChangesUseCase(sl()));

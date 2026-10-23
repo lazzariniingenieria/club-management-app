@@ -44,11 +44,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
   final ApiWriter _writer;
 
   static const String _logContext = 'PaymentRemoteDataSource';
-  static const String _monthlyFeeKey = 'monthlyFeeAmount';
 
   @override
   Future<MemberLedgerModel> fetchLedger(int memberId) async {
-    final monthlyFee = _readMonthlyFeeCents();
     final responses = await _listReader.readLists(
       paths: [
         ApiConstants.members,
@@ -64,7 +62,6 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         members: responses[0],
         delinquency: responses[1],
         payments: responses[2],
-        monthlyFeeCents: await monthlyFee,
       ),
     );
   }
@@ -104,26 +101,6 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
       ApiConstants.paymentVoiding(paymentId),
       body: reason == null ? null : {PaymentModel.reasonKey: reason},
     );
-  }
-
-  Future<int?> _readMonthlyFeeCents() async {
-    try {
-      return await _objectReader.readObject(
-        path: ApiConstants.currentClub,
-        build: (club) {
-          final amount = club[_monthlyFeeKey] as num?;
-
-          return amount == null ? null : PaymentModel.centsFrom(amount);
-        },
-      );
-    } catch (error) {
-      _logger.warning(
-        'Monthly fee unavailable, the amount starts empty: $error',
-        context: _logContext,
-      );
-
-      return null;
-    }
   }
 
   Future<T> _parsed<T>(Future<T> Function() build) =>
