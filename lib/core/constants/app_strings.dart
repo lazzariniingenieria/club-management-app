@@ -14,14 +14,26 @@ class AppStrings {
   static const String loginInvalidCredentials =
       'DNI o contraseña incorrectos. Verificá los datos e intentá de nuevo.';
   static const String loginInvalidData = 'Revisá los datos ingresados.';
-  static const String loginNetworkError =
+  static const String networkErrorMessage =
       'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
-  static const String loginServerError =
+  static const String serverErrorMessage =
       'Tuvimos un problema. Intentá de nuevo en unos minutos.';
+  static const String loginNetworkError = networkErrorMessage;
+  static const String loginServerError = serverErrorMessage;
 
   static const String loginSubmitButton = 'Ingresar';
   static const String loginForgotPassword = '¿Olvidaste tu contraseña?';
   static const String loginFirstTimeUser = 'Es mi primera vez aquí';
+  static const String forgotPasswordTitle = '¿Olvidaste tu contraseña?';
+  static const String forgotPasswordNoEmail =
+      'La app no puede enviarte una contraseña nueva por email.';
+  static const String forgotPasswordAskAdmin =
+      'Si sos administrador, pedile al administrador principal del club que te asigne una contraseña nueva desde Administradores. Después podés cambiarla desde tu Perfil.';
+  static const String forgotPasswordMember =
+      'Si sos socio, todavía no se puede recuperar desde la app: consultá en la administración del club.';
+  static const String forgotPasswordMainAccount =
+      'Si sos el administrador principal, comunicate con quien mantiene el sistema del club.';
+  static const String forgotPasswordBack = 'Volver al ingreso';
   static const String loginSessionExpiredTitle = 'Tu sesión venció';
   static const String loginSessionExpiredMessage =
       'Por seguridad cerramos la sesión. Ingresá de nuevo para continuar.';
@@ -192,6 +204,8 @@ class AppStrings {
   static const String ledgerMissingMessage =
       'Ya no figura en el padrón del club. No se registró ningún pago. Volvé al listado para ver los datos actualizados.';
   static const String ledgerMissingAction = 'Volver a Pagos';
+  static const String familyGroupMemberMissingMessage =
+      'Ya no figura en el padrón del club. Volvé para ver los datos actualizados.';
   static const String ledgerNewTag = 'NUEVO';
 
   static String ledgerLastPaid(String month) => 'Último mes pago: $month';
@@ -327,7 +341,9 @@ class AppStrings {
 
   static String monthsInYear(String months, int year) => '$months de $year';
 
-  static String monthsListed(String head, String last) => '$head y $last';
+  static String listed(String head, String last) => '$head y $last';
+
+  static String monthsListed(String head, String last) => listed(head, last);
 
   static String monthsRange(int count, String from, String to) =>
       '$count meses, de $from a $to';
@@ -335,18 +351,295 @@ class AppStrings {
   static String monthsSpread(int count, String from, String to) =>
       '$count meses, entre $from y $to';
 
+  static const String familyGroupSectionLabel = 'Grupo familiar';
+  static const String familyGroupNone = 'Sin grupo familiar';
+  static const String familyGroupNoneHint =
+      'Armalo si un familiar le paga la cuota.';
+  static const String familyGroupBuildAction = 'Armar grupo familiar';
+  static const String familyGroupFallbackName = 'Grupo familiar';
+  static const String familyGroupOpenHint = 'Ver grupo';
+
+  static String familyGroupWithOne(String name) => 'Con $name';
+
+  static String familyGroupWithTwo(String first, String second) =>
+      'Con $first y $second';
+
+  static String familyGroupWithThree(
+    String first,
+    String second,
+    String third,
+  ) =>
+      'Con $first, $second y $third';
+
+  static String familyGroupWithMore(String first, String second, int more) =>
+      'Con $first, $second y $more más';
+
+  static String familyGroupMemberCount(int count) =>
+      count == 1 ? '1 integrante' : '$count integrantes';
+
+  static String familyGroupDefaultName(String lastName) => 'Familia $lastName';
+
+  static const String familyGroupPickerBuildTitle = 'Armar grupo familiar';
+  static const String familyGroupPickerAddTitle = 'Sumar al grupo';
+  static const String familyGroupPickerHint =
+      'Solo socios activos. Si alguno ya está en otro grupo, lo vas a ver indicado.';
+  static const String familyGroupPickerOthers = 'OTROS SOCIOS';
+  static const String familyGroupPickerEmptyHint =
+      'Revisá cómo se escribe o buscá por DNI. Un socio dado de baja hay que reactivarlo antes de sumarlo.';
+  static const String familyGroupPickerNoCandidates =
+      'No hay otros socios activos para sumar.';
+  static const String familyGroupPickerErrorTitle =
+      'No pudimos cargar los socios';
+
+  static String familyGroupPickerBuildPrompt(String memberName) =>
+      '¿Con quién arma el grupo $memberName?';
+
+  static String familyGroupPickerAddPrompt(String groupName) =>
+      '¿A quién sumás a $groupName?';
+
+  static String familyGroupPickerSameSurname(int count) =>
+      'MISMO APELLIDO · $count';
+
+  static String familyGroupMembershipChip(String groupName) => 'En $groupName';
+
+  static String familyGroupPickerEmpty(String query) =>
+      'No encontramos socios activos con «$query»';
+
+  static const String familyGroupConfirmBuildTitle = 'Armar el grupo familiar';
+  static const String familyGroupRowMembers = 'Integrantes';
+  static const String familyGroupRowGroup = 'Grupo';
+  static const String familyGroupRowCurrentMembers = 'Integrantes hoy';
+  static const String familyGroupRowJoining = 'Se suma';
+  static const String familyGroupRowAlreadyIn = 'Ya está';
+  static const String familyGroupRowMissing = 'Falta sumar';
+  static const String familyGroupNameLabel = 'Nombre del grupo (opcional)';
+  static const String familyGroupNameHelp = 'Podés dejarlo vacío.';
+  static const String familyGroupIndividualFeePair =
+      'Cada uno sigue pagando su propia cuota. Lo que cambia: cualquiera de los dos puede pagar la del otro.';
+  static const String familyGroupIndividualFeeGroup =
+      'Cada uno sigue pagando su propia cuota. Lo que cambia: cualquiera del grupo puede pagar la de otro.';
+  static const String familyGroupBuildConfirm = 'Armar grupo';
+  static const String familyGroupJoinConfirm = 'Sumar al grupo';
+  static const String familyGroupOfflineTitle = 'Sin conexión.';
+  static const String familyGroupBuildOffline =
+      'No se armó el grupo. Revisá la conexión y probá de nuevo: lo que cargaste queda igual.';
+  static const String familyGroupServerTitle = 'No pudimos guardar el cambio.';
+  static const String familyGroupServerMessage =
+      'El sistema del club tuvo un problema. Probá de nuevo en unos minutos.';
+  static const String familyGroupPartialTitle = 'Falta un paso.';
+  static const String familyGroupUnconfirmedTitle =
+      'No sabemos si el grupo se creó.';
+  static const String familyGroupUnconfirmedMessage =
+      'El sistema del club no respondió a tiempo. Si reintentás, puede quedar un grupo vacío sin usar, que no afecta a nadie.';
+
+  static String familyGroupConfirmJoinTitle(String member, String group) =>
+      '¿Sumar a $member a $group?';
+
+  static String familyGroupBuilt(String relative) =>
+      'Grupo familiar armado con $relative';
+
+  static String familyGroupJoined(String member, String group) =>
+      '$member se sumó a $group';
+
+  static String familyGroupBuildPartial(String names) =>
+      'El grupo se creó, pero no pudimos sumar a $names. Reintentá para terminar: no se crea otro grupo.';
+
+  static const String familyGroupScreenTitle = 'Grupo familiar';
+  static const String familyGroupEditNameAction = 'Editar nombre del grupo';
+  static const String familyGroupNote =
+      'Cada integrante paga su propia cuota. Al registrar un pago, cualquiera del grupo puede figurar como quien pagó.';
+  static const String familyGroupSingleMemberNote =
+      'Este grupo tiene un solo integrante. Sumá a un familiar para que puedan pagarse la cuota entre ellos.';
+  static const String familyGroupEmptyTitle = 'Este grupo no tiene integrantes';
+  static const String familyGroupEmptyHint = 'Sumá a los socios de la familia.';
+  static const String familyGroupAddAction = 'Sumar integrante';
+  static const String familyGroupRemoveTooltip = 'Quitar del grupo';
+  static const String familyGroupDeleteAction = 'Eliminar grupo';
+  static const String familyGroupDeleteUnavailable =
+      'Eliminar un grupo todavía no está disponible. Mientras tanto, podés quitar a cada integrante.';
+  static const String familyGroupLoadOfflineMessage =
+      'No pudimos cargar el grupo familiar. Revisá la conexión y probá de nuevo.';
+  static const String familyGroupLoadServerTitle = 'No pudimos cargar el grupo';
+  static const String familyGroupMissingTitle = 'No encontramos este grupo';
+  static const String familyGroupMissingMessage =
+      'Puede que lo hayan eliminado. Volvé para ver los datos actualizados.';
+  static const String familyGroupOfflineAction =
+      'Sin conexión. No se guardó el cambio: revisá la conexión y probá de nuevo.';
+
+  static String familyGroupMembersSection(int count) => 'INTEGRANTES · $count';
+
+  static String familyGroupRemoveSemantics(String member) =>
+      'Quitar a $member del grupo';
+
+  static String familyGroupMemberAdded(String member) =>
+      '$member se sumó al grupo';
+
+  static String familyGroupMemberRemoved(String member) =>
+      '$member ya no está en el grupo';
+
+  static const String familyGroupNameSheetTitle = 'Nombre del grupo';
+  static const String familyGroupNameSheetLabel = 'Nombre (opcional)';
+  static const String familyGroupNameSheetHelp =
+      'Si lo dejás vacío, se muestra como «Grupo familiar».';
+  static const String familyGroupNameSave = 'Guardar';
+  static const String familyGroupNameSaved = 'Nombre del grupo actualizado';
+
+  static const String familyGroupMoveConfirm = 'Pasar de grupo';
+  static const String familyGroupRemoveMessage =
+      'Sigue siendo socio y sus pagos no cambian. Vas a poder volver a sumarlo cuando quieras.';
+  static const String familyGroupRemoveConfirm = 'Quitar';
+
+  static String familyGroupMoveTitle(String member, String group) =>
+      '¿Pasar a $member a $group?';
+
+  static String familyGroupMoveMessage(String currentGroup) =>
+      'Hoy está en $currentGroup y va a dejar ese grupo. Sus pagos no cambian.';
+
+  static String familyGroupRemoveTitle(String member) =>
+      '¿Quitar a $member del grupo?';
+
+  static const String reportTitle = 'Reporte de cuotas cobradas';
+  static const String reportPeriodQuestion = '¿De qué período?';
+  static const String reportModeSingle = 'Un mes';
+  static const String reportModeRange = 'Varios meses';
+  static const String reportMonthLabel = 'Mes';
+  static const String reportFromLabel = 'Desde';
+  static const String reportToLabel = 'Hasta';
+  static const String reportScopeNote =
+      'Arma las tabletas para imprimir y recortar: una por grupo familiar y mes cubierto (o por socio, si no tiene grupo), con lo cobrado en el período por fecha de cobro. No incluye pagos anulados.';
+  static const String reportInvalidRange =
+      'El mes «Desde» tiene que ser anterior o igual a «Hasta».';
+  static const String reportGenerate = 'Generar PDF';
+  static const String reportGenerating = 'Generando el PDF…';
+  static const String reportReadyTitle = 'Tabletas listas';
+  static const String reportReadyHint =
+      'Cada tableta sale dos veces, lado a lado, con líneas de corte.';
+  static const String reportShare = 'Compartir PDF';
+  static const String reportPreview = 'Ver o imprimir';
+  static const String reportEmpty =
+      'No hubo cobros en ese período, así que no hay tabletas para imprimir.';
+  static const String reportOfflineTitle = 'Sin conexión.';
+  static const String reportOffline =
+      'No pudimos generar el PDF. Revisá la conexión y probá de nuevo.';
+  static const String reportTimeoutTitle = 'El PDF tardó demasiado.';
+  static const String reportTimeout =
+      'El servidor tardó demasiado en armar el PDF. Probá con menos meses o de nuevo en un rato.';
+  static const String reportServerTitle = 'No pudimos generar el PDF.';
+  static const String reportServer =
+      'El sistema del club tuvo un problema. Probá de nuevo en unos minutos.';
+  static const String reportExportFailed =
+      'No pudimos abrir el PDF en este dispositivo. Probá de nuevo.';
+
+  static String reportPeriodRange(String from, String to) => 'De $from a $to';
+
   static const String adminCourtsTitle = 'Canchas';
   static const String adminCourtsPending =
       'La gestión de canchas se habilita junto con la agenda de reservas.';
 
   static const String adminAdminsTitle = 'Administradores';
-  static const String adminAdminsPending =
-      'El alta, edición y baja de administradores se habilita en una próxima entrega.';
+  static const String adminsNew = 'Nuevo administrador';
+  static const String adminsEmptyTitle = 'Todavía no hay administradores';
+  static const String adminsEmptyHint =
+      'Sumá a quienes cobran las cuotas: cada uno entra con su DNI y la contraseña que le asignes.';
+  static const String adminsErrorTitle =
+      'No pudimos cargar los administradores';
+  static const String adminRowNoEmail = 'Sin email';
+  static const String adminReactivateShort = 'Reactivar';
+  static const String adminFormCreateTitle = 'Nuevo administrador';
+  static const String adminFormEditTitle = 'Editar administrador';
+  static const String adminFormDni = 'DNI';
+  static const String adminFormEmail = 'Email (opcional)';
+  static const String adminFormPassword = 'Contraseña inicial';
+  static const String adminFormPasswordHelp =
+      'Entre 8 y 100 caracteres. Pasásela a la persona por un canal seguro.';
+  static const String adminFormMember = 'Socio vinculado (opcional)';
+  static const String adminFormNoMember = 'Sin vincular';
+  static const String adminFormMemberPickerTitle = 'Elegí el socio vinculado';
+  static const String adminFormMemberTaken = 'Ya tiene una cuenta de administrador';
+
+  static String adminFormMemberEmpty(String query) =>
+      'No encontramos socios activos con «$query»';
+  static const String adminFormMemberHelp =
+      'Si además es socio del club, vinculalo para que figure con su nombre.';
+  static const String adminFormCreate = 'Crear administrador';
+  static const String adminFormSave = 'Guardar cambios';
+  static const String adminFormCreated = 'Administrador creado';
+  static const String adminFormUpdated = 'Cambios guardados';
+  static const String adminFormConflict =
+      'Ese DNI o ese socio ya los usa otra cuenta del club. Revisá los datos.';
+  static const String adminResetPassword = 'Restablecer contraseña';
+  static const String adminResetPasswordNotice =
+      'Sus sesiones abiertas se cierran solas en menos de una hora. Pasale la contraseña nueva por un canal seguro.';
+  static const String adminResetPasswordDone = 'Contraseña restablecida';
+  static const String adminDeactivate = 'Dar de baja';
+  static const String adminReactivate = 'Reactivar administrador';
+  static const String adminDeactivateMessage =
+      'No va a poder volver a ingresar. Si ahora tiene la app abierta, la sesión se le cierra sola en menos de una hora. Vas a poder reactivarlo cuando quieras.';
+  static const String adminUnsavedChangesLost =
+      'Los cambios sin guardar del formulario se descartan.';
+  static const String adminReactivateMessage =
+      'Va a poder volver a ingresar con su DNI y su contraseña.';
+  static const String adminDeactivated = 'Administrador dado de baja';
+  static const String adminReactivated = 'Administrador reactivado';
+
+  static String adminDeactivateTitle(String name) => '¿Dar de baja a $name?';
+
+  static String adminReactivateTitle(String name) => '¿Reactivar a $name?';
 
   static const String adminProfileTitle = 'Perfil';
   static const String adminProfilePending =
       'Los datos de la cuenta y el cambio de contraseña se habilitan en una próxima entrega.';
-  static const String adminProfileManageAdmins = 'Gestionar administradores';
+  static const String adminProfileManageAdmins = 'Administradores';
+  static const String profileAccountSection = 'Tu cuenta';
+  static const String profileRoleAdmin = 'Administrador';
+  static const String profileRoleSuperAdmin = 'Administrador principal';
+  static const String profileNotLinked =
+      'Esta cuenta no está vinculada a un socio.';
+  static const String profileClubSection = 'Club';
+  static const String profileMonthlyFeeLabel = 'Cuota mensual de referencia';
+  static const String profileMonthlyFeeUnset = 'Sin cargar';
+  static const String profileMonthlyFeeHelp =
+      'Es el importe que aparece precargado al registrar un pago. Cambiarla no modifica pagos ya registrados.';
+  static const String profileMonthlyFeeReadOnly =
+      'Solo el administrador principal puede cambiarla.';
+  static const String profileEditMonthlyFee = 'Editar cuota mensual';
+  static const String profileClubOffline =
+      'Sin conexión: no pudimos cargar los datos del club.';
+  static const String profileClubFailed =
+      'No pudimos cargar los datos del club.';
+  static const String profileSecuritySection = 'Sesión y seguridad';
+  static const String profileChangePassword = 'Cambiar contraseña';
+  static const String profileChangePasswordUnavailable =
+      'La contraseña de la cuenta principal todavía no se puede cambiar desde la app.';
+
+  static String profileLinkedMember(String name) => 'Socio: $name';
+
+  static const String passwordSheetTitle = 'Cambiar contraseña';
+  static const String passwordNewLabel = 'Contraseña nueva';
+  static const String passwordHelp = 'Entre 8 y 100 caracteres.';
+  static const String passwordBlank =
+      'La contraseña no puede ser solo espacios.';
+  static const String passwordTooShort =
+      'Tiene que tener al menos 8 caracteres';
+  static const String passwordTooLong = 'Puede tener hasta 100 caracteres';
+  static const String passwordChangeNotice =
+      'Al cambiarla se cierran tus sesiones abiertas y vas a ingresar de nuevo con la nueva.';
+  static const String passwordChangeAction = 'Cambiar contraseña';
+  static const String passwordChangedTitle = 'Contraseña cambiada';
+  static const String passwordChangedMessage =
+      'Ingresá de nuevo con la contraseña nueva.';
+  static const String passwordChangedAction = 'Ir al ingreso';
+
+  static const String feeSheetTitle = 'Cuota mensual de referencia';
+  static const String feeSheetLabel = 'Cuota mensual';
+  static const String feeSheetHelp =
+      'Dejalo vacío si el club no tiene una cuota fija: el importe va a arrancar vacío al registrar un pago.';
+  static const String feeSaved = 'Cuota de referencia actualizada';
+  static const String saveAction = 'Guardar';
+  static const String saveFailedOffline =
+      'Sin conexión. No se guardó el cambio: revisá la conexión y probá de nuevo.';
+  static const String saveFailedServer =
+      'No pudimos guardar el cambio. El sistema del club tuvo un problema: probá de nuevo en unos minutos.';
 
   static const String memberSurfacePendingTitle = 'En preparación';
   static const String memberSurfacePendingMessage =

@@ -1,8 +1,17 @@
+import 'package:club_management_app/core/errors/exceptions.dart';
 import 'package:club_management_app/core/logging/app_logger.dart';
 import 'package:club_management_app/features/members/data/datasources/member_fake_data_source.dart';
 import 'package:club_management_app/features/members/data/repositories/member_repository_impl.dart';
 import 'package:club_management_app/features/members/domain/entities/member_draft.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class SlowFamilyGroupSource extends MemberFakeDataSource {
+  SlowFamilyGroupSource() : super(latency: Duration.zero);
+
+  @override
+  Future<void> assignFamilyGroup(int memberId, int familyGroupId) =>
+      throw ResponseTimeoutException('no answer');
+}
 
 class SilentLogger implements AppLogger {
   const SilentLogger();
@@ -77,6 +86,47 @@ void main() {
 
     expect(result.isLeft(), isTrue);
     expect(announcements, isEmpty);
+  });
+
+  test('a timed out write announces, it may have gone through', () async {
+    repository = MemberRepositoryImpl(
+      remoteDataSource: SlowFamilyGroupSource(),
+      logger: const SilentLogger(),
+    );
+    repository.rosterChanges.listen(announcements.add);
+
+    await repository.assignFamilyGroup(seeded.id, 2);
+    await settle();
+
+    expect(announcements, hasLength(1));
+  });
+
+  group('assigning a whole group announces once', () {
+    test('when every member went through', () async {
+      final assignment = await repository.assignFamilyGroupToAll([4, 5], 2);
+      await settle();
+
+      expect(assignment.assignedMemberIds, {4, 5});
+      expect(assignment.failure, isNull);
+      expect(announcements, hasLength(1));
+    });
+
+    test('when it stops half way, keeping who was assigned', () async {
+      final assignment =
+          await repository.assignFamilyGroupToAll([4, 999, 5], 2);
+      await settle();
+
+      expect(assignment.assignedMemberIds, {4});
+      expect(assignment.failure, isNotNull);
+      expect(announcements, hasLength(1));
+    });
+
+    test('never when the first one was rejected', () async {
+      await repository.assignFamilyGroupToAll([999, 4], 2);
+      await settle();
+
+      expect(announcements, isEmpty);
+    });
   });
 
   test('reading the roster announces nothing', () async {

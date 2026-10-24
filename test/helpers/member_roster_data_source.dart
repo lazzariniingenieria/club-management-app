@@ -6,6 +6,16 @@ import 'package:club_management_app/features/members/domain/entities/member_draf
 
 mixin _ReadOnlyMemberSource implements MemberRemoteDataSource {
   @override
+  Future<MemberModel> fetchMember(int memberId) async {
+    final roster = await fetchMembers();
+
+    return roster.firstWhere(
+      (member) => member.id == memberId,
+      orElse: () => throw NotFoundException('Unknown member $memberId'),
+    );
+  }
+
+  @override
   Future<void> createMember(MemberDraft draft) => _unsupported();
 
   @override
@@ -14,6 +24,13 @@ mixin _ReadOnlyMemberSource implements MemberRemoteDataSource {
   @override
   Future<void> setMemberActive(int memberId, {required bool isActive}) =>
       _unsupported();
+
+  @override
+  Future<void> assignFamilyGroup(int memberId, int familyGroupId) =>
+      _unsupported();
+
+  @override
+  Future<void> removeFromFamilyGroup(int memberId) => _unsupported();
 
   Future<void> _unsupported() =>
       throw UnsupportedError('This test source only serves reads');

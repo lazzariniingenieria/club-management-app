@@ -124,11 +124,7 @@ void main() {
     return PaymentRemoteDataSourceImpl(apiClient, const SilentLogger());
   }
 
-  ResponseBody respondWithLedger(
-    RequestOptions options, {
-    Map<String, dynamic> club = const {'monthlyFeeAmount': 15000.00},
-    int clubStatus = 200,
-  }) {
+  ResponseBody respondWithLedger(RequestOptions options) {
     final path = options.path;
     if (path == ApiConstants.members) return jsonListResponse(200, _members);
     if (path == ApiConstants.paymentDelinquency) {
@@ -137,13 +133,11 @@ void main() {
     if (path.startsWith('${ApiConstants.payments}/members/')) {
       return jsonListResponse(200, _history);
     }
-    if (path == ApiConstants.currentClub) return jsonResponse(clubStatus, club);
-
     return emptyResponse(404);
   }
 
   group('reading the ledger of a member', () {
-    test('asks for the roster, the mora, the history and the fee', () async {
+    test('asks for the roster, the mora and the history', () async {
       final dataSource = buildDataSource((options, _) {
         return respondWithLedger(options);
       });
@@ -153,7 +147,7 @@ void main() {
       expect(adapter.callsTo(ApiConstants.members), 1);
       expect(adapter.callsTo(ApiConstants.paymentDelinquency), 1);
       expect(adapter.callsTo(ApiConstants.memberPaymentHistory(1)), 1);
-      expect(adapter.callsTo(ApiConstants.currentClub), 1);
+      expect(adapter.callsTo(ApiConstants.currentClub), 0);
     });
 
     test('includes the voided payments in the history request', () {
@@ -163,7 +157,7 @@ void main() {
       );
     });
 
-    test('joins the member, the family group and the fee', () async {
+    test('joins the member and the family group', () async {
       final dataSource = buildDataSource((options, _) {
         return respondWithLedger(options);
       });
@@ -173,7 +167,6 @@ void main() {
       expect(ledger.member.fullName, 'Juan Álvarez');
       expect(ledger.member.daysOverdue, 43);
       expect(ledger.familyMembers.map((member) => member.id), [2]);
-      expect(ledger.monthlyFeeCents, 1500000);
       expect(ledger.lastPaidMonth, const BillingMonth(2026, 8));
       expect(ledger.nameOf(2), 'María Álvarez');
     });
@@ -184,27 +177,6 @@ void main() {
       });
 
       expect(dataSource.fetchLedger(99), throwsA(isA<NotFoundException>()));
-    });
-
-    test('a club without a fee still loads, with the amount empty', () async {
-      final dataSource = buildDataSource((options, _) {
-        return respondWithLedger(options, club: const {});
-      });
-
-      final ledger = await dataSource.fetchLedger(1);
-
-      expect(ledger.monthlyFeeCents, isNull);
-    });
-
-    test('a failing fee lookup does not block the ledger', () async {
-      final dataSource = buildDataSource((options, _) {
-        return respondWithLedger(options, clubStatus: 500);
-      });
-
-      final ledger = await dataSource.fetchLedger(1);
-
-      expect(ledger.monthlyFeeCents, isNull);
-      expect(ledger.payments, hasLength(1));
     });
 
     test('maps a connection failure to a network error', () {

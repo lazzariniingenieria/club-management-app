@@ -360,7 +360,10 @@ void main() {
       await bootClub(tester);
       await openLedgerOf(tester, 'Juan Zárate');
 
-      await tester.tap(find.byType(PaymentHistoryTile).first);
+      final lastPayment = find.byType(PaymentHistoryTile).first;
+      await tester.ensureVisible(lastPayment);
+      await tester.pumpAndSettle();
+      await tester.tap(lastPayment);
       await tester.pumpAndSettle();
       expect(
         find.text(AppStrings.paymentDetailTitle('agosto 2026')),
@@ -368,6 +371,11 @@ void main() {
       );
 
       await tester.tap(find.text(AppStrings.paymentDetailVoidAction));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> scrollLedgerToTop(WidgetTester tester) async {
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
       await tester.pumpAndSettle();
     }
 
@@ -404,6 +412,7 @@ void main() {
         find.text(AppStrings.paymentVoidReason('Socio equivocado')),
         findsOneWidget,
       );
+      await scrollLedgerToTop(tester);
       expect(find.text(AppStrings.ledgerLastPaid('julio 2026')), findsWidgets);
 
       await tester.pump(const Duration(seconds: 5));
@@ -416,6 +425,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.paymentVoidedTag), findsNothing);
+      await scrollLedgerToTop(tester);
       expect(
         find.text(AppStrings.ledgerLastPaid('agosto 2026')),
         findsWidgets,

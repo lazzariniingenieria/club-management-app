@@ -1,7 +1,6 @@
 import 'package:club_management_app/core/constants/app_strings.dart';
 import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
 import 'package:club_management_app/features/payments/presentation/formatting/payment_formats.dart';
-import 'package:club_management_app/features/payments/presentation/formatting/peso_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -76,28 +75,6 @@ void main() {
         ]),
         '4 meses, entre enero y diciembre 2026',
       );
-    });
-  });
-
-  group('showing pesos', () {
-    test('groups thousands and leaves whole pesos without decimals', () {
-      expect(PaymentFormats.pesos(1500000), r'$15.000');
-    });
-
-    test('shows cents with a comma and two digits', () {
-      expect(PaymentFormats.pesos(1500050), r'$15.000,50');
-      expect(PaymentFormats.pesos(1500005), r'$15.000,05');
-    });
-
-    test('nothing is zero pesos, and less than a peso keeps its zero', () {
-      expect(PaymentFormats.pesos(0), r'$0');
-      expect(PaymentFormats.pesos(5), r'$0,05');
-    });
-
-    test('reads exactly as the amount field shows it', () {
-      for (final cents in [0, 5, 1500000, 1500050, 1234567891]) {
-        expect(PaymentFormats.pesos(cents), '\$${PesoAmount.textFor(cents)}');
-      }
     });
   });
 }

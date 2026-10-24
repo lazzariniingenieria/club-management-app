@@ -4,7 +4,7 @@ Documento de referencia del frontend: **qué pantallas existen, cómo se navega,
 
 No define píxeles. Define estructura, flujos, estados y alcance por entrega.
 
-> **Estado al 2026-10-06.** La superficie del **administrador es el camino crítico**: se construye completa antes de la del socio, y va entregada hasta E4. La paleta de §7 y la navegación de §3.2 derivan de dos capturas de referencia; los hexadecimales están estimados visualmente y hay que confirmarlos.
+> **Estado al 2026-10-24.** La superficie del **administrador es el camino crítico**: se construye completa antes de la del socio. Entregada hasta E6 (PR #13); el Bloque 1 (E6.5, E7, E8, E10 y la parte informativa de E11) está en revisión en el PR #14 y cierra el resto del admin sin canchas. La paleta de §7 está confirmada en código (`AppColors`).
 >
 > **El contrato de la API no se documenta acá**: vive en [backend_api.md](backend_api.md), verificado contra `develop`. Este archivo manda en pantallas, flujos y entregas; ese otro manda en endpoints, shapes, errores y reglas del servidor.
 
@@ -14,7 +14,7 @@ No define píxeles. Define estructura, flujos, estados y alcance por entrega.
 
 | Principio | Implicancia concreta |
 | :--- | :--- |
-| **Pocos pasos** | Máximo 3 toques desde el Inicio hasta confirmar cualquier flujo principal. |
+| **Pocos pasos** | Máximo 3 toques desde el Inicio hasta confirmar cualquier flujo principal, salvo flujos especiales que realmente lo necesiten, con el motivo escrito en su sección (registrar un pago: 4, §4.2). |
 | **Íconos con etiqueta, según superficie** | **Socio**: nunca un ícono solo (uso esporádico, rango de edad amplio). **Admin**: se permite ícono-only en filas densas, con `Semantics(label:)`, `tooltip` y área táctil de 48×48. |
 | **Estado siempre explícito** | Nadie debe preguntarse "¿se guardó o no?". Confirmación textual, no solo cambio de color. |
 | **El color nunca solo** | Todo estado va acompañado de texto o ícono. Daltonismo y pantallas al sol en el predio. Los pares texto/fondo cumplen **WCAG AA** (§7). |
@@ -49,7 +49,7 @@ El **superAdmin comparte el shell del admin**: su único delta es la gestión de
 | Splash / Bootstrap | `/` | ✅ Implementada — resuelve sesión persistida y redirige (§3.1.1) |
 | Login | `/login` | ✅ Implementada |
 | Primer ingreso | `/login/activate` | A construir — CTA ya existe en `AppStrings.loginFirstTimeUser` |
-| Recuperar contraseña | `/login/forgot` | A construir — **pantalla informativa**, no formulario (§3.1.2) |
+| Recuperar contraseña | `/login/forgot` | ✅ Implementada — **pantalla informativa**, no formulario (§3.1.2) |
 
 #### 3.1.1 Splash — no es una pantalla instantánea
 
@@ -69,11 +69,11 @@ La regla de fondo: **el Splash nunca es una pantalla sin salida**. Cualquier ram
 
 El backend no expone ni va a exponer recuperación por email: **el reset de contraseña es una acción manual de un ADMIN o SUPER_ADMIN**, decisión de arquitectura ya tomada del lado de la API. La pantalla no puede ser un formulario de email porque no hay endpoint del otro lado.
 
-Se construye entonces como pantalla informativa: explica que un administrador del club puede restablecer la contraseña, muestra el canal de contacto y ofrece volver al login. Sin campo de email, sin botón "Enviar" — un formulario que no manda nada a ningún lado es peor que no tener la pantalla.
+Se construye entonces como pantalla informativa (E11, parte del Bloque 1): dice que la app no puede enviar una contraseña nueva por email y separa por quién la lee, porque la pantalla está antes del login y la ve cualquiera: *"Si sos administrador, pedile al administrador principal del club que te asigne una contraseña nueva desde Administradores. Después podés cambiarla desde tu Perfil."* (E8) y *"Si sos socio, todavía no se puede recuperar desde la app: consultá en la administración del club."* (no hay reset de socio, [backend_api.md](backend_api.md) §10); suma un aviso para el propio administrador principal, cuya contraseña se cambia en la base, y *Volver al ingreso*. El canal de contacto queda pendiente: la API no expone datos de contacto del club ([backend_api.md](backend_api.md) §10). Sin campo de email, sin botón "Enviar" — un formulario que no manda nada a ningún lado es peor que no tener la pantalla.
 
 ### 3.2 Shell del Administrador
 
-Bottom navigation navy, 3 items con ícono **y** etiqueta. Badge `RoleBadge` ("ADMINISTRADOR" / "SUPER ADMIN") en el header de toda pantalla del shell.
+Bottom navigation navy, 3 items con ícono **y** etiqueta. Badge `RoleBadge` ("ADMINISTRADOR" / "SUPER ADMIN") en el header de las **tres pantallas raíz** de los tabs. Las pantallas push muestran solo la flecha de volver y el título: con el badge, un título de dos palabras ya no entraba ("Registrar p…").
 
 | Tab | Ruta | Contenido |
 | :--- | :--- | :--- |
@@ -88,6 +88,9 @@ Rutas push, fuera de los tabs:
 | Pantalla | Ruta | Rol | Entrega |
 | :--- | :--- | :--- | :--- |
 | Alta / edición de socio | `/admin/members/new`, `/admin/members/:memberId/edit` | admin | E5 |
+| Grupo familiar | `/admin/family-groups/:familyGroupId` | admin | E6.5 |
+| Armar grupo familiar (elegir familiar) | `/admin/members/:memberId/family-group/new` | admin | E6.5 |
+| Sumar integrante | `/admin/family-groups/:familyGroupId/add` | admin | E6.5 |
 | Reporte de pagos | `/admin/payments/report` | admin | E10 |
 | Gestión de canchas | `/admin/courts` | admin | E9 |
 | Gestión de administradores | `/admin/admins` (+ `/new`, `/:adminId/edit`) | **superAdmin** | E8 |
@@ -142,11 +145,25 @@ Los contadores de los chips (§3.2.2) salen del mismo listado que ya está en me
 | Activo | "Activo" | `successSurface` / `successText` |
 | Inactivo | "Inactivo" | `disabledSurface` / `textSecondary` |
 
-Los dos ejes de estado siguen siendo independientes en el dominio (§9): `activo/inactivo` dice si sigue siendo socio, `al día/en mora` dice si la cuota está paga, y un socio puede estar activo y en mora a la vez. Lo que cambió es cómo se muestran: la mora se consulta entrando al chip "En mora", no leyendo fila por fila. **Consecuencia asumida**: en "Todos" no se distingue a simple vista quién debe. Si molesta en uso real, el badge combinado ("Activo · En mora") ya está diseñado y es un cambio de una sola función.
+Los dos ejes de estado siguen siendo independientes en el dominio (§9): `activo/inactivo` dice si sigue siendo socio, `al día/en mora` dice si la cuota está paga, y un socio puede estar activo y en mora a la vez. Lo que cambió es cómo se muestran: la mora se consulta entrando al chip "En mora", no leyendo fila por fila. **Consecuencia asumida**: en "Todos" no se distingue a simple vista quién debe. Si molesta en uso real, el badge combinado ("Activo · En mora") ya está diseñado y es un cambio de una sola función. El listado tampoco se ordena por días de mora ni los muestra, aunque V6 lo mencione: el chip "En mora" alcanza para el uso real (decisión del 22/10/2026).
 
 **Tres vacíos distintos, no uno** (§5): padrón sin socios, "ningún socio está en mora" y búsqueda sin resultados con acción "Limpiar búsqueda".
 
 **Acciones todavía no disponibles**: se dibujan en gris y, al tocarlas, explican en qué entrega se habilitan, en lugar de ocultarse. Así la pantalla tiene su forma definitiva y las filas no cambian de layout en cada entrega. Así se hizo con el FAB de alta y el lápiz hasta E5.
+
+#### 3.2.3 Perfil del administrador
+
+Tres bloques, de arriba abajo:
+
+| Bloque | Contenido |
+| :--- | :--- |
+| **Tu cuenta** | El rol ("Administrador" / "Administrador principal") y, si la cuenta está vinculada a un socio, su nombre y DNI. Si no, "Esta cuenta no está vinculada a un socio." No hay más datos: la API no expone la cuenta logueada ([backend_api.md](backend_api.md) §10) |
+| **Club** | Nombre del club y **cuota mensual de referencia** (`monthlyFeeAmount`), o "Sin cargar". El SUPER_ADMIN la edita desde un lápiz que abre una hoja con el mismo campo de importe que Registrar pago; vacío la borra. El ADMIN la ve con la nota "Solo el administrador principal puede cambiarla" hasta que la API le abra el `PATCH` |
+| **Sesión y seguridad** | *Cambiar contraseña*, *Administradores* (solo `canManageAdmins`) y *Cerrar sesión* |
+
+**Cambiar contraseña** pide solo la nueva (8 a 100 caracteres, con mostrar/ocultar): decisión de producto, tiene que ser simple. Al guardarla, la API revoca todas las sesiones de la cuenta, así que la app lo avisa antes ("Al cambiarla se cierran tus sesiones abiertas…") y después muestra "Contraseña cambiada. Ingresá de nuevo con la contraseña nueva." y cierra la sesión. Para el **SUPER_ADMIN** la acción se ve pero explica que todavía no se puede desde la app: el endpoint disponible no acepta su cuenta.
+
+Si el club no carga, el bloque Club muestra el aviso con *Reintentar* y el resto del Perfil sigue usable: cerrar sesión nunca depende de la red.
 
 ### 3.3 Shell del Socio
 
@@ -242,7 +259,7 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 - **Pie fijo** con *Registrar pago* (*Registrar primer pago* si no tiene ninguno).
 - Estados de §5: skeleton, sin conexión y error del servidor con *Reintentar*, y socio inexistente.
 
-**Anular un pago**: tocar una fila del historial abre el **detalle** (los mismos datos y quién lo cargó) con la acción *Anular pago*, que pide confirmación en una segunda hoja:
+**Anular un pago**: tocar una fila del historial abre el **detalle** (los mismos datos y la fecha de carga; quién lo cargó queda pendiente de backend, [backend_api.md](backend_api.md) §10) con la acción *Anular pago*, que pide confirmación en una segunda hoja:
 
 - Dice el efecto: *"Ese mes vuelve a figurar impago y la mora se recalcula. La anulación queda registrada y no se puede revertir: si fue un error, vas a tener que cargar el pago de nuevo."*
 - **Motivo opcional**, hasta 150 caracteres.
@@ -252,14 +269,99 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 
 **Los pagos anulados siguen en el historial**, tachados, con la marca *ANULADO*, la fecha y el motivo. Desaparecer sin rastro haría creer que nunca se cobró. Un pago anulado no se puede tocar ni des-anular.
 
+### 4.2.2 Grupos familiares
+
+```
+Cuotas del socio ──[card Grupo familiar]
+     │
+     ├─ sin grupo ──[Armar grupo familiar]──► Elegir familiar ──┬─ familiar sin grupo ──► Confirmar (grupo nuevo + nombre) ──┐
+     │                                                          └─ familiar con grupo ──► Confirmar (sumarse a su grupo)   ──┴► Cuotas (card con el grupo)
+     │
+     └─ con grupo ──► Grupo familiar ──┬─[lápiz]──────────► Nombre del grupo
+                                       ├─[Sumar integrante]─► Sumar al grupo ──(ya está en otro grupo)──► Pasar de grupo
+                                       ├─[quitar en la fila]─► Quitar integrante
+                                       ├─[fila]─────────────► Cuotas de ese integrante
+                                       └─[Eliminar grupo]───► Eliminar  (falta backend)
+```
+
+**Para qué existe el grupo**: solo para que un integrante pueda figurar como quien pagó la cuota de otro (*¿Quién pagó?* en Registrar pago, §4.2). **La cuota sigue siendo individual**: no hay abono familiar ni importe compartido, y la pantalla lo repite donde se arma o se mira un grupo, porque es la duda natural.
+
+**Se entra desde las cuotas del socio, no desde un listado de grupos.** Un grupo siempre se busca a partir de una persona ("¿con quién paga Marcos?"), y un listado de grupos mostraría para siempre los grupos que quedaron vacíos, porque la API no los borra. Las cuotas del socio son, en la práctica, su ficha: ya tienen al socio, su situación y su historial. Pagos, el alta y la edición de socio no cambian.
+
+**Card "Grupo familiar"** en las cuotas del socio, entre la situación de la cuota y el historial:
+
+| Caso | Qué muestra |
+| :--- | :--- |
+| Sin grupo | "Sin grupo familiar" + "Armalo si un familiar le paga la cuota." + botón secundario *Armar grupo familiar* |
+| Con grupo | Nombre del grupo, los otros integrantes ("Con Laura Gómez y Tomás Gómez"; con tres, los tres nombres; con más de tres, "Con Laura Gómez, Tomás Gómez y 2 más") y un chevron. Toda la card abre el grupo |
+| No se pudo leer el nombre | Igual que *con grupo*, con "Grupo familiar" como nombre. No es un error: el nombre es una comodidad y los integrantes ya están en el padrón cargado |
+| Socio inactivo | Igual. Se puede armar o editar su grupo; la nota de inactivo de §4.2 sigue en el pie |
+
+**Armar un grupo — tres toques desde las cuotas**: *Armar grupo familiar* → familiar → *Armar grupo*. No es un flujo principal desde el Inicio (se hace una vez por familia), así que el tope de §1 no aplica.
+
+- **Elegir familiar**: buscador con foco al entrar, **solo socios activos**, sin el propio socio. Dos grupos: **mismo apellido** primero (es el caso más común) y **otros socios** de la A a la Z. Si un socio ya está en un grupo, la fila lo dice con un chip ("En Familia Torres"). Búsqueda sin resultados: "No encontramos socios activos con «…»" + *Limpiar búsqueda*.
+- **Familiar sin grupo → grupo nuevo**. Hoja de confirmación con los dos integrantes, el campo **Nombre del grupo (opcional)** precargado con "Familia" y el apellido del socio, editable y borrable, y la nota de la cuota individual. *Armar grupo* crea el grupo y suma a los dos. Al terminar se vuelve a las cuotas con la card actualizada y un snackbar "Grupo familiar armado con Sofía Acosta".
+- **Familiar con grupo → sumarse a ese grupo**. Hoja con el grupo, quiénes están hoy y quién se suma, y *Sumar al grupo*. No hay campo de nombre, porque el grupo ya existe. Al terminar se vuelve a las cuotas con un snackbar ("Lucía Álvarez se sumó a Familia Álvarez").
+
+**Grupo familiar** (`/admin/family-groups/:familyGroupId`), de arriba abajo:
+
+- **Encabezado** con el nombre (o "Grupo familiar" si no tiene), la cantidad de integrantes y un lápiz que abre *Nombre del grupo*.
+- **Nota**: "Cada integrante paga su propia cuota. Al registrar un pago, cualquiera del grupo puede figurar como quien pagó."
+- **Integrantes**, ordenados por apellido y nombre: nombre, badge **Activo / Inactivo** y, a la derecha, *Quitar* (ícono con `tooltip` y `Semantics`, 48×48). Tocar el resto de la fila abre las cuotas de ese integrante. Un integrante dado de baja **sigue en el grupo** hasta que alguien lo quite.
+- **Eliminar grupo**, como acción de texto al pie de la lista. Hasta que exista el endpoint se dibuja en gris y, al tocarla, explica que todavía no está disponible (regla de §3.2.2).
+- **Pie fijo** con *Sumar integrante*.
+
+**Sumar integrante** reutiliza la pantalla de elegir familiar ("¿A quién sumás a Familia Gómez?"), sin los integrantes actuales. Elegir a alguien sin grupo lo suma directo, sin confirmación: es reversible con un toque. Elegir a alguien que ya está en otro grupo pide confirmación, porque lo saca de ese grupo: *"¿Pasar a Valeria Gómez a Familia Gómez? Hoy está en Familia Torres y va a dejar ese grupo. Sus pagos no cambian."*
+
+**Quitar** y **Eliminar** usan el diálogo estándar de bajas reversibles (§4.3), no el patrón de escribir el nombre:
+
+- Quitar: *"¿Quitar a Tomás Gómez del grupo? Sigue siendo socio y sus pagos no cambian. Vas a poder volver a sumarlo cuando quieras."*
+- Eliminar: *"¿Eliminar Familia Gómez? Los 4 integrantes siguen siendo socios, con todos sus pagos. Solo dejan de estar agrupados y ya no van a poder pagarse la cuota entre ellos."*
+
+**Casos límite**:
+
+| Caso | Tratamiento |
+| :--- | :--- |
+| Grupo con un solo integrante | Se permite (la API lo permite). La nota cambia a "Este grupo tiene un solo integrante. Sumá a un familiar para que puedan pagarse la cuota entre ellos." |
+| Grupo sin integrantes | Vacío con mensaje ("Este grupo no tiene integrantes") y el pie *Sumar integrante* |
+| Grupo inexistente (`404`) | "No encontramos este grupo" + *Volver*. Pasa con un id inválido o, cuando exista el borrado, con un grupo que eliminó otro admin |
+| Se quita al socio desde el que se entró | Se queda en el grupo, que ya no lo lista. Al volver, su card dice "Sin grupo familiar" |
+| Pagos viejos hechos por un ex integrante | No cambian: el historial sigue mostrando "Pagó Laura Gómez (familiar)", porque el nombre sale del padrón y no del grupo |
+| Armar a medias | Crear un grupo son tres llamadas sin transacción. Si una de las asignaciones falla, la hoja dice "El grupo se creó, pero no pudimos sumar a Sofía Acosta" y *Reintentar* repite **solo lo que falta**, sobre el mismo grupo. El progreso vive en la pantalla de *Elegir familiar*, no en la hoja: cerrarla con *Cancelar* y volver a elegir al mismo familiar retoma el mismo grupo. Elegir a otro familiar arranca de cero. Mientras guarda, la hoja no se cierra (ni *Cancelar*, ni atrás, ni tocar afuera) |
+| El servidor no respondió a tiempo al **crear** el grupo | El grupo pudo haberse creado o no, y la app no tiene forma de saberlo: recién creado no tiene integrantes y la API no devuelve nada para buscarlo. La hoja lo dice sin rodeos: "No sabemos si el grupo se creó. … Si reintentás, puede quedar un grupo vacío sin usar, que no afecta a nadie." **Limitación conocida**: hasta que exista crear un grupo con sus integrantes en una sola operación ([backend_api.md](backend_api.md) §10), un reintento después de ese timeout puede dejar un grupo vacío, invisible para la app |
+| Sin conexión / error del servidor al guardar | Aviso arriba de la hoja. Lo cargado (nombre incluido) queda igual. *Reintentar* |
+| El servidor no respondió a tiempo | Asignar y quitar son idempotentes: se relee el socio (al sumar, `GET /api/members/{id}`) o el grupo (al quitar) y, si el cambio ya figura, se da por hecho. Si no figura, se reintenta sin preguntar dos veces. Un timeout también avisa al padrón, porque el cambio pudo haber entrado |
+
+Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la nota y tres filas; sin conexión y error del servidor con *Reintentar*; vacío; inexistente. En *Elegir familiar*, el mismo skeleton de la pantalla de elegir socio (§4.2).
+
+**Cualquier admin o super admin** arma, edita y desarma grupos: no es una acción de SUPER_ADMIN.
+
+**Pantalla ancha (notebook)**: *Grupo familiar* se abre como panel de detalle a la derecha de las cuotas del socio, y *Elegir familiar* como diálogo centrado de hasta 560 dp. Las hojas inferiores pasan a diálogos. Nada cambia de contenido.
+
 ### 4.3 ABM de administradores (solo superAdmin)
 
 `Perfil → Administradores → [+ | lápiz | baja | reactivar] → Confirmar`
 
 - **La baja es lógica y reversible**, nunca un borrado.
+- **La baja no es inmediata** ([backend_api.md](backend_api.md) §5): el admin dado de baja no puede volver a ingresar, pero si tiene la app abierta sigue operando hasta que vence su access token (hasta 1 hora). Lo mismo con el reset de contraseña. El copy lo dice así, sin prometer un corte que la API no hace.
 - Por eso la confirmación es un diálogo estándar con copy claro — *"¿Dar de baja a Juan Pérez? Vas a poder reactivarlo cuando quieras."* — y **no** el patrón de escribir el nombre. Ese patrón se reserva para acciones genuinamente irreversibles; gastarlo en algo que se deshace con un tap es fricción sin contrapartida, y lo deja desgastado para el día que exista una acción que sí lo amerite.
 - Un admin dado de baja sigue en el listado, marcado como inactivo, con la acción de reactivar en su fila. Desaparecer de la lista al desactivar hace creer que se borró.
 - **No hace falta lógica defensiva contra la auto-baja del superAdmin**: el listado de la API nunca devuelve esa cuenta, así que no existe la fila que se podría tocar por error.
+
+**Listado** (`/admin/admins`): activos primero y después los dados de baja. Dentro de cada bloque, los vinculados a un socio por apellido y nombre (sin acentos) y al final los sin vincular por DNI numérico: el orden sigue lo que se ve en la fila. Cada fila muestra el nombre del socio vinculado o, si no tiene, "DNI 30.222.333"; el email (o "Sin email") y el badge Activo / Inactivo. Tocar la fila abre la edición; las filas dadas de baja suman *Reactivar*. FAB extendido *Nuevo administrador*. Estados de §5: skeleton, vacío con mensaje y error con *Reintentar*.
+
+**Alta y edición** (`/admin/admins/new`, `/admin/admins/:adminId/edit`), con etiquetas visibles en cada campo:
+
+| Campo | Regla |
+| :--- | :--- |
+| DNI | Requerido, solo números, hasta 20; se agrupa con puntos y viaja sin ellos |
+| Email (opcional) | Formato y hasta 150 |
+| Contraseña inicial | Solo en el alta, 8 a 100 caracteres, con mostrar/ocultar. La define el SUPER_ADMIN: la API no genera ninguna |
+| Socio vinculado (opcional) | Campo que abre una hoja con buscador y lista perezosa sobre los socios activos (más el vinculado, si está inactivo) y "Sin vincular". Los socios ya vinculados a otra cuenta se ven deshabilitados con "Ya tiene una cuenta de administrador", para no terminar en un `409` evitable |
+
+**La edición manda siempre `memberId`** (o `null` si se eligió "Sin vincular"): un `PATCH` sin el campo desvincula al admin de su socio ([backend_api.md](backend_api.md) §9). El `409` puede ser DNI repetido o socio ya vinculado a otra cuenta y la API no los distingue sin leer el `message`, así que el formulario avisa arriba "Ese DNI o ese socio ya los usa otra cuenta del club" y conserva lo cargado.
+
+En la edición, debajo del botón de guardar: **Restablecer contraseña** (hoja con la contraseña nueva y el aviso de que sus sesiones se cierran solas en menos de una hora) y **Dar de baja / Reactivar** con el diálogo estándar. Restablecer es lo que hace posible la pantalla de Recuperar contraseña (§3.1.2).
 
 ### 4.4 Reservar una cancha (admin)
 
@@ -279,7 +381,12 @@ Si el bloqueo pisa reservas existentes, la confirmación **debe listar las reser
 
 `Generar reporte → período (un mes o un rango de fechas) → PDF`
 
-Un PDF con **todos los pagos registrados en el período**: fecha, socio, mes cubierto, importe, medio y quién pagó, con el total al pie. Lo arma la app con la búsqueda de pagos, que existe pero filtra por mes cubierto y no por fecha de cobro ([backend_api.md](backend_api.md) §6 y §10). Los pagos anulados no entran. La entrada al reporte se define con el diseño de E10.
+**El PDF lo genera el backend** (`GET /api/payments/receipts`, [backend_api.md](backend_api.md) §6): son las **tabletas** que hoy el admin arma a mano en Excel para imprimir y recortar, una por grupo familiar y mes cubierto (o por socio si no tiene grupo), con cada socio que pagó ese mes, su importe y el total; cada tableta sale dos veces lado a lado, con líneas de corte. La app elige el período, baja el PDF y lo comparte o imprime.
+
+- **Entrada**: ícono de PDF con `tooltip` "Reporte de cuotas cobradas" en la barra superior de Pagos (`/admin/payments/report`). Ícono solo, como permite §1 para el admin, para no quitarle lugar al título.
+- **Período por fecha de cobro**: *Un mes* o *Varios meses* (desde / hasta) entre los últimos 24 meses. La app lo traduce a días (`paidFrom` = día 1 del primer mes, `paidTo` = último día del último mes). Se eligen meses y no días sueltos porque así rinde el club, y porque el selector de fechas de Flutter sale en inglés mientras la app no tenga la localización en español. Un rango invertido se explica en el campo y deshabilita *Generar PDF*.
+- **Estados**: generando (botón con progreso y "Generando el PDF…"; el modo y los meses quedan bloqueados hasta que responda, y una respuesta de un período que ya no está elegido se descarta), listo ("Tabletas listas", el período, *Compartir PDF* y *Ver o imprimir*), **sin cobros** (el `204`: "No hubo cobros en ese período, así que no hay tabletas para imprimir"), error sin conexión o del servidor, y **el servidor tardó demasiado** (el PDF tiene 60 s de espera, no los 15 s generales; si igual no alcanza, "Probá con menos meses o de nuevo en un rato" en lugar de "sin conexión"). Si el dispositivo no puede abrir o compartir el PDF, un snackbar lo dice.
+- El archivo conserva el nombre que manda el backend (`cuotas-cobradas-2026-10-01-al-2026-10-31.pdf`).
 
 ---
 
@@ -320,6 +427,11 @@ GoRouter
 │   ├── /admin/members/new, /admin/members/:memberId/edit  ← se suman en E5
 │   ├── /admin/payments/new                            ← elegir socio (E6)
 │   ├── /admin/members/:memberId/payments  (+ /new)    ← cuotas y registro (E6)
+│   ├── /admin/members/:memberId/family-group/new      ← armar grupo (E6.5)
+│   ├── /admin/family-groups/:familyGroupId  (+ /add)  ← grupo y sumar integrante (E6.5)
+
+
+Una ruta con un `:familyGroupId` que no es un número vuelve a Pagos, igual que con `:memberId`.
 │   ├── /admin/payments/report                        ← se suma en E10
 │   ├── /admin/courts
 │   └── /admin/admins   (+ /new, /:adminId/edit)      ← solo superAdmin
@@ -349,7 +461,7 @@ Esto requiere un `AuthBloc` de sesión, separado del `LoginCubit` de formulario 
 
 ## 7. Dirección visual
 
-Paleta derivada de las capturas. **Valores estimados visualmente, a confirmar.**
+Paleta derivada de las capturas, confirmada en `AppColors`.
 
 | Token | Hex | Uso |
 | :--- | :--- | :--- |
@@ -401,12 +513,13 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E3 | Inicio del Administrador | — | ✅ Entregada |
 | E4 | Pagos: padrón de socios, búsqueda, chips y selección para el reporte | — | ✅ Entregada |
 | E5 | Alta y edición de socio | No bloquea | ✅ Entregada — sin el scroll al socio recién creado (§4.1) |
-| E6 | Registrar un pago, cuotas del socio y anulación, sobre el listado de E4 | No bloquea | 🚧 En revisión |
-| E7 | Perfil del admin + cambiar contraseña + logout | **Sí** | — |
-| E8 | ABM de administradores (superAdmin) | No bloquea | — |
+| E6 | Registrar un pago, cuotas del socio y anulación, sobre el listado de E4 | No bloquea | ✅ Entregada |
+| E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar | No bloquea (eliminar grupo: **Sí**) | 🚧 En revisión (PR #14) |
+| E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | No bloquea (SUPER_ADMIN y cuota por ADMIN: **Sí**) | 🚧 En revisión (PR #14) |
+| E8 | ABM de administradores (superAdmin) | No bloquea | 🚧 En revisión (PR #14) |
 | E9 | Agenda / Reservas + canchas + bloqueos | **Bloqueada** | — |
-| E10 | Reporte de pagos en PDF, por período | **Bloqueada** | — |
-| E11 | Recuperar contraseña (informativa) + primer ingreso | **Sí** | — |
+| E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | **Sí**: merge de `feature/add-fee-receipt-report` | 🚧 En revisión (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el backend mergee `feature/add-fee-receipt-report` |
+| E11 | Recuperar contraseña (informativa) + primer ingreso | Primer ingreso: **Sí** | Recuperar contraseña 🚧 En revisión (PR #14); primer ingreso en el Bloque 2 |
 | E12+ | Superficie del socio completa | **Bloqueada** | — |
 
 ### E1 — Migración de paleta y theming
@@ -498,6 +611,52 @@ La primera escritura que mueve plata. Las pantallas y sus decisiones están en �
 - El `404` de la API pasa a tener su propia falla (`NotFoundFailure`) en lugar de caer como error genérico del servidor.
 
 **Terminado cuando**: se puede cobrar desde el Inicio en cuatro toques y desde la fila del socio, anular un pago desde su historial, los cinco casos de error de §4.2 conservan lo cargado, un mes ya pago no se cobra dos veces, Pagos refleja la mora nueva al volver, y hay tests de dominio, del mapeo DTO ↔ dominio, de los dos Cubits y del flujo completo en pantalla.
+
+### E7 — Perfil del administrador y cuota de referencia
+
+Las pantallas están en §3.2.3.
+
+- **Feature `club`**: `GET` y `PATCH /api/clubs/me`. La cuota viaja en pesos y se modela en centavos, igual que los pagos, con la misma conversión (`core/network/money_json.dart`). Es el único lector de `/clubs/me`: las cuotas del socio toman la cuota de referencia de `ClubRepository` en `LoadMemberLedgerUseCase`, y si esa lectura falla el importe arranca vacío.
+- **Cambio de contraseña propio** sobre `PATCH /api/admins/{id}/password` con el `userAccountId` de la sesión: funciona para ADMIN y no pide la actual. `UserRole.canChangeOwnPassword` lo habilita solo para `admin`; `canEditClubFee`, la cuota solo para `superAdmin`. Un solo lugar cada una, como `canManageAdmins`.
+- El socio vinculado se lee con `GET /api/members/{id}` por `memberId`, sin bajar el padrón ni la mora del club. Si esa lectura falla, *Tu cuenta* lo omite y el resto del Perfil sigue usable.
+
+**Terminado cuando**: el ADMIN cambia su contraseña y vuelve al login; el SUPER_ADMIN edita y borra la cuota y la ve precargada al registrar un pago; un fallo del club no impide cerrar sesión; hay tests del mapeo de la cuota, de las reglas de contraseña y del Perfil por rol.
+
+### E8 — ABM de administradores (superAdmin)
+
+Las decisiones están en §4.3; el contrato, en [backend_api.md](backend_api.md) §5.
+
+- **Feature `admins`** con sus tres capas. El dominio normaliza `active` (booleano) contra el `MemberStatus` del socio solo en la vista, para reutilizar el mismo badge.
+- La lista cruza `GET /api/admins` con el padrón para mostrar el nombre del socio vinculado.
+- `AdminModel.bodyFromDraft` incluye `memberId` siempre; un test lo fija.
+- Fake con un admin suelto, uno vinculado a un socio y uno dado de baja; da `409` a DNI o socio repetidos.
+
+**Terminado cuando**: el SUPER_ADMIN crea, edita (sin perder el vínculo), da de baja, reactiva y restablece la contraseña de un admin; un ADMIN no llega a la ruta; el `409` se muestra sin perder el formulario; hay tests del mapeo, del fake y del flujo de alta.
+
+### E10 — Reporte de cuotas cobradas en PDF
+
+Las decisiones están en §4.6. **Depende de que se mergee `feature/add-fee-receipt-report` en el backend**: ni `develop` ni `main` (producción) tienen `GET /api/payments/receipts`, y una ruta sin handler probablemente vuelve `500` por el `@ExceptionHandler(Exception.class)` genérico. Por eso el reporte va detrás de un flag de compilación: con data sources remotos **se habilita con `--dart-define=FEE_RECEIPTS_ENABLED=true`** cuando el backend mergee esa rama; apagado, Pagos no muestra el ícono y `/admin/payments/report` redirige a Pagos. Con los fakes está siempre habilitado. Cuando el endpoint llegue a producción, el flag se saca en un PR aparte.
+
+- **Feature `reports`**: el dominio solo modela el período y el documento (bytes y nombre). El repositorio baja el PDF con `responseType: bytes`, lee el nombre del `Content-Disposition` y traduce el `204` a "sin cobros".
+- Compartir e imprimir con `printing`, detrás de una interfaz para probar el flujo sin el plugin. El fake devuelve un PDF mínimo de prueba.
+
+**Terminado cuando**: desde Pagos se baja el PDF de un mes y de un rango, se comparte y se imprime; un período sin cobros muestra el vacío y no un error; hay tests del período, del data source (query, nombre de archivo, `204`, `400`) y del flujo.
+
+### E6.5 — Grupos familiares
+
+El último requisito de la Etapa 1 de V6 sin pantalla. Las decisiones están en §4.2.2; el contrato, en [backend_api.md](backend_api.md) §5. Se numera E6.5 para no renumerar E7 a E12, que ya se citan en el código (`TODO(E11)`).
+
+- **Feature `family_groups`** con sus tres capas. El dominio expone `FamilyGroup` (`id`, `name` nullable) y un `displayName` que cae en "Grupo familiar" cuando no hay nombre.
+- **Endpoints**: `POST /api/family-groups`, `GET /api/family-groups/{id}`, `PATCH /api/family-groups/{id}`, `PATCH /api/members/{id}/family-group` con `{ "familyGroupId": … }` (requerido; si el socio ya estaba en otro grupo, lo mueve) y `DELETE /api/members/{id}/family-group` (idempotente: sin grupo devuelve `200` igual). Se suman a `api_constants.dart`.
+- **Elegir familiar** lee el padrón y `GET /api/family-groups` en paralelo: el listado de grupos solo pone nombre a los chips ("En Familia Torres"), nunca se muestra como lista.
+- **Integrantes = padrón filtrado por `familyGroupId`**. La API no los devuelve, así que *Grupo familiar* hace dos llamadas en paralelo (grupo y padrón) y las cuotas reutilizan el padrón que el ledger ya trae, más una sola llamada por el nombre.
+- **`PATCH` del grupo es reemplazo completo**: renombrar manda `name` siempre, y un campo vacío (o solo con espacios) se manda como `null`.
+- **Armar un grupo** = `POST` + dos `PATCH` de socio. El Cubit guarda el `familyGroupId` creado, así *Reintentar* completa solo las asignaciones que faltan.
+- **Toda asignación o quita avisa al padrón** (el mismo aviso de cambio que usan el alta y la baja), así Pagos, las cuotas y *¿Quién pagó?* quedan al día sin pull-to-refresh. Armar un grupo asigna a sus integrantes en lote (`MemberRepository.assignFamilyGroupToAll`) y avisa **una sola vez** al terminar, haya salido bien o a medias: cada aviso recarga el padrón y la mora en todas las pantallas que escuchan.
+- **Fake de grupos** coherente con el padrón fake (que ya trae `familyGroupId`): crea, renombra, asigna, mueve y quita; da `404` a un grupo inexistente.
+- `MemberListTile` suma una variante de acción a la derecha (editar, como hoy, o quitar), sin cambiar la fila de Pagos.
+
+**Terminado cuando**: desde las cuotas de un socio sin grupo se arma un grupo en tres toques; un socio se suma al grupo de un familiar y otro pasa de un grupo a otro con confirmación; se renombra y se quita un integrante; el grupo armado aparece en *¿Quién pagó?* al registrar un pago; armar a medias se completa con *Reintentar* sin duplicar el grupo, también después de cerrar la hoja; los estados de §5 se ven a 130 % y 200 % sin overflow; hay tests de dominio, del mapeo DTO ↔ dominio, de los Cubits y del flujo de armar en pantalla.
 
 El orden E4 → E5 → E6 → E10 es intencional: listado antes de escrituras, y el reporte al final porque lista los pagos que E6 registra y depende de un filtro que el backend todavía no tiene.
 

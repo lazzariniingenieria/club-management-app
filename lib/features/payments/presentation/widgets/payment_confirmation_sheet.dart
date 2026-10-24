@@ -4,11 +4,12 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/formatters/display_formats.dart';
+import '../../../../shared/widgets/app_notice.dart';
+import '../../../../shared/widgets/app_secondary_button.dart';
+import '../../../../shared/widgets/summary_table.dart';
 import '../cubit/payment_form.dart';
 import '../formatting/payment_formats.dart';
-import 'payment_notice.dart';
-import 'payment_secondary_button.dart';
-import 'payment_summary_table.dart';
 
 class PaymentConfirmationSheet extends StatelessWidget {
   final PaymentForm form;
@@ -26,7 +27,7 @@ class PaymentConfirmationSheet extends StatelessWidget {
     return confirmed ?? false;
   }
 
-  String get _total => PaymentFormats.pesos(form.totalCents);
+  String get _total => DisplayFormats.pesos(form.totalCents);
 
   @override
   Widget build(BuildContext context) {
@@ -47,9 +48,9 @@ class PaymentConfirmationSheet extends StatelessWidget {
               style: AppTextStyles.titleLarge,
             ),
             const SizedBox(height: AppSpacing.lg),
-            PaymentSummaryTable(rows: _rows(), total: _totalRow()),
+            SummaryTable(rows: _rows(), total: _totalRow()),
             const SizedBox(height: AppSpacing.lg),
-            const PaymentNotice(
+            const AppNotice(
               title: AppStrings.confirmPaymentNoticeTitle,
               message: AppStrings.confirmPaymentNotice,
             ),
@@ -59,7 +60,7 @@ class PaymentConfirmationSheet extends StatelessWidget {
               onPressed: () => Navigator.of(context).pop(true),
             ),
             const SizedBox(height: AppSpacing.sm),
-            PaymentSecondaryButton(
+            AppSecondaryButton(
               label: AppStrings.confirmPaymentBackAction,
               onPressed: () => Navigator.of(context).pop(false),
             ),
@@ -69,33 +70,33 @@ class PaymentConfirmationSheet extends StatelessWidget {
     );
   }
 
-  List<PaymentSummaryRow> _rows() {
+  List<SummaryRow> _rows() {
     final member = form.ledger.member;
 
     return [
-      PaymentSummaryRow(
+      SummaryRow(
         AppStrings.confirmPaymentMember,
         '${member.fullName}\n'
-        '${AppStrings.memberDni(PaymentFormats.dni(member.dni))}',
+        '${AppStrings.memberDni(DisplayFormats.dni(member.dni))}',
       ),
-      PaymentSummaryRow(
+      SummaryRow(
         AppStrings.confirmPaymentMonths,
         PaymentFormats.monthsSummary(form.selectedMonths),
       ),
-      PaymentSummaryRow(
+      SummaryRow(
         AppStrings.confirmPaymentAmount,
-        PaymentFormats.pesos(form.amountCents ?? 0),
+        DisplayFormats.pesos(form.amountCents ?? 0),
       ),
-      PaymentSummaryRow(
+      SummaryRow(
         AppStrings.confirmPaymentMethod,
         PaymentFormats.method(form.method),
       ),
-      PaymentSummaryRow(AppStrings.confirmPaymentPayer, _payerName()),
+      SummaryRow(AppStrings.confirmPaymentPayer, _payerName()),
     ];
   }
 
-  PaymentSummaryRow _totalRow() {
-    return PaymentSummaryRow(
+  SummaryRow _totalRow() {
+    return SummaryRow(
       AppStrings.confirmPaymentTotal(
         AppStrings.monthCount(form.selectedMonths.length),
       ),

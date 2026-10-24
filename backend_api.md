@@ -4,7 +4,7 @@ Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, 
 
 **Verificado contra** [`club-management-api`](https://github.com/lazzariniingenieria/club-management-api) `develop`, commit `02ff70e` — 2026-10-15.
 
-**Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/`, `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
+**Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/` (incluido `JwtAuthenticationFilter`), `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
 **Qué no va acá**: pantallas, flujos y entregas van en [app_flows.md](app_flows.md); reglas de código, en [CLAUDE.md](CLAUDE.md).
 
@@ -159,6 +159,8 @@ Todo lo demás sale con este envelope:
 
 **`PATCH`** recibe `firstName`, `lastName`, `dni` (requeridos), `phone` y `email`. **No toca `familyGroupId` ni `status`** — esos se mueven por sus endpoints.
 
+**`PATCH /{id}/family-group`** recibe `{ "familyGroupId": 7 }` (requerido → `400` si falta; `404` si el grupo no es del club). Si el socio ya estaba en otro grupo, **lo mueve** sin aviso. **`DELETE /{id}/family-group`** lo deja sin grupo y es idempotente: un socio sin grupo devuelve `200` igual. Ninguno de los dos mira `status`: se puede agrupar a un socio inactivo.
+
 ### Grupos familiares — `/api/family-groups`
 
 `POST` (`201`), `GET` listado, `GET /{id}` y `PATCH /{id}`. Respuesta: `{ id, name, createdAt, updatedAt, createdByUserId, updatedByUserId }`.
@@ -185,7 +187,7 @@ Todo lo demás sale con este envelope:
 
 **Dos fuentes de `409` acá**: DNI repetido, y `memberId` ya tomado por otra cuenta (`UNIQUE (member_id)`). Sin `code` estable (§4), distinguirlas obliga a leer el `message`. Un `memberId` que no es un socio del club da `404`.
 
-**`PATCH /api/admins/{id}/password`** — `{ "newPassword": "..." }`, de 8 a 100 caracteres. Es la única ruta de `/api/admins` abierta también a `ADMIN`, y el servidor **no verifica que sea la propia cuenta**: un admin puede resetear la contraseña de otro admin del club. Revoca todos los refresh tokens vivos de esa cuenta, así que sus sesiones abiertas caen en el próximo refresh. Devuelve el `AdminResponse`.
+**`PATCH /api/admins/{id}/password`** — `{ "newPassword": "..." }`, de 8 a 100 caracteres. Es la única ruta de `/api/admins` abierta también a `ADMIN`, y el servidor **no verifica que sea la propia cuenta**: un admin puede resetear la contraseña de otro admin del club. Revoca todos los refresh tokens vivos de esa cuenta, así que sus sesiones abiertas caen en el próximo refresh: **el access token vigente sigue valiendo hasta su `exp` (hasta 1 hora)**, porque `JwtAuthenticationFilter` solo valida firma y vencimiento. Devuelve el `AdminResponse`. Busca la cuenta con `role = ADMIN`, así que **con el id del SUPER_ADMIN da `404`**: si el SUPER_ADMIN olvida su contraseña, no hay endpoint y se cambia directamente en la base.
 
 ### Bajas lógicas
 
@@ -197,6 +199,8 @@ Nunca hay borrado físico, y los dos modelos son reversibles con `/reactivate`:
 | `user_account` (admin) | `active: false` |
 
 Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistinguible de una contraseña incorrecta (§3).
+
+**La baja de un admin no es inmediata.** `PATCH /api/admins/{id}/deactivate` solo pone `active = false`, sin revocar tokens, y `JwtAuthenticationFilter` no mira si la cuenta sigue activa. El admin dado de baja **sigue operando con su access token hasta que vence (hasta 1 hora)**: puede cobrar, anular pagos o editar socios. Recién en el próximo `/auth/refresh` recibe `401` y la sesión se cierra.
 
 ### Club — `/api/clubs/me`
 
@@ -222,6 +226,7 @@ Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistingui
 | `GET` | `/api/payments/members/{memberId}` | `200` + `PaymentResponse[]` · `404` |
 | `PATCH` | `/api/payments/{paymentId}/void` | `200` + `PaymentResponse` · `404` · `409` |
 | `GET` | `/api/payments/delinquency` | `200` + `MemberDelinquencyResponse[]` |
+| `GET` | `/api/payments/receipts` | `200` + PDF · `204` · `400` — **solo en la rama `feature/add-fee-receipt-report`** |
 
 ### `POST /api/payments`
 
@@ -258,6 +263,16 @@ Anula un pago: body opcional `{ "reason": "..." }` (≤ 150; vacío o en blanco 
 ### `GET /api/payments` — búsqueda
 
 Todos los pagos del club, del `paidAt` más reciente al más viejo. Filtros opcionales por query param: `memberId`, `from` y `to` (fechas ISO, **sobre `periodCovered`, no sobre la fecha de carga**; `from` > `to` → `400`), `paymentMethod` e `includeVoided` (por defecto, sin anulados). Sin paginar.
+
+### `GET /api/payments/receipts` — tabletas de cuotas cobradas
+
+**Todavía no está en `develop`**: verificado contra la rama `feature/add-fee-receipt-report`, commit `7470854` (2026-10-19).
+
+Query params `paidFrom` y `paidTo`, los dos requeridos, en formato `"2026-10-01"`. Filtra por **fecha de cobro** (`paid_at`), en días calendario de Argentina e incluyendo los dos extremos, y deja afuera los pagos anulados. `paidFrom` > `paidTo` → `400`.
+
+- `200` con `Content-Type: application/pdf` y `Content-Disposition: attachment; filename="cuotas-cobradas-<paidFrom>-al-<paidTo>.pdf"`. Es un A4 hecho con PDFBox: una tableta por grupo familiar y mes cubierto (o por socio si no tiene grupo), con cada socio que pagó ese mes, su importe y el total; cada tableta sale dos veces lado a lado, con líneas de corte, y nunca se parte entre páginas. Orden alfabético (es-AR) por el primer socio y después por mes.
+- **`204` sin cuerpo si no hubo cobros** en el rango: no es un error.
+- Abierto a `ADMIN` y `SUPER_ADMIN`, como el resto de `/api/payments/**`.
 
 ### `GET /api/payments/delinquency`
 
@@ -349,11 +364,19 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Contadores por estado para los chips del listado | E4 |
 | Cargar el último mes pagado en el alta de socio | E6 — el socio recién creado nace en mora desde el 1° del mes (§7) |
 | `code` estable y `fieldErrors` en el envelope de error | Mapear un error al campo del formulario (E5, E8) |
-| Filtro de `GET /api/payments` por fecha de carga (`paidAt`) | E10 — la búsqueda existe pero filtra por mes cubierto; el PDF de lo cobrado en un período necesita filtrar por la fecha del pago |
+| Merge de `feature/add-fee-receipt-report` (`GET /api/payments/receipts`) en `develop` | E10 contra la API real |
+| Filtro de `GET /api/payments` por fecha de carga (`paidAt`) | Nada hoy: el reporte de E10 filtra por fecha de cobro en el backend. La búsqueda sigue filtrando por mes cubierto |
 | Mora de un socio y padrón de su grupo familiar sin bajar todo el club (filtro por `memberId` en `GET /api/payments/delinquency`, por `familyGroupId` en `GET /api/members`) | Cuotas del socio a escala — hoy cada apertura del ledger trae el padrón entero y la mora de todo el club para mostrar a un socio. La verificación previa al registrar ya no lo necesita: usa `GET /api/members/{id}` y el historial del socio |
 | Edición de un pago | Corregir un pago es anularlo y registrarlo de nuevo |
 | Días de gracia configurables | El umbral de "en mora" |
-| Cambio de contraseña del usuario logueado | E7 |
+| Cambio de contraseña **de la cuenta logueada**, para los dos roles y sin pedir la actual (decisión de producto). Hoy un ADMIN usa `PATCH /api/admins/{id}/password` con su propio id, que no verifica que la cuenta sea la propia; el SUPER_ADMIN no tiene camino (§5) | E7 — el SUPER_ADMIN ve la acción deshabilitada |
+| Mostrar a un ADMIN quién cargó o anuló un pago: `recordedByUserId` y `voidedByUserId` no se pueden traducir a una persona (`GET /api/admins` es solo para SUPER_ADMIN y un admin no tiene nombre) | "Quién lo cargó" en el detalle del pago |
+| Datos de contacto del club en `GET /api/clubs/me` | El canal de contacto de Recuperar contraseña (E11) |
+| Asignar grupo en el alta y en la edición de forma pareja: `POST /api/members` acepta `familyGroupId` y `PATCH` no | Nada hoy: el grupo se arma desde las cuotas del socio (E6.5) |
+| `DELETE /api/family-groups/{id}`, que saque a los integrantes y borre el grupo sin tocar socios ni pagos | "Eliminar grupo" de E6.5 |
+| Crear un grupo con sus integrantes en una sola operación | Que armar un grupo nunca deje uno vacío (E6.5). La app completa un armado a medias con "Reintentar" sobre el mismo grupo, pero si el `POST /api/family-groups` da timeout no puede saber si el grupo se creó: un reintento puede dejar un grupo vacío para siempre, porque tampoco hay `DELETE` |
+| Corte inmediato de la sesión al dar de baja a un admin o al restablecer su contraseña: chequear `active` o una versión de credenciales en `JwtAuthenticationFilter`, o bajar el TTL del access token | Que la baja de un admin sea inmediata (E8). Hoy el access token vigente sigue valiendo hasta 1 hora (§5) |
+| `PATCH /api/clubs/me` abierto también a `ADMIN` | Que un ADMIN edite la cuota de referencia desde Perfil (E7) |
 | Reset de contraseña de un **socio** por un ADMIN / SUPER_ADMIN | E11 — existe solo para cuentas de admin (§5) |
 | Flag de "debe cambiar la contraseña en el próximo ingreso" | Primer ingreso (E11) |
 | `court`, `court_block`, `recurring_slot`, `reservation` — ni tabla, ni endpoint | **E9 completa**, y "Próximos turnos" del Inicio |

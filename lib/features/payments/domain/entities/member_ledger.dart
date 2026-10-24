@@ -44,6 +44,14 @@ class MemberLedger extends Equatable {
 
   String? nameOf(int memberId) => memberNames[memberId];
 
+  MemberLedger withMonthlyFee(int? monthlyFeeCents) => MemberLedger(
+        member: member,
+        payments: payments,
+        familyMembers: familyMembers,
+        memberNames: memberNames,
+        monthlyFeeCents: monthlyFeeCents,
+      );
+
   @override
   List<Object?> get props =>
       [member, familyMembers, payments, memberNames, monthlyFeeCents];

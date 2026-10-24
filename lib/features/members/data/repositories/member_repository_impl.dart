@@ -5,6 +5,7 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/errors/failure_mapper.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/logging/app_logger.dart';
+import '../../domain/entities/family_group_assignment.dart';
 import '../../domain/entities/member.dart';
 import '../../domain/entities/member_draft.dart';
 import '../../domain/repositories/member_repository.dart';
@@ -32,21 +33,24 @@ class MemberRepositoryImpl implements MemberRepository {
   }
 
   @override
-  Future<Either<Failure, void>> createMember(MemberDraft draft) {
-    return _guard('createMember', () async {
-      await remoteDataSource.createMember(draft);
+  Future<Either<Failure, Member>> loadMember(int memberId) {
+    return _guard(
+      'loadMember',
+      () async => Right(await remoteDataSource.fetchMember(memberId)),
+    );
+  }
 
-      return _announceRosterChange();
-    });
+  @override
+  Future<Either<Failure, void>> createMember(MemberDraft draft) {
+    return _write('createMember', () => remoteDataSource.createMember(draft));
   }
 
   @override
   Future<Either<Failure, void>> updateMember(int memberId, MemberDraft draft) {
-    return _guard('updateMember', () async {
-      await remoteDataSource.updateMember(memberId, draft);
-
-      return _announceRosterChange();
-    });
+    return _write(
+      'updateMember',
+      () => remoteDataSource.updateMember(memberId, draft),
+    );
   }
 
   @override
@@ -54,17 +58,80 @@ class MemberRepositoryImpl implements MemberRepository {
     int memberId, {
     required bool isActive,
   }) {
-    return _guard('setMemberActive', () async {
-      await remoteDataSource.setMemberActive(memberId, isActive: isActive);
+    return _write(
+      'setMemberActive',
+      () => remoteDataSource.setMemberActive(memberId, isActive: isActive),
+    );
+  }
 
-      return _announceRosterChange();
+  @override
+  Future<Either<Failure, void>> assignFamilyGroup(
+    int memberId,
+    int familyGroupId,
+  ) {
+    return _write(
+      'assignFamilyGroup',
+      () => remoteDataSource.assignFamilyGroup(memberId, familyGroupId),
+    );
+  }
+
+  @override
+  Future<FamilyGroupAssignment> assignFamilyGroupToAll(
+    List<int> memberIds,
+    int familyGroupId,
+  ) async {
+    final assigned = <int>{};
+    Failure? failure;
+    for (final memberId in memberIds) {
+      final result = await _send(
+        'assignFamilyGroup',
+        () => remoteDataSource.assignFamilyGroup(memberId, familyGroupId),
+      );
+      failure = result.getLeft().toNullable();
+      if (failure != null) break;
+      assigned.add(memberId);
+    }
+    final assignment =
+        FamilyGroupAssignment(assignedMemberIds: assigned, failure: failure);
+    if (assignment.mayHaveChangedRoster) _rosterChanges.add(null);
+
+    return assignment;
+  }
+
+  @override
+  Future<Either<Failure, void>> removeFromFamilyGroup(int memberId) {
+    return _write(
+      'removeFromFamilyGroup',
+      () => remoteDataSource.removeFromFamilyGroup(memberId),
+    );
+  }
+
+  Future<Either<Failure, void>> _write(
+    String operation,
+    Future<void> Function() send,
+  ) async {
+    final result = await _send(operation, send);
+    if (_mayHaveChangedRoster(result)) _rosterChanges.add(null);
+
+    return result;
+  }
+
+  Future<Either<Failure, void>> _send(
+    String operation,
+    Future<void> Function() send,
+  ) {
+    return _guard<void>(operation, () async {
+      await send();
+
+      return const Right(null);
     });
   }
 
-  Either<Failure, void> _announceRosterChange() {
-    _rosterChanges.add(null);
-
-    return const Right(null);
+  static bool _mayHaveChangedRoster(Either<Failure, void> result) {
+    return result.fold(
+      (failure) => failure is ResponseTimeoutFailure,
+      (_) => true,
+    );
   }
 
   Future<Either<Failure, T>> _guard<T>(

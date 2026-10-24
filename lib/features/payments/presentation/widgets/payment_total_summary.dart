@@ -5,8 +5,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/formatters/display_formats.dart';
 import '../cubit/payment_form.dart';
-import '../formatting/payment_formats.dart';
 
 class PaymentTotalSummary extends StatelessWidget {
   final PaymentForm form;
@@ -32,7 +32,7 @@ class PaymentTotalSummary extends StatelessWidget {
             Text(
               AppStrings.registerPaymentAmountTimesMonths(
                 AppStrings.monthCount(form.selectedMonths.length),
-                PaymentFormats.pesos(form.amountCents ?? 0),
+                DisplayFormats.pesos(form.amountCents ?? 0),
               ),
               style: AppTextStyles.bodyLarge,
             ),
@@ -44,7 +44,7 @@ class PaymentTotalSummary extends StatelessWidget {
                     style: AppTextStyles.labelLarge,
                   ),
                   TextSpan(
-                    text: PaymentFormats.pesos(form.totalCents),
+                    text: DisplayFormats.pesos(form.totalCents),
                     style: AppTextStyles.titleLarge.copyWith(
                       fontWeight: FontWeight.w700,
                     ),

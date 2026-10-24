@@ -11,9 +11,13 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/formatters/display_formats.dart';
+import '../../../../shared/widgets/app_notice.dart';
+import '../../../../shared/widgets/app_secondary_button.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
+import '../../../family_groups/presentation/widgets/family_group_card.dart';
 import '../../../members/presentation/widgets/member_status_badge.dart';
 import '../../domain/entities/billing_month.dart';
 import '../../domain/entities/member_ledger.dart';
@@ -26,8 +30,6 @@ import '../widgets/fee_standing_card.dart';
 import '../widgets/member_header_card.dart';
 import '../widgets/payment_detail_sheet.dart';
 import '../widgets/payment_history_tile.dart';
-import '../widgets/payment_notice.dart';
-import '../widgets/payment_secondary_button.dart';
 import '../widgets/payment_unavailable_view.dart';
 import '../widgets/void_payment_sheet.dart';
 
@@ -79,7 +81,7 @@ class _MemberLedgerViewState extends State<_MemberLedgerView> {
       context,
       AppStrings.paymentRegistered(
         PaymentFormats.monthsSummary(receipt.months).toLowerCase(),
-        PaymentFormats.pesos(receipt.totalCents),
+        DisplayFormats.pesos(receipt.totalCents),
       ),
     );
   }
@@ -177,8 +179,10 @@ class _LedgerSummary extends StatelessWidget {
         FeeStandingCard(ledger: ledger),
         if (newMemberNote != null) ...[
           const SizedBox(height: AppSpacing.md),
-          PaymentNotice(message: newMemberNote),
+          AppNotice(message: newMemberNote),
         ],
+        const SizedBox(height: AppSpacing.md),
+        _LedgerFamilyGroup(ledger: ledger),
         const SizedBox(height: AppSpacing.xl),
       ],
     );
@@ -194,6 +198,30 @@ class _LedgerSummary extends StatelessWidget {
     return AppStrings.ledgerNewMemberNote(
       PaymentFormats.day(joinedAt),
       PaymentFormats.monthName(BillingMonth.of(joinedAt)),
+    );
+  }
+}
+
+class _LedgerFamilyGroup extends StatelessWidget {
+  final MemberLedger ledger;
+
+  const _LedgerFamilyGroup({required this.ledger});
+
+  Future<void> _build(BuildContext context) async {
+    final message = await context.push<String>(
+      AppRoutes.adminFamilyGroupCreation(ledger.member.id),
+    );
+    if (message != null && context.mounted) showAppSnackBar(context, message);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FamilyGroupCard(
+      member: ledger.member,
+      relatives: ledger.familyMembers,
+      onBuild: () => _build(context),
+      onOpen: (familyGroupId) =>
+          context.push(AppRoutes.adminFamilyGroup(familyGroupId)),
     );
   }
 }
@@ -431,7 +459,7 @@ class _InactiveFooter extends StatelessWidget {
       children: [
         Text(AppStrings.ledgerInactiveHint, style: AppTextStyles.bodyMedium),
         const SizedBox(height: AppSpacing.sm),
-        PaymentSecondaryButton(
+        AppSecondaryButton(
           label: AppStrings.memberEditAction,
           onPressed: () => context.push(
             AppRoutes.adminMemberEdition(ledger.member.id),
