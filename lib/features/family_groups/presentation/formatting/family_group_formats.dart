@@ -1,4 +1,5 @@
 import '../../../../core/constants/app_strings.dart';
+import '../../../../shared/formatters/display_formats.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../domain/entities/family_group.dart';
 
@@ -26,14 +27,8 @@ abstract final class FamilyGroupFormats {
   static String defaultName(Member member) =>
       AppStrings.familyGroupDefaultName(member.lastName);
 
-  static String namesList(List<Member> members) {
-    final names = members.map((member) => member.fullName).toList();
-    if (names.length <= 1) return names.join();
-
-    final head = names.sublist(0, names.length - 1).join(', ');
-
-    return AppStrings.listed(head, names.last);
-  }
+  static String namesList(List<Member> members) =>
+      DisplayFormats.listed([for (final member in members) member.fullName]);
 
   static String namesInLines(List<Member> members) =>
       members.map((member) => member.fullName).join('\n');
