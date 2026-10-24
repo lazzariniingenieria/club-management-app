@@ -8,6 +8,7 @@ import '../../../../shared/formatters/display_formats.dart';
 import '../../../../shared/widgets/app_notice.dart';
 import '../../../../shared/widgets/app_secondary_button.dart';
 import '../../../../shared/widgets/summary_table.dart';
+import '../../../members/domain/entities/member.dart';
 import '../cubit/payment_form.dart';
 import '../formatting/payment_formats.dart';
 
@@ -71,18 +72,8 @@ class PaymentConfirmationSheet extends StatelessWidget {
   }
 
   List<SummaryRow> _rows() {
-    final member = form.ledger.member;
-
     return [
-      SummaryRow(
-        AppStrings.confirmPaymentMember,
-        '${member.fullName}\n'
-        '${AppStrings.memberDni(DisplayFormats.dni(member.dni))}',
-      ),
-      SummaryRow(
-        AppStrings.confirmPaymentMonths,
-        PaymentFormats.monthsSummary(form.selectedMonths),
-      ),
+      if (form.paysForFamily) _familyRow() else ..._memberRows(),
       SummaryRow(
         AppStrings.confirmPaymentAmount,
         DisplayFormats.pesos(form.amountCents ?? 0),
@@ -95,13 +86,48 @@ class PaymentConfirmationSheet extends StatelessWidget {
     ];
   }
 
-  SummaryRow _totalRow() {
-    return SummaryRow(
-      AppStrings.confirmPaymentTotal(
-        AppStrings.monthCount(form.selectedMonths.length),
+  List<SummaryRow> _memberRows() {
+    final member = form.ledger.member;
+
+    return [
+      SummaryRow(
+        AppStrings.confirmPaymentMember,
+        '${member.fullName}\n'
+        '${AppStrings.memberDni(DisplayFormats.dni(member.dni))}',
       ),
-      _total,
+      SummaryRow(
+        AppStrings.confirmPaymentMonths,
+        PaymentFormats.monthsSummary(form.selectedMonths),
+      ),
+    ];
+  }
+
+  SummaryRow _familyRow() {
+    final lines = [
+      for (final member in form.chargedMembers) _familyLineOf(member),
+    ];
+
+    return SummaryRow(AppStrings.confirmPaymentMembers, lines.join('\n'));
+  }
+
+  String _familyLineOf(Member member) {
+    final months = form.monthsFor(member);
+    if (months.isEmpty) {
+      return AppStrings.confirmPaymentMemberSkipped(member.fullName);
+    }
+
+    return AppStrings.confirmPaymentMemberMonths(
+      member.fullName,
+      PaymentFormats.monthsSummary(months),
     );
+  }
+
+  SummaryRow _totalRow() {
+    final count = form.paysForFamily
+        ? AppStrings.feeCount(form.feeCount)
+        : AppStrings.monthCount(form.selectedMonths.length);
+
+    return SummaryRow(AppStrings.confirmPaymentTotal(count), _total);
   }
 
   String _payerName() {

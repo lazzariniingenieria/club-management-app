@@ -67,7 +67,9 @@ import '../../features/payments/data/datasources/payment_fake_data_source.dart';
 import '../../features/payments/data/datasources/payment_remote_data_source.dart';
 import '../../features/payments/data/repositories/payment_repository_impl.dart';
 import '../../features/payments/domain/repositories/payment_repository.dart';
+import '../../features/payments/domain/usecases/load_family_payment_status_use_case.dart';
 import '../../features/payments/domain/usecases/load_member_ledger_use_case.dart';
+import '../../features/payments/domain/usecases/register_family_payment_use_case.dart';
 import '../../features/payments/domain/usecases/register_payment_use_case.dart';
 import '../../features/payments/domain/usecases/void_payment_use_case.dart';
 import '../../features/payments/domain/usecases/watch_payment_changes_use_case.dart';
@@ -220,6 +222,8 @@ void _registerPaymentDomain() {
     () => LoadMemberLedgerUseCase(payments: sl(), club: sl()),
   );
   sl.registerLazySingleton(() => RegisterPaymentUseCase(sl()));
+  sl.registerLazySingleton(() => LoadFamilyPaymentStatusUseCase(sl()));
+  sl.registerLazySingleton(() => RegisterFamilyPaymentUseCase(sl()));
   sl.registerLazySingleton(() => VoidPaymentUseCase(sl()));
   sl.registerLazySingleton(() => WatchPaymentChangesUseCase(sl()));
 }
@@ -378,7 +382,12 @@ void _registerPresentation() {
     ),
   );
   sl.registerFactory(
-    () => RegisterPaymentCubit(loadLedger: sl(), registerPayment: sl()),
+    () => RegisterPaymentCubit(
+      loadLedger: sl(),
+      registerPayment: sl(),
+      loadFamilyStatus: sl(),
+      registerFamilyPayment: sl(),
+    ),
   );
   sl.registerFactory(
     () => MemberFormCubit(

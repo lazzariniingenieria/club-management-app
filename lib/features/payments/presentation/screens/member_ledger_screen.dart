@@ -77,12 +77,20 @@ class _MemberLedgerViewState extends State<_MemberLedgerView> {
   }
 
   void _announce(PaymentReceipt receipt) {
+    final total = DisplayFormats.pesos(receipt.totalCents);
+    final familyMembers = receipt.familyMemberCount;
+
     showAppSnackBar(
       context,
-      AppStrings.paymentRegistered(
-        PaymentFormats.monthsSummary(receipt.months).toLowerCase(),
-        DisplayFormats.pesos(receipt.totalCents),
-      ),
+      familyMembers == null
+          ? AppStrings.paymentRegistered(
+              PaymentFormats.monthsSummary(receipt.months).toLowerCase(),
+              total,
+            )
+          : AppStrings.familyPaymentRegistered(
+              AppStrings.memberCount(familyMembers),
+              total,
+            ),
     );
   }
 

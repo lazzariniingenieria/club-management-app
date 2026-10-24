@@ -31,7 +31,9 @@ class PaymentTotalSummary extends StatelessWidget {
           children: [
             Text(
               AppStrings.registerPaymentAmountTimesMonths(
-                AppStrings.monthCount(form.selectedMonths.length),
+                form.paysForFamily
+                    ? AppStrings.feeCount(form.feeCount)
+                    : AppStrings.monthCount(form.selectedMonths.length),
                 DisplayFormats.pesos(form.amountCents ?? 0),
               ),
               style: AppTextStyles.bodyLarge,

@@ -62,6 +62,7 @@ MemberModel buildMember({
   MemberStatus status = MemberStatus.active,
   int daysOverdue = 0,
   String? phone,
+  int? familyGroupId,
 }) {
   return MemberModel(
     id: id,
@@ -71,6 +72,7 @@ MemberModel buildMember({
     status: status,
     daysOverdue: daysOverdue,
     phone: phone,
+    familyGroupId: familyGroupId,
   );
 }
 

@@ -43,6 +43,19 @@ class DroppingPaymentSource extends PaymentFakeDataSource {
   }
 }
 
+class RecordingPaymentSource extends PaymentFakeDataSource {
+  final List<PaymentDraft> drafts = [];
+
+  RecordingPaymentSource({required super.members})
+      : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
+
+  @override
+  Future<void> recordPayment(PaymentDraft draft) async {
+    await super.recordPayment(draft);
+    drafts.add(draft);
+  }
+}
+
 class LongHistoryPaymentSource extends PaymentFakeDataSource {
   static const int paymentCount = 60;
 
@@ -528,6 +541,126 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(currentLocation(), AppRoutes.adminMemberEdition(3));
+    });
+  });
+
+  group('paying for the whole family group', () {
+    final family = <MemberModel>[
+      buildMember(
+        id: 1,
+        firstName: 'Juan',
+        lastName: 'Zárate',
+        daysOverdue: 42,
+        familyGroupId: 7,
+      ),
+      buildMember(
+        id: 2,
+        firstName: 'Ana',
+        lastName: 'Zárate',
+        daysOverdue: 42,
+        familyGroupId: 7,
+      ),
+      buildMember(
+          id: 3, firstName: 'Lucía', lastName: 'Zárate', familyGroupId: 7),
+      buildMember(
+        id: 4,
+        firstName: 'Pedro',
+        lastName: 'Zárate',
+        status: MemberStatus.inactive,
+        familyGroupId: 7,
+      ),
+    ];
+
+    Future<RecordingPaymentSource> openFamilyPayment(
+      WidgetTester tester,
+    ) async {
+      late RecordingPaymentSource source;
+      await bootClub(
+        tester,
+        memberSource: MemberRosterDataSource(family),
+        payments: (members) =>
+            source = RecordingPaymentSource(members: members),
+      );
+      await openLedgerOf(tester, 'Juan Zárate');
+      await tester.tap(find.text(AppStrings.ledgerRegisterAction));
+      await tester.pumpAndSettle();
+
+      final toggle = find.text(AppStrings.registerPaymentFamilyToggle);
+      await tester.scrollUntilVisible(
+        toggle,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      return source;
+    }
+
+    testWidgets('shows what each member is charged, before confirming', (
+      tester,
+    ) async {
+      await openFamilyPayment(tester);
+
+      expect(
+        find.text(
+            AppStrings.registerPaymentFamilyCharges('septiembre de 2026')),
+        findsNWidgets(2),
+      );
+      expect(
+        find.text(AppStrings.registerPaymentFamilyNothingToCharge),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+            AppStrings.registerPaymentFamilyInactiveLeftOut('Pedro Zárate')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(AppStrings.registerPaymentReviewWithTotal(r'$30.000')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'registers one payment per member, paid by the member on screen',
+        (tester) async {
+      final source = await openFamilyPayment(tester);
+
+      await tester.tap(
+        find.text(AppStrings.registerPaymentReviewWithTotal(r'$30.000')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(
+            AppStrings.confirmPaymentMemberSkipped('Lucía Zárate')),
+        findsOneWidget,
+      );
+      await tester.tap(find.text(AppStrings.confirmPaymentAction(r'$30.000')));
+      await tester.pumpAndSettle();
+
+      expect(source.drafts.map((draft) => draft.memberId), [1, 2]);
+      expect(source.drafts.map((draft) => draft.paidByMemberId), [null, 1]);
+      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
+      expect(
+        find.text(
+          AppStrings.familyPaymentRegistered(
+            AppStrings.memberCount(2),
+            r'$30.000',
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a relative left out is not charged', (tester) async {
+      final source = await openFamilyPayment(tester);
+
+      await tester.tap(find.widgetWithText(CheckboxListTile, 'Ana Zárate'));
+      await tester.pumpAndSettle();
+      await reviewAndConfirm(tester, r'$15.000');
+
+      expect(source.drafts.map((draft) => draft.memberId), [1]);
     });
   });
 }

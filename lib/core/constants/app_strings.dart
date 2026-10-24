@@ -307,6 +307,29 @@ class AppStrings {
   static const String confirmPaymentNotice =
       'Un pago registrado no se edita: si hay un error, hay que anularlo desde el historial del socio y cargarlo de nuevo.';
   static const String confirmPaymentBackAction = 'Volver a editar';
+  static const String confirmPaymentMembers = 'Socios';
+  static const String registerPaymentFamilyTitle = 'Grupo familiar';
+  static const String registerPaymentFamilyToggle = 'Pagar por todo el grupo';
+  static const String registerPaymentFamilyToggleHelp =
+      'Se registran los mismos meses y el mismo importe para cada integrante que elijas. Cada cuota queda en el historial de su socio.';
+  static const String registerPaymentFamilyLoadFailed =
+      'No pudimos revisar los pagos del grupo, y sin eso no sabemos qué meses le faltan a cada uno.';
+  static const String registerPaymentFamilyNothingToCharge =
+      'Ya tiene pagos esos meses: no se le cobra';
+  static const String registerPaymentFamilyNothingLeft =
+      'Ningún socio elegido tiene meses para cobrar.';
+  static const String familyPaymentPartialTitle =
+      'El pago del grupo quedó a medias.';
+  static const String familyPaymentNotRegisteredTitle =
+      'Los pagos no se registraron.';
+  static const String familyPaymentUnconfirmedTitle =
+      'No sabemos si los pagos se registraron.';
+  static const String familyPaymentRetryUnconfirmed =
+      'El servidor no respondió a tiempo. Al reintentar revisamos el historial de cada uno antes de enviar, así nadie paga dos veces.';
+  static const String familyPaymentRetryPending =
+      'Tus datos siguen cargados. Al reintentar se cobra solo lo que falta.';
+  static const String familyPaymentAlreadyPaid =
+      'Otro administrador ya cargó esos meses para todos los socios elegidos. Actualizamos la lista: no queda nada para cobrar.';
 
   static String monthCount(int count) => count == 1 ? '1 mes' : '$count meses';
 
@@ -338,6 +361,34 @@ class AppStrings {
 
   static String paymentRegistered(String months, String total) =>
       'Pago registrado: $months · $total';
+
+  static String feeCount(int count) => count == 1 ? '1 cuota' : '$count cuotas';
+
+  static String memberCount(int count) =>
+      count == 1 ? '1 socio' : '$count socios';
+
+  static String registerPaymentFamilyCharges(String months) =>
+      'Se le cobra: $months';
+
+  static String registerPaymentFamilyInactiveLeftOut(String names) =>
+      'No se incluyen los integrantes dados de baja: $names.';
+
+  static String registerPaymentFamilySummary(String months, String members) =>
+      '$months · $members';
+
+  static String confirmPaymentMemberMonths(String name, String months) =>
+      '$name: $months';
+
+  static String confirmPaymentMemberSkipped(String name) =>
+      '$name: ya tiene pagos esos meses';
+
+  static String familyPaymentRegistered(String members, String total) =>
+      'Pago registrado para $members del grupo · $total';
+
+  static String familyPaymentRegisteredFor(String names) =>
+      'Se registró el pago de $names.';
+
+  static String familyPaymentPendingFor(String names) => 'Falta el de $names.';
 
   static String monthsInYear(String months, int year) => '$months de $year';
 

@@ -19,6 +19,7 @@ import '../cubit/register_payment_cubit.dart';
 import '../cubit/register_payment_state.dart';
 import '../formatting/payment_formats.dart';
 import '../widgets/billing_month_grid.dart';
+import '../widgets/family_payment_section.dart';
 import '../widgets/member_header_card.dart';
 import '../widgets/payer_selector.dart';
 import '../widgets/payment_confirmation_sheet.dart';
@@ -109,6 +110,10 @@ class _RegisterPaymentForm extends StatelessWidget {
               _AmountSection(form: form),
               const SizedBox(height: AppSpacing.xl),
               _MethodSection(form: form),
+              if (form.activeRelatives.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.xl),
+                _FamilySection(form: form),
+              ],
               if (form.ledger.familyMembers.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.xl),
                 _PayerSection(form: form, notice: state.notice),
@@ -181,11 +186,48 @@ class _TopNotice extends StatelessWidget {
           message: message,
           tone: AppNoticeTone.danger,
         ),
+      final FamilyPaymentIncompleteNotice incomplete => _RetryNotice(
+          title: _familyTitleOf(incomplete),
+          message: _familyMessageOf(incomplete, form),
+          form: form,
+        ),
+      FamilyAlreadyPaidNotice() => const AppNotice(
+          message: AppStrings.familyPaymentAlreadyPaid,
+          tone: AppNoticeTone.danger,
+        ),
       MonthsAlreadyPaidNotice() ||
       PayerLeftGroupNotice() =>
         const SizedBox.shrink(),
     };
   }
+}
+
+String _familyTitleOf(FamilyPaymentIncompleteNotice notice) {
+  if (notice.registeredIds.isNotEmpty) {
+    return AppStrings.familyPaymentPartialTitle;
+  }
+
+  return notice.mayHaveLanded
+      ? AppStrings.familyPaymentUnconfirmedTitle
+      : AppStrings.familyPaymentNotRegisteredTitle;
+}
+
+String _familyMessageOf(
+  FamilyPaymentIncompleteNotice notice,
+  PaymentForm form,
+) {
+  String names(List<int> ids) => DisplayFormats.listed(
+        [for (final id in ids) form.ledger.nameOf(id) ?? ''],
+      );
+
+  return [
+    if (notice.registeredIds.isNotEmpty)
+      AppStrings.familyPaymentRegisteredFor(names(notice.registeredIds)),
+    AppStrings.familyPaymentPendingFor(names(notice.pendingIds)),
+    notice.mayHaveLanded
+        ? AppStrings.familyPaymentRetryUnconfirmed
+        : AppStrings.familyPaymentRetryPending,
+  ].join(' ');
 }
 
 class _RetryNotice extends StatelessWidget {
@@ -331,6 +373,30 @@ class _MethodSection extends StatelessWidget {
   }
 }
 
+class _FamilySection extends StatelessWidget {
+  final PaymentForm form;
+
+  const _FamilySection({required this.form});
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<RegisterPaymentCubit>();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _SectionTitle(AppStrings.registerPaymentFamilyTitle),
+        FamilyPaymentSection(
+          form: form,
+          onToggle: (enabled) => cubit.payForFamily(enabled: enabled),
+          onToggleRelative: cubit.toggleRelative,
+          onRetry: cubit.reloadFamilyStatus,
+        ),
+      ],
+    );
+  }
+}
+
 class _PayerSection extends StatelessWidget {
   final PaymentForm form;
   final RegisterPaymentNotice? notice;
@@ -387,9 +453,7 @@ class _ReviewBar extends StatelessWidget {
               Semantics(
                 liveRegion: true,
                 child: Text(
-                  form.canReview
-                      ? PaymentFormats.monthsSummary(form.selectedMonths)
-                      : AppStrings.registerPaymentIncomplete,
+                  _summaryOf(form),
                   style: AppTextStyles.bodyMedium,
                 ),
               ),
@@ -405,6 +469,23 @@ class _ReviewBar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _summaryOf(PaymentForm form) {
+    final months = PaymentFormats.monthsSummary(form.selectedMonths);
+    if (form.canReview) {
+      return form.paysForFamily
+          ? AppStrings.registerPaymentFamilySummary(
+              months,
+              AppStrings.memberCount(form.payingMembers.length),
+            )
+          : months;
+    }
+    final nothingLeft = (form.family?.isReady ?? false) && form.feeCount == 0;
+
+    return nothingLeft
+        ? AppStrings.registerPaymentFamilyNothingLeft
+        : AppStrings.registerPaymentIncomplete;
   }
 
   String get _label => form.canReview

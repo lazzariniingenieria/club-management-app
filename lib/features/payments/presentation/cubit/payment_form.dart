@@ -2,11 +2,14 @@ import 'dart:math';
 
 import 'package:equatable/equatable.dart';
 
+import '../../../members/domain/entities/member.dart';
 import '../../domain/entities/billing_month.dart';
+import '../../domain/entities/family_payment_request.dart';
 import '../../domain/entities/member_ledger.dart';
 import '../../domain/entities/payment_draft.dart';
 import '../../domain/entities/payment_method.dart';
 import '../../domain/entities/payment_receipt.dart';
+import 'family_payment.dart';
 
 class PaymentForm extends Equatable {
   final MemberLedger ledger;
@@ -16,6 +19,7 @@ class PaymentForm extends Equatable {
   final int? amountCents;
   final PaymentMethod method;
   final int? payerId;
+  final FamilyPayment? family;
 
   const PaymentForm({
     required this.ledger,
@@ -25,6 +29,7 @@ class PaymentForm extends Equatable {
     required this.method,
     this.amountCents,
     this.payerId,
+    this.family,
   });
 
   factory PaymentForm.start(MemberLedger ledger, DateTime today) {
@@ -42,11 +47,36 @@ class PaymentForm extends Equatable {
 
   List<BillingMonth> get months => BillingMonth.sorted(selectedMonths);
 
-  int get totalCents => (amountCents ?? 0) * selectedMonths.length;
+  int get totalCents => (amountCents ?? 0) * feeCount;
 
-  bool get canReview => selectedMonths.isNotEmpty && (amountCents ?? 0) > 0;
+  int get feeCount => family == null
+      ? selectedMonths.length
+      : chargedMembers.fold(0, (sum, member) => sum + monthsFor(member).length);
+
+  bool get canReview =>
+      selectedMonths.isNotEmpty && (amountCents ?? 0) > 0 && _familyIsSettled;
 
   bool get startsFromLastPaid => ledger.lastPaidMonth != null;
+
+  bool get paysForFamily => family != null;
+
+  List<Member> get activeRelatives =>
+      ledger.familyMembers.where((relative) => relative.isActive).toList();
+
+  List<Member> get inactiveRelatives =>
+      ledger.familyMembers.where((relative) => !relative.isActive).toList();
+
+  List<int> get familyStatusIds =>
+      [ledger.member.id, for (final relative in activeRelatives) relative.id];
+
+  List<Member> get chargedMembers => [
+        ledger.member,
+        for (final relative in activeRelatives)
+          if (family?.includes(relative.id) ?? false) relative,
+      ];
+
+  List<Member> get payingMembers =>
+      chargedMembers.where((member) => monthsFor(member).isNotEmpty).toList();
 
   int get earliestYear {
     final joinedAt = ledger.member.joinedAt;
@@ -59,9 +89,21 @@ class PaymentForm extends Equatable {
     ].reduce(min);
   }
 
+  bool get _familyIsSettled {
+    final current = family;
+
+    return current == null || (current.isReady && feeCount > 0);
+  }
+
   bool isPaid(BillingMonth month) => ledger.paidMonths.contains(month);
 
   bool isSelected(BillingMonth month) => selectedMonths.contains(month);
+
+  List<BillingMonth> monthsFor(Member member) {
+    final paid = family?.paidMonthsOf(member.id) ?? const {};
+
+    return months.where((month) => !paid.contains(month)).toList();
+  }
 
   PaymentForm toggling(BillingMonth month) {
     if (isPaid(month)) return this;
@@ -86,6 +128,7 @@ class PaymentForm extends Equatable {
         method: method,
         amountCents: cents,
         payerId: payerId,
+        family: family,
       );
 
   PaymentForm withMethod(PaymentMethod value) => _with(method: value);
@@ -98,6 +141,18 @@ class PaymentForm extends Equatable {
         method: method,
         amountCents: amountCents,
         payerId: memberId,
+        family: family,
+      );
+
+  PaymentForm withFamily(FamilyPayment? value) => PaymentForm(
+        ledger: ledger,
+        selectedMonths: selectedMonths,
+        suggestedMonth: suggestedMonth,
+        visibleYear: visibleYear,
+        method: method,
+        amountCents: amountCents,
+        payerId: payerId,
+        family: value,
       );
 
   PaymentForm withLedger(MemberLedger refreshed) {
@@ -115,6 +170,7 @@ class PaymentForm extends Equatable {
       method: method,
       amountCents: amountCents,
       payerId: payerStillInGroup ? payerId : null,
+      family: family,
     );
   }
 
@@ -128,11 +184,31 @@ class PaymentForm extends Equatable {
     );
   }
 
+  FamilyPaymentRequest toFamilyRequest() {
+    return FamilyPaymentRequest(
+      draft: toDraft(),
+      relativeIds: [
+        for (final member in chargedMembers.skip(1)) member.id,
+      ],
+    );
+  }
+
   PaymentReceipt toReceipt() {
     return PaymentReceipt(
       memberId: ledger.member.id,
       months: months,
       totalCents: totalCents,
+    );
+  }
+
+  PaymentReceipt toFamilyReceipt(Map<int, List<BillingMonth>> registered) {
+    final fees = registered.values.fold(0, (sum, each) => sum + each.length);
+
+    return PaymentReceipt(
+      memberId: ledger.member.id,
+      months: registered[ledger.member.id] ?? const [],
+      totalCents: (amountCents ?? 0) * fees,
+      familyMemberCount: registered.length,
     );
   }
 
@@ -149,6 +225,7 @@ class PaymentForm extends Equatable {
       method: method ?? this.method,
       amountCents: amountCents,
       payerId: payerId,
+      family: family,
     );
   }
 
@@ -161,5 +238,6 @@ class PaymentForm extends Equatable {
         amountCents,
         method,
         payerId,
+        family,
       ];
 }

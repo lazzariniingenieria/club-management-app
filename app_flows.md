@@ -223,10 +223,20 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 - **Meses**: grilla de 12 meses (4 × 3) con selector de año. Cada mes está *libre*, *Elegido* o *Pagado*; los pagados no se pueden tocar. Arranca con **un mes sugerido** — el que sigue al último pago, o el del alta si nunca pagó — y un texto que dice por qué. Se pueden sumar meses futuros sin límite y meses viejos sueltos que hayan quedado sin pagar.
 - **Importe por mes**, precargado con la cuota de referencia del club cuando existe; si el club no la tiene cargada, el campo arranca vacío y lo dice. Acepta lo mismo que la API: hasta 8 enteros y 2 decimales, con coma decimal (`15.000,50`). Solo la coma abre los decimales: un punto tipeado a mano se ignora, porque los puntos de miles los pone el campo y en es-AR el punto se lee como miles — tipear `15.000` tiene que dar quince mil, no quince pesos. Debajo, el **total** (importe × meses) se actualiza mientras se elige, porque la API registra el importe por mes ([backend_api.md](backend_api.md) §6).
 - **Medio de pago**: Efectivo (por defecto), Transferencia u Otro.
-- **¿Quién pagó?**: el socio, o un integrante de su grupo familiar. Si el socio no tiene grupo, la sección no aparece.
+- **Grupo familiar**: el interruptor *Pagar por todo el grupo*, solo si el socio tiene otro integrante activo (ver abajo).
+- **¿Quién pagó?**: el socio (por defecto), o un integrante de su grupo familiar. Está con el interruptor prendido o apagado, porque un familiar puede pagar solo la cuota de otro. Si el socio no tiene grupo, la sección no aparece.
 - **Barra inferior** con el resumen y *Revisar y confirmar*, que se habilita con al menos un mes y un importe.
 
 **Los meses se resumen** cuando son muchos: hasta tres se listan ("Octubre, noviembre y diciembre de 2026"); más de tres se muestran como rango ("6 meses, de octubre 2026 a marzo 2027") o, si no son seguidos, como "entre" uno y otro.
+
+**Pagar por todo el grupo** registra en un paso la cuota de cada integrante. La cuota sigue siendo individual (§4.2.2): son pagos separados, uno por socio, con los mismos meses, el mismo importe por mes y el mismo medio.
+
+- Al prenderlo, la app lee el historial de cada integrante activo, en paralelo, y los lista: el socio de la pantalla fijo arriba y los demás **tildados por defecto**, para destildar a quien paga aparte. Los dados de baja no aparecen, y una nota los nombra.
+- Cada fila dice qué se le cobra. **Un mes que un integrante ya tiene pago se le saltea**; si no le queda ninguno, la fila dice "Ya tiene pagos esos meses: no se le cobra". El total cuenta cuotas: importe × los meses que debe cada socio elegido.
+- Mientras se leen los historiales no se puede revisar. Si la lectura falla, la sección muestra el aviso con *Reintentar*.
+- *¿Quién pagó?* vale para todas las cuotas: si pagó el socio de la pantalla, figura como el socio en la suya y como familiar en las demás.
+- La confirmación lista a cada socio con sus meses (o que se le saltea) y el total en cuotas. Al terminar se vuelve a las cuotas del socio con "Pago registrado para 3 socios del grupo · $45.000".
+- **No es una sola operación**: la API registra un socio por pedido ([backend_api.md](backend_api.md) §6), así que son un `POST` por socio, en orden. Antes de enviar se relee cada historial y se cobra solo lo que falta; eso hace seguro *Reintentar*: lo ya registrado se saltea y nadie paga dos veces, tampoco después de un timeout. El padrón recibe un solo aviso al terminar.
 
 **Confirmación** en una hoja inferior: socio, meses, importe por mes, total, medio y quién pagó, con el aviso *"Un pago registrado no se edita: si hay un error, hay que anularlo desde el historial del socio y cargarlo de nuevo."* y dos acciones, *Confirmar* y *Volver a editar*.
 
@@ -240,6 +250,8 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 | El servidor no respondió a tiempo | El pago pudo haberse registrado, así que la app relee el historial: si todos los meses figuran, termina como registrado. Si no figuran (o no se puede leer el historial) **no afirma que no se registró** — el servidor puede seguir commiteando —, dice que no sabe y el reintento revisa el historial antes de enviar: si los encuentra, termina como registrado. Si figuran solo algunos, se quitan de la selección y el resto queda igual de en duda. Ese reintento solo se toma como "el pago de antes" si el formulario no cambió: con otro importe, medio o pagador, los meses encontrados se tratan como cobrados por otro |
 | Uno de los meses ya figura pago (otro admin lo cobró mientras tanto) | Aviso con los meses en cuestión; se quitan de la selección y la grilla los muestra como *Pagado* |
 | El familiar elegido ya no está en el grupo | El `400` no dice por qué rechazó el pago, así que la app relee el grupo: si el familiar ya no está, aviso y quién pagó vuelve al socio; si sigue (o no se pudo releer), queda elegido y se muestra el error como cualquier otro |
+| El pago del grupo quedó a medias | Aviso con quiénes quedaron registrados y a quién le falta. *Reintentar* vuelve a la confirmación y cobra solo lo que falta. Si fue un timeout, dice que no sabe si entró, y el reintento revisa cada historial antes de enviar |
+| Otro admin ya cobró esos meses a todos los elegidos | Aviso; la lista se actualiza y no queda nada para cobrar |
 | El socio ya no existe | Pantalla de "No encontramos a este socio" con *Volver a Pagos* |
 | El socio fue dado de baja mientras tanto | Pantalla de "Este socio está dado de baja" con *Volver* |
 | Otro error del servidor | Aviso con el mensaje; el formulario sigue editable |
@@ -284,7 +296,7 @@ Cuotas del socio ──[card Grupo familiar]
                                        └─[Eliminar grupo]───► Eliminar  (falta backend)
 ```
 
-**Para qué existe el grupo**: solo para que un integrante pueda figurar como quien pagó la cuota de otro (*¿Quién pagó?* en Registrar pago, §4.2). **La cuota sigue siendo individual**: no hay abono familiar ni importe compartido, y la pantalla lo repite donde se arma o se mira un grupo, porque es la duda natural.
+**Para qué existe el grupo**: para que un integrante pueda figurar como quien pagó la cuota de otro (*¿Quién pagó?* en Registrar pago, §4.2), y para registrar en un paso la cuota de todo el grupo (*Pagar por todo el grupo*, §4.2). **La cuota sigue siendo individual**: no hay abono familiar ni importe compartido, y la pantalla lo repite donde se arma o se mira un grupo, porque es la duda natural.
 
 **Se entra desde las cuotas del socio, no desde un listado de grupos.** Un grupo siempre se busca a partir de una persona ("¿con quién paga Marcos?"), y un listado de grupos mostraría para siempre los grupos que quedaron vacíos, porque la API no los borra. Las cuotas del socio son, en la práctica, su ficha: ya tienen al socio, su situación y su historial. Pagos, el alta y la edición de socio no cambian.
 
@@ -514,7 +526,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E4 | Pagos: padrón de socios, búsqueda, chips y selección para el reporte | — | ✅ Entregada |
 | E5 | Alta y edición de socio | No bloquea | ✅ Entregada — sin el scroll al socio recién creado (§4.1) |
 | E6 | Registrar un pago, cuotas del socio y anulación, sobre el listado de E4 | No bloquea | ✅ Entregada |
-| E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar | No bloquea (eliminar grupo: **Sí**) | 🚧 En revisión (PR #14) |
+| E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar y pagar por todo el grupo | No bloquea (eliminar grupo: **Sí**) | 🚧 En revisión (PR #14) |
 | E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | No bloquea (SUPER_ADMIN y cuota por ADMIN: **Sí**) | 🚧 En revisión (PR #14) |
 | E8 | ABM de administradores (superAdmin) | No bloquea | 🚧 En revisión (PR #14) |
 | E9 | Agenda / Reservas + canchas + bloqueos | **Bloqueada** | — |
@@ -655,8 +667,9 @@ El último requisito de la Etapa 1 de V6 sin pantalla. Las decisiones están en 
 - **Toda asignación o quita avisa al padrón** (el mismo aviso de cambio que usan el alta y la baja), así Pagos, las cuotas y *¿Quién pagó?* quedan al día sin pull-to-refresh. Armar un grupo asigna a sus integrantes en lote (`MemberRepository.assignFamilyGroupToAll`) y avisa **una sola vez** al terminar, haya salido bien o a medias: cada aviso recarga el padrón y la mora en todas las pantallas que escuchan.
 - **Fake de grupos** coherente con el padrón fake (que ya trae `familyGroupId`): crea, renombra, asigna, mueve y quita; da `404` a un grupo inexistente.
 - `MemberListTile` suma una variante de acción a la derecha (editar, como hoy, o quitar), sin cambiar la fila de Pagos.
+- **Pagar por todo el grupo** en Registrar pago (§4.2): `LoadFamilyPaymentStatusUseCase` lee el historial de cada integrante activo para mostrar qué se le cobra, y `RegisterFamilyPaymentUseCase` lo relee antes de enviar, saltea lo ya pago y manda un `POST` por socio con `PaymentRepository.recordPayments`, que avisa una sola vez al terminar.
 
-**Terminado cuando**: desde las cuotas de un socio sin grupo se arma un grupo en tres toques; un socio se suma al grupo de un familiar y otro pasa de un grupo a otro con confirmación; se renombra y se quita un integrante; el grupo armado aparece en *¿Quién pagó?* al registrar un pago; armar a medias se completa con *Reintentar* sin duplicar el grupo, también después de cerrar la hoja; los estados de §5 se ven a 130 % y 200 % sin overflow; hay tests de dominio, del mapeo DTO ↔ dominio, de los Cubits y del flujo de armar en pantalla.
+**Terminado cuando**: desde las cuotas de un socio sin grupo se arma un grupo en tres toques; desde Registrar pago se cobra a todo el grupo en un paso, salteando los meses que cada uno ya tiene pagos, y un pago a medias se completa con *Reintentar* sin cobrar dos veces; un socio se suma al grupo de un familiar y otro pasa de un grupo a otro con confirmación; se renombra y se quita un integrante; el grupo armado aparece en *¿Quién pagó?* al registrar un pago; armar a medias se completa con *Reintentar* sin duplicar el grupo, también después de cerrar la hoja; los estados de §5 se ven a 130 % y 200 % sin overflow; hay tests de dominio, del mapeo DTO ↔ dominio, de los Cubits y del flujo de armar en pantalla.
 
 El orden E4 → E5 → E6 → E10 es intencional: listado antes de escrituras, y el reporte al final porque lista los pagos que E6 registra y depende de un filtro que el backend todavía no tiene.
 

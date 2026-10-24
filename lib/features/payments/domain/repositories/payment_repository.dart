@@ -14,5 +14,7 @@ abstract class PaymentRepository {
 
   Future<Either<Failure, void>> recordPayment(PaymentDraft draft);
 
+  Future<List<Either<Failure, void>>> recordPayments(List<PaymentDraft> drafts);
+
   Future<Either<Failure, void>> voidPayment(int paymentId, {String? reason});
 }

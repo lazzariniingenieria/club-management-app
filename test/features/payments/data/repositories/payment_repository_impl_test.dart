@@ -49,6 +49,19 @@ class FailingWrites implements PaymentRemoteDataSource {
       throw error;
 }
 
+class RecordingWrites extends FailingWrites {
+  final int? failingMemberId;
+  final List<int> recordedMemberIds = [];
+
+  RecordingWrites({this.failingMemberId}) : super(NetworkException());
+
+  @override
+  Future<void> recordPayment(PaymentDraft draft) async {
+    if (draft.memberId == failingMemberId) throw error;
+    recordedMemberIds.add(draft.memberId);
+  }
+}
+
 void main() {
   const draft = PaymentDraft(
     memberId: 1,
@@ -124,5 +137,54 @@ void main() {
     );
 
     expect(announcements, isEmpty);
+  });
+
+  group('paying for several members', () {
+    PaymentDraft draftOf(int memberId) => PaymentDraft(
+          memberId: memberId,
+          months: draft.months,
+          amountCents: draft.amountCents,
+          method: draft.method,
+        );
+
+    test('sends every member and announces a single change', () async {
+      final source = RecordingWrites();
+      final repository = PaymentRepositoryImpl(
+        remoteDataSource: source,
+        logger: const SilentLogger(),
+      );
+      final announcements = <void>[];
+      repository.paymentChanges.listen(announcements.add);
+
+      await repository.recordPayments([draftOf(1), draftOf(2), draftOf(3)]);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(source.recordedMemberIds, [1, 2, 3]);
+      expect(announcements, hasLength(1));
+    });
+
+    test('keeps going after one member fails and reports each result',
+        () async {
+      final source = RecordingWrites(failingMemberId: 2);
+      final repository = PaymentRepositoryImpl(
+        remoteDataSource: source,
+        logger: const SilentLogger(),
+      );
+
+      final results =
+          await repository.recordPayments([draftOf(1), draftOf(2), draftOf(3)]);
+
+      expect(source.recordedMemberIds, [1, 3]);
+      expect(results.map((result) => result.isRight()), [true, false, true]);
+    });
+
+    test('announces nothing when no payment left the device', () async {
+      final announcements = await announcementsAfter(
+        NetworkException(),
+        (repository) => repository.recordPayments([draftOf(1), draftOf(2)]),
+      );
+
+      expect(announcements, isEmpty);
+    });
   });
 }
