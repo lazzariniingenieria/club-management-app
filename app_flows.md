@@ -4,7 +4,7 @@ Documento de referencia del frontend: **qué pantallas existen, cómo se navega,
 
 No define píxeles. Define estructura, flujos, estados y alcance por entrega.
 
-> **Estado al 2026-10-22.** La superficie del **administrador es el camino crítico**: se construye completa antes de la del socio. Entregada hasta E6; el Bloque 1 (E6.5, E7, E8, E10 y la parte informativa de E11) cierra el resto del admin sin canchas. La paleta de §7 está confirmada en código (`AppColors`).
+> **Estado al 2026-10-24.** La superficie del **administrador es el camino crítico**: se construye completa antes de la del socio. Entregada hasta E6 (PR #13); el Bloque 1 (E6.5, E7, E8, E10 y la parte informativa de E11) está en revisión en el PR #14 y cierra el resto del admin sin canchas. La paleta de §7 está confirmada en código (`AppColors`).
 >
 > **El contrato de la API no se documenta acá**: vive en [backend_api.md](backend_api.md), verificado contra `develop`. Este archivo manda en pantallas, flujos y entregas; ese otro manda en endpoints, shapes, errores y reglas del servidor.
 
@@ -513,13 +513,13 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E3 | Inicio del Administrador | — | ✅ Entregada |
 | E4 | Pagos: padrón de socios, búsqueda, chips y selección para el reporte | — | ✅ Entregada |
 | E5 | Alta y edición de socio | No bloquea | ✅ Entregada — sin el scroll al socio recién creado (§4.1) |
-| E6 | Registrar un pago, cuotas del socio y anulación, sobre el listado de E4 | No bloquea | 🚧 En revisión |
-| E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar | No bloquea (eliminar grupo: **Sí**) | — |
-| E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | No bloquea (SUPER_ADMIN y cuota por ADMIN: **Sí**) | — |
-| E8 | ABM de administradores (superAdmin) | No bloquea | — |
+| E6 | Registrar un pago, cuotas del socio y anulación, sobre el listado de E4 | No bloquea | ✅ Entregada |
+| E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar | No bloquea (eliminar grupo: **Sí**) | 🚧 En revisión (PR #14) |
+| E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | No bloquea (SUPER_ADMIN y cuota por ADMIN: **Sí**) | 🚧 En revisión (PR #14) |
+| E8 | ABM de administradores (superAdmin) | No bloquea | 🚧 En revisión (PR #14) |
 | E9 | Agenda / Reservas + canchas + bloqueos | **Bloqueada** | — |
-| E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | **Sí**: merge de `feature/add-fee-receipt-report` | — |
-| E11 | Recuperar contraseña (informativa) + primer ingreso | Primer ingreso: **Sí** | Recuperar contraseña ✅ (Bloque 1); primer ingreso en el Bloque 2 |
+| E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | **Sí**: merge de `feature/add-fee-receipt-report` | 🚧 En revisión (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el backend mergee `feature/add-fee-receipt-report` |
+| E11 | Recuperar contraseña (informativa) + primer ingreso | Primer ingreso: **Sí** | Recuperar contraseña 🚧 En revisión (PR #14); primer ingreso en el Bloque 2 |
 | E12+ | Superficie del socio completa | **Bloqueada** | — |
 
 ### E1 — Migración de paleta y theming
