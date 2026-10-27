@@ -62,6 +62,7 @@ class RegisterFamilyPaymentUseCase {
     Map<int, Failure> failed,
   ) async {
     final registered = <int, List<BillingMonth>>{};
+    final unconfirmed = <int, List<BillingMonth>>{};
     final unsettled = {...failed};
     for (var index = 0; index < drafts.length; index++) {
       final draft = drafts[index];
@@ -71,9 +72,16 @@ class RegisterFamilyPaymentUseCase {
       } else if (results[index].isRight()) {
         registered[draft.memberId] = draft.months;
       }
+      if (failure is ResponseTimeoutFailure) {
+        unconfirmed[draft.memberId] = draft.months;
+      }
     }
 
-    return FamilyPaymentOutcome(registered: registered, failed: unsettled);
+    return FamilyPaymentOutcome(
+      registered: registered,
+      failed: unsettled,
+      unconfirmed: unconfirmed,
+    );
   }
 
   Future<Failure?> _unsettledFailure(

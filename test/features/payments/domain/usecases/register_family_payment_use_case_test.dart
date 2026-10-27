@@ -145,6 +145,38 @@ void main() {
     expect(outcome.mayHaveLanded, isTrue);
   });
 
+  test('remembers the months a timed out payment may have recorded', () async {
+    stubPrecheck(2, paid: {september});
+    when(() => repository.recordPayments(any())).thenAnswer(
+      (_) async => const [
+        Right(null),
+        Left(ResponseTimeoutFailure()),
+        Right(null),
+      ],
+    );
+
+    final outcome = await registerFamilyPayment(requestFor());
+
+    expect(outcome.unconfirmed, {
+      2: [october],
+    });
+  });
+
+  test('a payment that failed for sure is not reported as unconfirmed',
+      () async {
+    when(() => repository.recordPayments(any())).thenAnswer(
+      (_) async => const [
+        Right(null),
+        Left(NetworkFailure()),
+        Right(null),
+      ],
+    );
+
+    final outcome = await registerFamilyPayment(requestFor());
+
+    expect(outcome.unconfirmed, isEmpty);
+  });
+
   test('a conflict the history explains is not left pending', () async {
     var reads = 0;
     when(() => repository.loadPrecheck(2)).thenAnswer((_) async {

@@ -15,7 +15,7 @@ import '../formatting/payment_formats.dart';
 
 class FamilyPaymentSection extends StatelessWidget {
   final PaymentForm form;
-  final ValueChanged<bool> onToggle;
+  final ValueChanged<bool>? onToggle;
   final ValueChanged<int> onToggleRelative;
   final VoidCallback onRetry;
 
@@ -92,7 +92,9 @@ class _FamilyBody extends StatelessWidget {
           _FamilyMemberTile(
             form: form,
             member: relative,
-            onToggle: () => onToggleRelative(relative.id),
+            onToggle: form.family?.hasSettled(relative.id) ?? false
+                ? null
+                : () => onToggleRelative(relative.id),
           ),
         if (form.inactiveRelatives.isNotEmpty)
           _InactiveRelativesNote(relatives: form.inactiveRelatives),

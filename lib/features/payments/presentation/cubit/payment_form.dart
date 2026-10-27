@@ -7,7 +7,9 @@ import '../../domain/entities/billing_month.dart';
 import '../../domain/entities/family_payment_request.dart';
 import '../../domain/entities/member_ledger.dart';
 import '../../domain/entities/payment_draft.dart';
+import '../../domain/entities/family_payment_outcome.dart';
 import '../../domain/entities/payment_method.dart';
+import '../../domain/entities/payment_precheck.dart';
 import '../../domain/entities/payment_receipt.dart';
 import 'family_payment.dart';
 
@@ -59,6 +61,8 @@ class PaymentForm extends Equatable {
   bool get startsFromLastPaid => ledger.lastPaidMonth != null;
 
   bool get paysForFamily => family != null;
+
+  bool get isChargeLocked => family?.hasProgress ?? false;
 
   List<Member> get activeRelatives =>
       ledger.familyMembers.where((relative) => relative.isActive).toList();
@@ -159,12 +163,17 @@ class PaymentForm extends Equatable {
     final stillUnpaid = selectedMonths
         .where((month) => !refreshed.paidMonths.contains(month))
         .toSet();
+
+    return withGroupFrom(refreshed)._with(selectedMonths: stillUnpaid);
+  }
+
+  PaymentForm withGroupFrom(MemberLedger refreshed) {
     final payerStillInGroup =
         refreshed.familyMembers.any((relative) => relative.id == payerId);
 
     return PaymentForm(
       ledger: refreshed,
-      selectedMonths: stillUnpaid,
+      selectedMonths: selectedMonths,
       suggestedMonth: suggestedMonth,
       visibleYear: visibleYear,
       method: method,
@@ -172,6 +181,26 @@ class PaymentForm extends Equatable {
       payerId: payerStillInGroup ? payerId : null,
       family: family,
     );
+  }
+
+  PaymentForm afterFamilySubmit(FamilyPaymentOutcome outcome) {
+    return withFamily(
+      family?.afterSubmit(outcome, amountCents: amountCents ?? 0),
+    );
+  }
+
+  PaymentForm withFamilyHistory(Map<int, PaymentPrecheck> statuses) {
+    return withFamily(
+      family?.loaded(statuses).confirmingLanded(amountCents: amountCents ?? 0),
+    );
+  }
+
+  List<Member> relativesMissingIn(PaymentForm refreshed) {
+    final staying = {for (final each in refreshed.activeRelatives) each.id};
+
+    return activeRelatives
+        .where((relative) => !staying.contains(relative.id))
+        .toList();
   }
 
   PaymentDraft toDraft() {
@@ -201,13 +230,13 @@ class PaymentForm extends Equatable {
     );
   }
 
-  PaymentReceipt toFamilyReceipt(Map<int, List<BillingMonth>> registered) {
-    final fees = registered.values.fold(0, (sum, each) => sum + each.length);
+  PaymentReceipt toFamilyReceipt() {
+    final registered = family?.registered ?? const <int, RegisteredFee>{};
 
     return PaymentReceipt(
       memberId: ledger.member.id,
-      months: registered[ledger.member.id] ?? const [],
-      totalCents: (amountCents ?? 0) * fees,
+      months: registered[ledger.member.id]?.months ?? const [],
+      totalCents: registered.values.fold(0, (sum, fee) => sum + fee.totalCents),
       familyMemberCount: registered.length,
     );
   }

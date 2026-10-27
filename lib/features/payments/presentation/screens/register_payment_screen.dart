@@ -186,11 +186,8 @@ class _TopNotice extends StatelessWidget {
           message: message,
           tone: AppNoticeTone.danger,
         ),
-      final FamilyPaymentIncompleteNotice incomplete => _RetryNotice(
-          title: _familyTitleOf(incomplete),
-          message: _familyMessageOf(incomplete, form),
-          form: form,
-        ),
+      final FamilyPaymentIncompleteNotice incomplete =>
+        _FamilyIncompleteNotice(notice: incomplete, form: form),
       FamilyAlreadyPaidNotice() => const AppNotice(
           message: AppStrings.familyPaymentAlreadyPaid,
           tone: AppNoticeTone.danger,
@@ -202,32 +199,74 @@ class _TopNotice extends StatelessWidget {
   }
 }
 
-String _familyTitleOf(FamilyPaymentIncompleteNotice notice) {
-  if (notice.registeredIds.isNotEmpty) {
-    return AppStrings.familyPaymentPartialTitle;
+class _FamilyIncompleteNotice extends StatelessWidget {
+  final FamilyPaymentIncompleteNotice notice;
+  final PaymentForm form;
+
+  const _FamilyIncompleteNotice({required this.notice, required this.form});
+
+  @override
+  Widget build(BuildContext context) {
+    final title = _titleOf(notice);
+    final message = _messageOf(notice, form);
+    if (notice.pendingIds.isNotEmpty) {
+      return _RetryNotice(title: title, message: message, form: form);
+    }
+
+    return AppNotice(
+      title: title,
+      message: message,
+      tone: AppNoticeTone.danger,
+    );
   }
 
-  return notice.mayHaveLanded
-      ? AppStrings.familyPaymentUnconfirmedTitle
-      : AppStrings.familyPaymentNotRegisteredTitle;
-}
+  static String _titleOf(FamilyPaymentIncompleteNotice notice) {
+    if (notice.pendingIds.isEmpty) return AppStrings.familyPaymentLeftOutTitle;
+    if (notice.registeredIds.isNotEmpty) {
+      return AppStrings.familyPaymentPartialTitle;
+    }
 
-String _familyMessageOf(
-  FamilyPaymentIncompleteNotice notice,
-  PaymentForm form,
-) {
-  String names(List<int> ids) => DisplayFormats.listed(
-        [for (final id in ids) form.ledger.nameOf(id) ?? ''],
-      );
+    return notice.mayHaveLanded
+        ? AppStrings.familyPaymentUnconfirmedTitle
+        : AppStrings.familyPaymentNotRegisteredTitle;
+  }
 
-  return [
-    if (notice.registeredIds.isNotEmpty)
-      AppStrings.familyPaymentRegisteredFor(names(notice.registeredIds)),
-    AppStrings.familyPaymentPendingFor(names(notice.pendingIds)),
-    notice.mayHaveLanded
-        ? AppStrings.familyPaymentRetryUnconfirmed
-        : AppStrings.familyPaymentRetryPending,
-  ].join(' ');
+  static String _messageOf(
+    FamilyPaymentIncompleteNotice notice,
+    PaymentForm form,
+  ) {
+    String names(List<int> ids) => DisplayFormats.listed(
+          [for (final id in ids) form.ledger.nameOf(id) ?? ''],
+        );
+
+    return [
+      if (notice.registeredIds.isNotEmpty)
+        AppStrings.familyPaymentRegisteredFor(names(notice.registeredIds)),
+      if (notice.pendingIds.isNotEmpty)
+        AppStrings.familyPaymentPendingFor(names(notice.pendingIds)),
+      if (notice.leftNames.isNotEmpty)
+        AppStrings.familyPaymentRelativesLeft(
+          DisplayFormats.listed(notice.leftNames),
+          notice.leftNames.length,
+        ),
+      if (notice.payerLeft) AppStrings.familyPaymentPayerLeft,
+      ..._retryOf(notice, form),
+    ].join(' ');
+  }
+
+  static List<String> _retryOf(
+    FamilyPaymentIncompleteNotice notice,
+    PaymentForm form,
+  ) {
+    if (notice.pendingIds.isEmpty) return const [];
+
+    return [
+      notice.mayHaveLanded
+          ? AppStrings.familyPaymentRetryUnconfirmed
+          : AppStrings.familyPaymentRetryPending,
+      if (form.isChargeLocked) AppStrings.familyPaymentLocked,
+    ];
+  }
 }
 
 class _RetryNotice extends StatelessWidget {
@@ -256,6 +295,28 @@ class _RetryNotice extends StatelessWidget {
           minimumSize: const Size(0, 48),
         ),
         child: const Text(AppStrings.retryAction),
+      ),
+    );
+  }
+}
+
+class _LockedWhenPaying extends StatelessWidget {
+  final PaymentForm form;
+  final Widget child;
+
+  const _LockedWhenPaying({required this.form, required this.child});
+
+  static const double _lockedOpacity = 0.6;
+
+  @override
+  Widget build(BuildContext context) {
+    final locked = form.isChargeLocked;
+
+    return ExcludeFocus(
+      excluding: locked,
+      child: IgnorePointer(
+        ignoring: locked,
+        child: Opacity(opacity: locked ? _lockedOpacity : 1, child: child),
       ),
     );
   }
@@ -293,10 +354,13 @@ class _MonthsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _SectionTitle(AppStrings.registerPaymentMonthsTitle),
-        BillingMonthGrid(
+        _LockedWhenPaying(
           form: form,
-          onToggle: cubit.toggleMonth,
-          onShowYear: cubit.showYear,
+          child: BillingMonthGrid(
+            form: form,
+            onToggle: cubit.toggleMonth,
+            onShowYear: cubit.showYear,
+          ),
         ),
         if (repeated is MonthsAlreadyPaidNotice)
           AppNotice(
@@ -332,10 +396,13 @@ class _AmountSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AmountField(
-          label: AppStrings.registerPaymentAmountLabel,
-          initialCents: form.amountCents,
-          onChanged: context.read<RegisterPaymentCubit>().changeAmount,
+        _LockedWhenPaying(
+          form: form,
+          child: AmountField(
+            label: AppStrings.registerPaymentAmountLabel,
+            initialCents: form.amountCents,
+            onChanged: context.read<RegisterPaymentCubit>().changeAmount,
+          ),
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
@@ -364,9 +431,12 @@ class _MethodSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _SectionTitle(AppStrings.registerPaymentMethodTitle),
-        PaymentMethodSelector(
-          selected: form.method,
-          onSelected: context.read<RegisterPaymentCubit>().pickMethod,
+        _LockedWhenPaying(
+          form: form,
+          child: PaymentMethodSelector(
+            selected: form.method,
+            onSelected: context.read<RegisterPaymentCubit>().pickMethod,
+          ),
         ),
       ],
     );
@@ -388,7 +458,9 @@ class _FamilySection extends StatelessWidget {
         const _SectionTitle(AppStrings.registerPaymentFamilyTitle),
         FamilyPaymentSection(
           form: form,
-          onToggle: (enabled) => cubit.payForFamily(enabled: enabled),
+          onToggle: form.isChargeLocked
+              ? null
+              : (enabled) => cubit.payForFamily(enabled: enabled),
           onToggleRelative: cubit.toggleRelative,
           onRetry: cubit.reloadFamilyStatus,
         ),
@@ -421,11 +493,14 @@ class _PayerSection extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
         ],
-        PayerSelector(
-          member: form.ledger.member,
-          relatives: form.ledger.familyMembers,
-          selectedPayerId: form.payerId,
-          onSelected: context.read<RegisterPaymentCubit>().pickPayer,
+        _LockedWhenPaying(
+          form: form,
+          child: PayerSelector(
+            member: form.ledger.member,
+            relatives: form.ledger.familyMembers,
+            selectedPayerId: form.payerId,
+            onSelected: context.read<RegisterPaymentCubit>().pickPayer,
+          ),
         ),
       ],
     );

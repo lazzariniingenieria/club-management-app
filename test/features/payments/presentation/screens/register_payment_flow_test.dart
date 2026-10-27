@@ -13,6 +13,7 @@ import 'package:club_management_app/features/payments/data/models/member_ledger_
 import 'package:club_management_app/features/payments/presentation/screens/payment_member_picker_screen.dart';
 import 'package:club_management_app/features/payments/presentation/widgets/payment_history_tile.dart';
 import 'package:club_management_app/features/payments/data/datasources/payment_fake_data_source.dart';
+import 'package:club_management_app/shared/widgets/amount_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -53,6 +54,25 @@ class RecordingPaymentSource extends PaymentFakeDataSource {
   Future<void> recordPayment(PaymentDraft draft) async {
     await super.recordPayment(draft);
     drafts.add(draft);
+  }
+}
+
+class RelativeFailingPaymentSource extends PaymentFakeDataSource {
+  final int failingMemberId;
+  bool failsNext = true;
+
+  RelativeFailingPaymentSource({
+    required super.members,
+    required this.failingMemberId,
+  }) : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
+
+  @override
+  Future<void> recordPayment(PaymentDraft draft) async {
+    if (failsNext && draft.memberId == failingMemberId) {
+      failsNext = false;
+      throw NetworkException('offline');
+    }
+    await super.recordPayment(draft);
   }
 }
 
@@ -312,7 +332,9 @@ void main() {
       expect(find.text(AppStrings.confirmPaymentTitle), findsOneWidget);
       expect(source.recorded, 0);
 
-      await tester.tap(find.text(AppStrings.confirmPaymentAction(r'$15.000')));
+      final confirm = find.text(AppStrings.confirmPaymentAction(r'$15.000'));
+      await tester.ensureVisible(confirm);
+      await tester.tap(confirm);
       await tester.pumpAndSettle();
 
       expect(source.recorded, 1);
@@ -571,15 +593,14 @@ void main() {
       ),
     ];
 
-    Future<RecordingPaymentSource> openFamilyPayment(
+    Future<void> openFamilyPaymentWith(
       WidgetTester tester,
+      PaymentFakeDataSource Function(MemberRemoteDataSource members) payments,
     ) async {
-      late RecordingPaymentSource source;
       await bootClub(
         tester,
         memberSource: MemberRosterDataSource(family),
-        payments: (members) =>
-            source = RecordingPaymentSource(members: members),
+        payments: payments,
       );
       await openLedgerOf(tester, 'Juan Zárate');
       await tester.tap(find.text(AppStrings.ledgerRegisterAction));
@@ -593,6 +614,16 @@ void main() {
       );
       await tester.tap(toggle);
       await tester.pumpAndSettle();
+    }
+
+    Future<RecordingPaymentSource> openFamilyPayment(
+      WidgetTester tester,
+    ) async {
+      late RecordingPaymentSource source;
+      await openFamilyPaymentWith(
+        tester,
+        (members) => source = RecordingPaymentSource(members: members),
+      );
 
       return source;
     }
@@ -641,6 +672,63 @@ void main() {
 
       expect(source.drafts.map((draft) => draft.memberId), [1, 2]);
       expect(source.drafts.map((draft) => draft.paidByMemberId), [null, 1]);
+      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
+      expect(
+        find.text(
+          AppStrings.familyPaymentRegistered(
+            AppStrings.memberCount(2),
+            r'$30.000',
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a payment left half done locks the charge until it ends', (
+      tester,
+    ) async {
+      await openFamilyPaymentWith(
+        tester,
+        (members) => RelativeFailingPaymentSource(
+          members: members,
+          failingMemberId: 2,
+        ),
+      );
+
+      await reviewAndConfirm(tester, r'$30.000');
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(AppStrings.familyPaymentPartialTitle),
+        findsOneWidget,
+      );
+      expect(
+          find.textContaining(AppStrings.familyPaymentLocked), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.byType(AmountField),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      final amountLock = tester.widget<IgnorePointer>(
+        find
+            .ancestor(
+              of: find.byType(AmountField),
+              matching: find.byType(IgnorePointer),
+            )
+            .first,
+      );
+      expect(amountLock.ignoring, isTrue);
+
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppStrings.retryAction));
+      await tester.pumpAndSettle();
+      final confirm = find.text(AppStrings.confirmPaymentAction(r'$15.000'));
+      await tester.ensureVisible(confirm);
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+
       expect(currentLocation(), AppRoutes.adminMemberLedger(1));
       expect(
         find.text(

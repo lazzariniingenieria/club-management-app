@@ -14,6 +14,7 @@ import '../../domain/usecases/load_member_ledger_use_case.dart';
 import '../../domain/usecases/register_family_payment_use_case.dart';
 import '../../domain/usecases/register_payment_use_case.dart';
 import 'family_payment.dart';
+import 'family_settlement.dart';
 import 'payment_form.dart';
 import 'register_payment_state.dart';
 
@@ -38,7 +39,6 @@ class RegisterPaymentCubit extends Cubit<RegisterPaymentState> {
         super(const RegisterPaymentLoading());
 
   PaymentDraft? _unconfirmedDraft;
-  final Map<int, List<BillingMonth>> _registeredForFamily = {};
 
   Future<void> open(int memberId) async {
     emit(const RegisterPaymentLoading());
@@ -49,20 +49,22 @@ class RegisterPaymentCubit extends Cubit<RegisterPaymentState> {
     emit(result.fold(_unavailableFrom, _editingFor));
   }
 
-  void toggleMonth(BillingMonth month) => _edit((form) => form.toggling(month));
+  void toggleMonth(BillingMonth month) =>
+      _editCharge((form) => form.toggling(month));
 
   void showYear(int year) => _edit((form) => form.showingYear(year));
 
   void changeAmount(String text) =>
-      _edit((form) => form.withAmount(PesoAmount.centsFrom(text)));
+      _editCharge((form) => form.withAmount(PesoAmount.centsFrom(text)));
 
   void pickMethod(PaymentMethod method) =>
-      _edit((form) => form.withMethod(method));
+      _editCharge((form) => form.withMethod(method));
 
-  void pickPayer(int? memberId) => _edit((form) => form.withPayer(memberId));
+  void pickPayer(int? memberId) =>
+      _editCharge((form) => form.withPayer(memberId));
 
   Future<void> payForFamily({required bool enabled}) async {
-    if (!enabled) return _edit((form) => form.withFamily(null));
+    if (!enabled) return _editCharge((form) => form.withFamily(null));
 
     _edit((form) => form.withFamily(const FamilyPayment()));
     await _refreshFamilyStatus();
@@ -113,50 +115,61 @@ class RegisterPaymentCubit extends Cubit<RegisterPaymentState> {
     );
   }
 
-  Future<void> _submitForFamily(PaymentForm form) async {
-    emit(RegisterPaymentEditing(form: form, isSubmitting: true));
+  Future<void> _submitForFamily(PaymentForm start) async {
+    emit(RegisterPaymentEditing(form: start, isSubmitting: true));
 
-    final outcome = await _registerFamilyPayment(form.toFamilyRequest());
+    final outcome = await _registerFamilyPayment(start.toFamilyRequest());
     if (isClosed) return;
 
-    _registeredForFamily.addAll(outcome.registered);
+    final form = start.afterFamilySubmit(outcome);
     if (outcome.failed[form.ledger.member.id] is InactiveMemberFailure) {
       return emit(const RegisterPaymentUnavailable(isInactive: true));
     }
-    if (outcome.isComplete && _registeredForFamily.isNotEmpty) {
-      return emit(
-        RegisterPaymentRegistered(form.toFamilyReceipt(_registeredForFamily)),
-      );
+    if (outcome.isComplete && !(form.family?.hasUnconfirmed ?? false)) {
+      return _finishFamily(form, outcome);
     }
 
-    await _showFamilyPending(form, _familyNoticeFor(outcome));
+    await _settleFamily(form, outcome);
   }
 
-  RegisterPaymentNotice _familyNoticeFor(FamilyPaymentOutcome outcome) {
-    if (outcome.isComplete) return const FamilyAlreadyPaidNotice();
-
-    return FamilyPaymentIncompleteNotice(
-      registeredIds: _registeredForFamily.keys.toList(),
-      pendingIds: outcome.failed.keys.toList(),
-      mayHaveLanded: outcome.mayHaveLanded,
-    );
-  }
-
-  Future<void> _showFamilyPending(
+  Future<void> _finishFamily(
     PaymentForm form,
-    RegisterPaymentNotice notice,
+    FamilyPaymentOutcome outcome,
   ) async {
-    final result = await _loadFamilyStatus(form.familyStatusIds);
+    final registered = form.family?.registered.isNotEmpty ?? false;
+    if (registered) {
+      return emit(RegisterPaymentRegistered(form.toFamilyReceipt()));
+    }
+
+    await _settleFamily(form, outcome);
+  }
+
+  Future<void> _settleFamily(
+    PaymentForm sent,
+    FamilyPaymentOutcome outcome,
+  ) async {
+    final regrouped = await _rereadGroup(sent, outcome);
     if (isClosed) return;
 
-    final family = form.family;
-    final refreshed = result.fold(
-      (_) => family,
-      (statuses) => family?.loaded(statuses),
-    );
+    final history = await _loadFamilyStatus(regrouped.familyStatusIds);
+    if (isClosed) return;
+
+    final settled = history.fold((_) => regrouped, regrouped.withFamilyHistory);
     emit(
-      RegisterPaymentEditing(form: form.withFamily(refreshed), notice: notice),
+      FamilySettlement(sent: sent, settled: settled, outcome: outcome)
+          .toState(),
     );
+  }
+
+  Future<PaymentForm> _rereadGroup(
+    PaymentForm form,
+    FamilyPaymentOutcome outcome,
+  ) async {
+    if (!outcome.groupMayHaveChanged) return form;
+
+    final result = await _loadLedger(form.ledger.member.id);
+
+    return result.fold((_) => form, form.withGroupFrom);
   }
 
   void _edit(PaymentForm Function(PaymentForm form) change) {
@@ -169,6 +182,15 @@ class RegisterPaymentCubit extends Cubit<RegisterPaymentState> {
         notice: current.notice,
       ),
     );
+  }
+
+  void _editCharge(PaymentForm Function(PaymentForm form) change) {
+    final current = state;
+    if (current is RegisterPaymentEditing && current.form.isChargeLocked) {
+      return;
+    }
+
+    _edit(change);
   }
 
   Future<void> _recover(

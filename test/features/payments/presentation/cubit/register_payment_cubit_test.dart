@@ -722,5 +722,391 @@ void main() {
 
       expect(cubit.state, const RegisterPaymentUnavailable(isInactive: true));
     });
+
+    group('a payment that timed out', () {
+      const timedOut = FamilyPaymentOutcome(
+        failed: {1: ResponseTimeoutFailure(), 2: ResponseTimeoutFailure()},
+        unconfirmed: {
+          1: [september],
+          2: [september],
+        },
+      );
+
+      void stubHistory(Map<int, Set<BillingMonth>> paidBy) {
+        when(() => loadFamilyStatus(any())).thenAnswer(
+          (_) async => Right({
+            1: paid(paidBy[1] ?? const {}),
+            2: paid(paidBy[2] ?? const {}),
+          }),
+        );
+      }
+
+      PaymentReceipt receipt() =>
+          (cubit.state as RegisterPaymentRegistered).receipt;
+
+      test('that went through for everybody ends with the full receipt',
+          () async {
+        stubStatuses();
+        stubOutcome(timedOut);
+        await openForFamily();
+        stubHistory({
+          1: {september},
+          2: {september},
+        });
+
+        await cubit.submit();
+
+        expect(receipt().familyMemberCount, 2);
+        expect(receipt().totalCents, 2 * feeCents);
+        expect(receipt().months, [september]);
+      });
+
+      test('that went through for one member counts both in the receipt',
+          () async {
+        stubStatuses();
+        stubOutcome(
+          const FamilyPaymentOutcome(
+            registered: {
+              1: [september],
+            },
+            failed: {2: ResponseTimeoutFailure()},
+            unconfirmed: {
+              2: [september],
+            },
+          ),
+        );
+        await openForFamily();
+        stubHistory({
+          1: {september},
+          2: {september},
+        });
+
+        await cubit.submit();
+
+        expect(receipt().familyMemberCount, 2);
+        expect(receipt().totalCents, 2 * feeCents);
+      });
+
+      test('that the history cannot confirm yet stays pending and locked',
+          () async {
+        stubStatuses();
+        stubOutcome(timedOut);
+        await openForFamily();
+
+        await cubit.submit();
+
+        final incomplete = notice() as FamilyPaymentIncompleteNotice;
+        expect(incomplete.mayHaveLanded, isTrue);
+        expect(incomplete.pendingIds, [1, 2]);
+        expect(form().isChargeLocked, isTrue);
+      });
+
+      test('is confirmed by the retry when the history was unreadable',
+          () async {
+        stubStatuses();
+        stubOutcome(timedOut);
+        await openForFamily();
+        when(() => loadFamilyStatus(any()))
+            .thenAnswer((_) async => const Left(NetworkFailure()));
+        await cubit.submit();
+        expect(notice(), isA<FamilyPaymentIncompleteNotice>());
+
+        stubHistory({
+          1: {september},
+          2: {september},
+        });
+        stubOutcome(const FamilyPaymentOutcome());
+        await cubit.submit();
+
+        expect(receipt().familyMemberCount, 2);
+        expect(receipt().totalCents, 2 * feeCents);
+      });
+    });
+
+    group('when the group changed while the form was open', () {
+      final luis = buildLedgerMember(id: 3, firstName: 'Luis');
+      final threeInGroup = buildLedger(
+        member: buildLedgerMember(familyGroupId: 7),
+        familyMembers: [relative, luis],
+      );
+
+      void stubGroup(MemberLedger current) {
+        when(() => loadLedger(any())).thenAnswer((_) async => Right(current));
+      }
+
+      void stubStatusesOf(List<int> ids, {List<int> alreadyPaid = const []}) {
+        when(() => loadFamilyStatus(any())).thenAnswer(
+          (_) async => Right({
+            for (final id in ids)
+              id: paid(alreadyPaid.contains(id) ? {september} : const {}),
+          }),
+        );
+      }
+
+      Future<void> openWithThreeInGroup() async {
+        stubGroup(threeInGroup);
+        stubStatusesOf([1, 2, 3]);
+        await openForFamily();
+      }
+
+      FamilyPaymentRequest lastRequest() =>
+          verify(() => registerFamilyPayment(captureAny())).captured.last
+              as FamilyPaymentRequest;
+
+      test('a relative deactivated meanwhile is named and not charged again',
+          () async {
+        await openWithThreeInGroup();
+        stubOutcome(
+          const FamilyPaymentOutcome(
+            registered: {
+              1: [september],
+              3: [september],
+            },
+            failed: {2: InactiveMemberFailure()},
+          ),
+        );
+        stubGroup(
+          buildLedger(
+            member: buildLedgerMember(familyGroupId: 7),
+            familyMembers: [
+              buildLedgerMember(
+                id: 2,
+                firstName: 'María',
+                status: MemberStatus.inactive,
+              ),
+              luis,
+            ],
+          ),
+        );
+        stubStatusesOf([1, 3], alreadyPaid: [1, 3]);
+
+        await cubit.submit();
+
+        expect(
+          notice(),
+          FamilyPaymentIncompleteNotice(
+            registeredIds: const [1, 3],
+            pendingIds: const [],
+            mayHaveLanded: false,
+            leftNames: [relative.fullName],
+          ),
+        );
+        expect(form().chargedMembers.map((member) => member.id), [1, 3]);
+        await cubit.submit();
+        verify(() => registerFamilyPayment(any())).called(1);
+      });
+
+      test('a relative taken out of the group is named and not charged again',
+          () async {
+        await openWithThreeInGroup();
+        stubOutcome(
+          const FamilyPaymentOutcome(
+            registered: {
+              1: [september],
+            },
+            failed: {2: ValidationFailure('not in the group')},
+          ),
+        );
+        stubGroup(
+          buildLedger(
+            member: buildLedgerMember(familyGroupId: 7),
+            familyMembers: [luis],
+          ),
+        );
+        stubStatusesOf([1, 3]);
+
+        await cubit.submit();
+
+        final incomplete = notice() as FamilyPaymentIncompleteNotice;
+        expect(incomplete.leftNames, [relative.fullName]);
+        expect(incomplete.pendingIds, isEmpty);
+        expect(form().chargedMembers.map((member) => member.id), [1, 3]);
+      });
+
+      test('who is left still pending keeps the retry', () async {
+        await openWithThreeInGroup();
+        stubOutcome(
+          const FamilyPaymentOutcome(
+            registered: {
+              1: [september],
+            },
+            failed: {
+              2: InactiveMemberFailure(),
+              3: NetworkFailure(),
+            },
+          ),
+        );
+        stubGroup(
+          buildLedger(
+            member: buildLedgerMember(familyGroupId: 7),
+            familyMembers: [
+              buildLedgerMember(
+                id: 2,
+                firstName: 'María',
+                status: MemberStatus.inactive,
+              ),
+              luis,
+            ],
+          ),
+        );
+        stubStatusesOf([1, 3]);
+
+        await cubit.submit();
+        stubOutcome(
+          const FamilyPaymentOutcome(
+            registered: {
+              3: [september],
+            },
+          ),
+        );
+        final incomplete = notice() as FamilyPaymentIncompleteNotice;
+        await cubit.submit();
+
+        expect(incomplete.pendingIds, [3]);
+        expect(incomplete.leftNames, [relative.fullName]);
+        expect(lastRequest().relativeIds, [3]);
+        expect(cubit.state, isA<RegisterPaymentRegistered>());
+      });
+
+      test('the payer who left the group is reset and stops being sent',
+          () async {
+        await openWithThreeInGroup();
+        cubit.pickPayer(2);
+        stubOutcome(
+          const FamilyPaymentOutcome(
+            failed: {
+              1: ValidationFailure('payer not in the group'),
+              2: ValidationFailure('payer not in the group'),
+              3: ValidationFailure('payer not in the group'),
+            },
+          ),
+        );
+        stubGroup(
+          buildLedger(
+            member: buildLedgerMember(familyGroupId: 7),
+            familyMembers: [luis],
+          ),
+        );
+        stubStatusesOf([1, 3]);
+
+        await cubit.submit();
+
+        expect(form().payerId, isNull);
+        expect(notice(), const PayerLeftGroupNotice());
+        stubOutcome(const FamilyPaymentOutcome());
+        await cubit.submit();
+        final request = lastRequest();
+        expect(request.draft.paidByMemberId, isNull);
+        expect(request.relativeIds, [3]);
+      });
+
+      test('a group that cannot be reread leaves the member pending', () async {
+        await openWithThreeInGroup();
+        stubOutcome(
+          const FamilyPaymentOutcome(
+            registered: {
+              1: [september],
+            },
+            failed: {2: InactiveMemberFailure()},
+          ),
+        );
+        when(() => loadLedger(any()))
+            .thenAnswer((_) async => const Left(NetworkFailure()));
+
+        await cubit.submit();
+
+        final incomplete = notice() as FamilyPaymentIncompleteNotice;
+        expect(incomplete.pendingIds, [2]);
+        expect(incomplete.leftNames, isEmpty);
+      });
+
+      test('a rejection that is not about the group stays pending', () async {
+        await openWithThreeInGroup();
+        stubOutcome(
+          const FamilyPaymentOutcome(
+            registered: {
+              1: [september],
+            },
+            failed: {2: ValidationFailure('invalid')},
+          ),
+        );
+
+        await cubit.submit();
+
+        final incomplete = notice() as FamilyPaymentIncompleteNotice;
+        expect(incomplete.pendingIds, [2]);
+        expect(incomplete.leftNames, isEmpty);
+      });
+    });
+
+    group('once part of the payment is registered', () {
+      const half = FamilyPaymentOutcome(
+        registered: {
+          1: [september],
+        },
+        failed: {2: NetworkFailure()},
+      );
+
+      Future<void> leaveHalfDone() async {
+        stubStatuses();
+        stubOutcome(half);
+        await openForFamily();
+        await cubit.submit();
+      }
+
+      test('the charge cannot be edited anymore', () async {
+        await leaveHalfDone();
+        final before = form();
+
+        cubit.changeAmount('12000');
+        cubit.pickMethod(PaymentMethod.transfer);
+        cubit.toggleMonth(october);
+        cubit.pickPayer(2);
+
+        expect(form(), before);
+        expect(form().isChargeLocked, isTrue);
+      });
+
+      test('the group cannot be turned off', () async {
+        await leaveHalfDone();
+
+        await cubit.payForFamily(enabled: false);
+
+        expect(form().paysForFamily, isTrue);
+      });
+
+      test('who already figures in the payment cannot be left out', () async {
+        await leaveHalfDone();
+
+        cubit.toggleRelative(1);
+
+        expect(form().family?.includes(1), isTrue);
+      });
+
+      test('who is still missing can be left out', () async {
+        await leaveHalfDone();
+
+        cubit.toggleRelative(relative.id);
+
+        expect(form().family?.includes(relative.id), isFalse);
+      });
+
+      test('the receipt adds what each fee really cost', () async {
+        await leaveHalfDone();
+
+        stubOutcome(
+          const FamilyPaymentOutcome(
+            registered: {
+              2: [september],
+            },
+          ),
+        );
+        await cubit.submit();
+
+        final receipt = (cubit.state as RegisterPaymentRegistered).receipt;
+        expect(receipt.totalCents, 2 * feeCents);
+        expect(receipt.familyMemberCount, 2);
+      });
+    });
   });
 }

@@ -329,7 +329,13 @@ class AppStrings {
   static const String familyPaymentRetryPending =
       'Tus datos siguen cargados. Al reintentar se cobra solo lo que falta.';
   static const String familyPaymentAlreadyPaid =
-      'Otro administrador ya cargó esos meses para todos los socios elegidos. Actualizamos la lista: no queda nada para cobrar.';
+      'Esos meses ya figuran pagos para todos los socios elegidos. Actualizamos la lista: no queda nada para cobrar.';
+  static const String familyPaymentLeftOutTitle =
+      'Quedaron integrantes sin cobrar.';
+  static const String familyPaymentPayerLeft =
+      'Quien figuraba como pagador ya no está en el grupo: lo que falta se registra como pagado por el socio.';
+  static const String familyPaymentLocked =
+      'Para cambiar los meses, el importe, el medio de pago o quién pagó, terminá este pago o salí y volvé a empezar.';
 
   static String monthCount(int count) => count == 1 ? '1 mes' : '$count meses';
 
@@ -389,6 +395,10 @@ class AppStrings {
       'Se registró el pago de $names.';
 
   static String familyPaymentPendingFor(String names) => 'Falta el de $names.';
+
+  static String familyPaymentRelativesLeft(String names, int count) => count == 1
+      ? '$names ya no figura entre los integrantes activos del grupo, así que no se le cobró.'
+      : '$names ya no figuran entre los integrantes activos del grupo, así que no se les cobró.';
 
   static String monthsInYear(String months, int year) => '$months de $year';
 
