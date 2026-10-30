@@ -359,7 +359,7 @@ Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la not
 `Perfil → Administradores → [+ | lápiz | baja | reactivar] → Confirmar`
 
 - **La baja es lógica y reversible**, nunca un borrado.
-- **La baja no es inmediata** ([backend_api.md](backend_api.md) §5): el admin dado de baja no puede volver a ingresar, pero si tiene la app abierta sigue operando hasta que vence su access token (hasta 1 hora). Lo mismo con el reset de contraseña. El copy lo dice así, sin prometer un corte que la API no hace.
+- **La baja corta la sesión en el momento** ([backend_api.md](backend_api.md) §5): el admin dado de baja no puede volver a ingresar, y si tiene la app abierta su próximo pedido da `401`, el refresh también, y la app lo lleva al ingreso. Lo mismo con el reset de contraseña. El copy lo dice así.
 - Por eso la confirmación es un diálogo estándar con copy claro — *"¿Dar de baja a Juan Pérez? Vas a poder reactivarlo cuando quieras."* — y **no** el patrón de escribir el nombre. Ese patrón se reserva para acciones genuinamente irreversibles; gastarlo en algo que se deshace con un tap es fricción sin contrapartida, y lo deja desgastado para el día que exista una acción que sí lo amerite.
 - Un admin dado de baja sigue en el listado, marcado como inactivo, con la acción de reactivar en su fila. Desaparecer de la lista al desactivar hace creer que se borró.
 - **No hace falta lógica defensiva contra la auto-baja del superAdmin**: el listado de la API nunca devuelve esa cuenta, así que no existe la fila que se podría tocar por error.
@@ -377,7 +377,7 @@ Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la not
 
 **La edición manda siempre `memberId`** (o `null` si se eligió "Sin vincular"): un `PATCH` sin el campo desvincula al admin de su socio ([backend_api.md](backend_api.md) §9). El `409` puede ser DNI repetido o socio ya vinculado a otra cuenta y la API no los distingue sin leer el `message`, así que el formulario avisa arriba "Ese DNI o ese socio ya los usa otra cuenta del club" y conserva lo cargado.
 
-En la edición, debajo del botón de guardar: **Restablecer contraseña** (hoja con la contraseña nueva y el aviso de que sus sesiones se cierran solas en menos de una hora) y **Dar de baja / Reactivar** con el diálogo estándar. Restablecer es lo que hace posible la pantalla de Recuperar contraseña (§3.1.2).
+En la edición, debajo del botón de guardar: **Restablecer contraseña** (hoja con la contraseña nueva y el aviso de que, si tiene la app abierta, la sesión se le cierra en el momento) y **Dar de baja / Reactivar** con el diálogo estándar. Restablecer es lo que hace posible la pantalla de Recuperar contraseña (§3.1.2).
 
 ### 4.4 Reservar una cancha (admin)
 

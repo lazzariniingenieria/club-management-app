@@ -633,12 +633,12 @@ class AppStrings {
       'Ese DNI o ese socio ya los usa otra cuenta del club. Revisá los datos.';
   static const String adminResetPassword = 'Restablecer contraseña';
   static const String adminResetPasswordNotice =
-      'Sus sesiones abiertas se cierran solas en menos de una hora. Pasale la contraseña nueva por un canal seguro.';
+      'Si tiene la app abierta, la sesión se le cierra en el momento. Pasale la contraseña nueva por un canal seguro.';
   static const String adminResetPasswordDone = 'Contraseña restablecida';
   static const String adminDeactivate = 'Dar de baja';
   static const String adminReactivate = 'Reactivar administrador';
   static const String adminDeactivateMessage =
-      'No va a poder volver a ingresar. Si ahora tiene la app abierta, la sesión se le cierra sola en menos de una hora. Vas a poder reactivarlo cuando quieras.';
+      'No va a poder volver a ingresar, y si ahora tiene la app abierta, la sesión se le cierra en el momento. Vas a poder reactivarlo cuando quieras.';
   static const String adminUnsavedChangesLost =
       'Los cambios sin guardar del formulario se descartan.';
   static const String adminReactivateMessage =
