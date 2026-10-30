@@ -8,7 +8,7 @@ import '../formatting/payment_formats.dart';
 
 class PaymentMethodSelector extends StatelessWidget {
   final PaymentMethod selected;
-  final ValueChanged<PaymentMethod> onSelected;
+  final ValueChanged<PaymentMethod>? onSelected;
 
   const PaymentMethodSelector({
     super.key,
@@ -16,8 +16,22 @@ class PaymentMethodSelector extends StatelessWidget {
     required this.onSelected,
   });
 
+  bool get _enabled => onSelected != null;
+
+  Color _labelColorOf(PaymentMethod method) {
+    if (!_enabled) {
+      return method == selected
+          ? AppColors.textPrimary
+          : AppColors.textSecondary;
+    }
+
+    return method == selected ? AppColors.textOnDark : AppColors.textPrimary;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final select = onSelected;
+
     return Wrap(
       spacing: AppSpacing.sm,
       runSpacing: AppSpacing.sm,
@@ -27,11 +41,10 @@ class PaymentMethodSelector extends StatelessWidget {
             label: Text(PaymentFormats.method(method)),
             selected: method == selected,
             showCheckmark: true,
-            checkmarkColor: AppColors.textOnDark,
+            checkmarkColor: _labelColorOf(method),
+            disabledColor: AppColors.disabledSurface,
             labelStyle: TextStyle(
-              color: method == selected
-                  ? AppColors.textOnDark
-                  : AppColors.textPrimary,
+              color: _labelColorOf(method),
               fontWeight: FontWeight.w600,
             ),
             side: BorderSide(
@@ -45,7 +58,7 @@ class PaymentMethodSelector extends StatelessWidget {
               horizontal: AppSpacing.md,
               vertical: AppSpacing.sm,
             ),
-            onSelected: (_) => onSelected(method),
+            onSelected: select == null ? null : (_) => select(method),
           ),
       ],
     );

@@ -11,7 +11,7 @@ class PayerSelector extends StatelessWidget {
   final Member member;
   final List<Member> relatives;
   final int? selectedPayerId;
-  final ValueChanged<int?> onSelected;
+  final ValueChanged<int?>? onSelected;
 
   const PayerSelector({
     super.key,
@@ -20,6 +20,12 @@ class PayerSelector extends StatelessWidget {
     required this.selectedPayerId,
     required this.onSelected,
   });
+
+  VoidCallback? _selecting(int? payerId) {
+    final select = onSelected;
+
+    return select == null ? null : () => select(payerId);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,14 +41,14 @@ class PayerSelector extends StatelessWidget {
             name: member.fullName,
             note: AppStrings.registerPaymentPayerSelf,
             isSelected: selectedPayerId == null,
-            onSelected: () => onSelected(null),
+            onSelected: _selecting(null),
           ),
           for (final relative in relatives)
             _PayerOption(
               name: relative.fullName,
               note: AppStrings.registerPaymentPayerRelative,
               isSelected: selectedPayerId == relative.id,
-              onSelected: () => onSelected(relative.id),
+              onSelected: _selecting(relative.id),
             ),
         ],
       ),
@@ -54,7 +60,7 @@ class _PayerOption extends StatelessWidget {
   final String name;
   final String note;
   final bool isSelected;
-  final VoidCallback onSelected;
+  final VoidCallback? onSelected;
 
   const _PayerOption({
     required this.name,
@@ -72,6 +78,7 @@ class _PayerOption extends StatelessWidget {
       inMutuallyExclusiveGroup: true,
       checked: isSelected,
       button: true,
+      enabled: onSelected != null,
       label: '$name, $note',
       excludeSemantics: true,
       child: InkWell(

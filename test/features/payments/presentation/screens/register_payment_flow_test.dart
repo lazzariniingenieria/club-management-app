@@ -737,15 +737,23 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      final amountLock = tester.widget<IgnorePointer>(
-        find
-            .ancestor(
-              of: find.byType(AmountField),
-              matching: find.byType(IgnorePointer),
-            )
-            .first,
+      final amount = tester.widget<TextField>(
+        find.descendant(
+          of: find.byType(AmountField),
+          matching: find.byType(TextField),
+        ),
       );
-      expect(amountLock.ignoring, isTrue);
+      expect(amount.enabled, isFalse);
+      final cash = find.widgetWithText(ChoiceChip, AppStrings.paymentMethodCash);
+      await tester.scrollUntilVisible(
+        cash,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(
+        tester.getSemantics(cash),
+        isSemantics(isEnabled: false, hasEnabledState: true, isSelected: true),
+      );
 
       await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
       await tester.pumpAndSettle();

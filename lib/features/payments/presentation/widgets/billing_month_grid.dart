@@ -11,7 +11,7 @@ import '../formatting/payment_formats.dart';
 
 class BillingMonthGrid extends StatelessWidget {
   final PaymentForm form;
-  final ValueChanged<BillingMonth> onToggle;
+  final ValueChanged<BillingMonth>? onToggle;
   final ValueChanged<int> onShowYear;
 
   const BillingMonthGrid({
@@ -116,7 +116,7 @@ class _YearSwitcher extends StatelessWidget {
 class _MonthCell extends StatelessWidget {
   final BillingMonth month;
   final PaymentForm form;
-  final ValueChanged<BillingMonth> onToggle;
+  final ValueChanged<BillingMonth>? onToggle;
 
   const _MonthCell({
     required this.month,
@@ -127,10 +127,12 @@ class _MonthCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final look = _CellLook.of(form, month);
+    final toggle = onToggle;
+    final canToggle = toggle != null && !look.isPaid;
 
     return Semantics(
       button: !look.isPaid,
-      enabled: !look.isPaid,
+      enabled: canToggle,
       selected: look.isSelected,
       label: PaymentFormats.monthWithYear(month),
       hint: look.caption,
@@ -142,7 +144,7 @@ class _MonthCell extends StatelessWidget {
           side: BorderSide(color: look.border, width: look.isSelected ? 2 : 1),
         ),
         child: InkWell(
-          onTap: look.isPaid ? null : () => onToggle(month),
+          onTap: canToggle ? () => toggle(month) : null,
           borderRadius: AppRadius.mdAll,
           child: _CellContent(month: month, look: look),
         ),

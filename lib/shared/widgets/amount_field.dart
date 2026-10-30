@@ -7,12 +7,14 @@ class AmountField extends StatefulWidget {
   final int? initialCents;
   final ValueChanged<String> onChanged;
   final String label;
+  final bool enabled;
 
   const AmountField({
     super.key,
     required this.initialCents,
     required this.onChanged,
     required this.label,
+    this.enabled = true,
   });
 
   @override
@@ -34,6 +36,7 @@ class _AmountFieldState extends State<AmountField> {
   Widget build(BuildContext context) {
     return TextField(
       controller: _controller,
+      enabled: widget.enabled,
       onChanged: widget.onChanged,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textInputAction: TextInputAction.done,

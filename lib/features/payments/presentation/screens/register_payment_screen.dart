@@ -307,28 +307,6 @@ class _RetryNotice extends StatelessWidget {
   }
 }
 
-class _LockedWhenPaying extends StatelessWidget {
-  final PaymentForm form;
-  final Widget child;
-
-  const _LockedWhenPaying({required this.form, required this.child});
-
-  static const double _lockedOpacity = 0.6;
-
-  @override
-  Widget build(BuildContext context) {
-    final locked = form.isChargeLocked;
-
-    return ExcludeFocus(
-      excluding: locked,
-      child: IgnorePointer(
-        ignoring: locked,
-        child: Opacity(opacity: locked ? _lockedOpacity : 1, child: child),
-      ),
-    );
-  }
-}
-
 class _SectionTitle extends StatelessWidget {
   final String text;
 
@@ -361,13 +339,10 @@ class _MonthsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _SectionTitle(AppStrings.registerPaymentMonthsTitle),
-        _LockedWhenPaying(
+        BillingMonthGrid(
           form: form,
-          child: BillingMonthGrid(
-            form: form,
-            onToggle: cubit.toggleMonth,
-            onShowYear: cubit.showYear,
-          ),
+          onToggle: form.isChargeLocked ? null : cubit.toggleMonth,
+          onShowYear: cubit.showYear,
         ),
         if (repeated is MonthsAlreadyPaidNotice)
           AppNotice(
@@ -403,13 +378,11 @@ class _AmountSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _LockedWhenPaying(
-          form: form,
-          child: AmountField(
-            label: AppStrings.registerPaymentAmountLabel,
-            initialCents: form.amountCents,
-            onChanged: context.read<RegisterPaymentCubit>().changeAmount,
-          ),
+        AmountField(
+          label: AppStrings.registerPaymentAmountLabel,
+          initialCents: form.amountCents,
+          enabled: !form.isChargeLocked,
+          onChanged: context.read<RegisterPaymentCubit>().changeAmount,
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
@@ -438,12 +411,11 @@ class _MethodSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _SectionTitle(AppStrings.registerPaymentMethodTitle),
-        _LockedWhenPaying(
-          form: form,
-          child: PaymentMethodSelector(
-            selected: form.method,
-            onSelected: context.read<RegisterPaymentCubit>().pickMethod,
-          ),
+        PaymentMethodSelector(
+          selected: form.method,
+          onSelected: form.isChargeLocked
+              ? null
+              : context.read<RegisterPaymentCubit>().pickMethod,
         ),
       ],
     );
@@ -500,14 +472,13 @@ class _PayerSection extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
         ],
-        _LockedWhenPaying(
-          form: form,
-          child: PayerSelector(
-            member: form.ledger.member,
-            relatives: form.ledger.familyMembers,
-            selectedPayerId: form.payerId,
-            onSelected: context.read<RegisterPaymentCubit>().pickPayer,
-          ),
+        PayerSelector(
+          member: form.ledger.member,
+          relatives: form.ledger.familyMembers,
+          selectedPayerId: form.payerId,
+          onSelected: form.isChargeLocked
+              ? null
+              : context.read<RegisterPaymentCubit>().pickPayer,
         ),
       ],
     );
