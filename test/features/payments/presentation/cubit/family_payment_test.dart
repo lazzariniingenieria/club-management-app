@@ -3,7 +3,9 @@ import 'package:club_management_app/features/payments/domain/entities/billing_mo
 import 'package:club_management_app/features/payments/domain/entities/family_payment_outcome.dart';
 import 'package:club_management_app/features/payments/domain/entities/payment_precheck.dart';
 import 'package:club_management_app/features/payments/presentation/cubit/family_payment.dart';
+import 'package:club_management_app/features/payments/presentation/cubit/family_settlement.dart';
 import 'package:club_management_app/features/payments/presentation/cubit/payment_form.dart';
+import 'package:club_management_app/features/payments/presentation/cubit/register_payment_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../helpers/payment_builders.dart';
@@ -104,6 +106,49 @@ void main() {
 
       expect(family.unconfirmed, isEmpty);
       expect(family.registered.keys, [2]);
+    });
+  });
+
+  group('settling a payment after a relative left the group', () {
+    final leaving = buildLedgerMember(id: 2, firstName: 'Luis');
+    final staying = buildLedgerMember(id: 3, firstName: 'Ana');
+
+    PaymentForm formWith(List<int> relativeIds, FamilyPayment family) {
+      return PaymentForm.start(
+        buildLedger(
+          familyMembers: [
+            for (final relative in [leaving, staying])
+              if (relativeIds.contains(relative.id)) relative,
+          ],
+        ),
+        DateTime(2026, 9, 14),
+      ).withFamily(family);
+    }
+
+    test('ends as registered when nobody is pending, naming who left', () {
+      const outcome = FamilyPaymentOutcome(
+        registered: {
+          1: [september],
+          3: [september],
+        },
+        failed: {2: ValidationFailure('not in the group')},
+      );
+      final sent = formWith([2, 3], const FamilyPayment());
+      final settled = formWith(
+        [3],
+        const FamilyPayment().afterSubmit(outcome, amountCents: 1500000),
+      );
+
+      final state = FamilySettlement(
+        sent: sent,
+        settled: settled,
+        outcome: outcome,
+      ).toState();
+
+      final receipt = (state as RegisterPaymentRegistered).receipt;
+      expect(receipt.familyMemberCount, 2);
+      expect(receipt.totalCents, 2 * 1500000);
+      expect(receipt.leftOutNames, [leaving.fullName]);
     });
   });
 }

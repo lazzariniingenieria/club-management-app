@@ -64,6 +64,13 @@ class PaymentForm extends Equatable {
 
   bool get isChargeLocked => family?.hasProgress ?? false;
 
+  bool get canFinishFamily {
+    final current = family;
+    if (current == null || current.hasUnconfirmed) return false;
+
+    return current.registered.isNotEmpty && current.isReady && feeCount == 0;
+  }
+
   List<Member> get activeRelatives =>
       ledger.familyMembers.where((relative) => relative.isActive).toList();
 
@@ -230,7 +237,7 @@ class PaymentForm extends Equatable {
     );
   }
 
-  PaymentReceipt toFamilyReceipt() {
+  PaymentReceipt toFamilyReceipt({List<String> leftOutNames = const []}) {
     final registered = family?.registered ?? const <int, RegisteredFee>{};
 
     return PaymentReceipt(
@@ -238,6 +245,7 @@ class PaymentForm extends Equatable {
       months: registered[ledger.member.id]?.months ?? const [],
       totalCents: registered.values.fold(0, (sum, fee) => sum + fee.totalCents),
       familyMemberCount: registered.length,
+      leftOutNames: leftOutNames,
     );
   }
 

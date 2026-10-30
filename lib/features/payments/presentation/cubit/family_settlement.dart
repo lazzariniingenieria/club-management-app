@@ -36,8 +36,10 @@ class FamilySettlement {
   bool get _hasNothingLeftToCharge => pendingIds.isEmpty && left.isEmpty;
 
   RegisterPaymentState toState() {
-    if (_hasNothingLeftToCharge && _family.registered.isNotEmpty) {
-      return RegisterPaymentRegistered(settled.toFamilyReceipt());
+    if (pendingIds.isEmpty && _family.registered.isNotEmpty) {
+      return RegisterPaymentRegistered(
+        settled.toFamilyReceipt(leftOutNames: _leftNames),
+      );
     }
 
     return RegisterPaymentEditing(form: settled, notice: _notice());
@@ -51,10 +53,13 @@ class FamilySettlement {
       registeredIds: _family.registered.keys.toList(),
       pendingIds: pendingIds,
       mayHaveLanded: _mayHaveLanded,
-      leftNames: [for (final relative in left) relative.fullName],
+      leftNames: _leftNames,
       payerLeft: payerLeft,
     );
   }
+
+  List<String> get _leftNames =>
+      [for (final relative in left) relative.fullName];
 
   bool get _mayHaveLanded => _family.hasUnconfirmed || outcome.mayHaveLanded;
 }

@@ -76,6 +76,32 @@ class RelativeFailingPaymentSource extends PaymentFakeDataSource {
   }
 }
 
+class LeavingRelativePaymentSource extends PaymentFakeDataSource {
+  final List<MemberModel> roster;
+  final int leavingMemberId;
+
+  LeavingRelativePaymentSource({
+    required super.members,
+    required this.roster,
+    required this.leavingMemberId,
+  }) : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
+
+  @override
+  Future<void> recordPayment(PaymentDraft draft) async {
+    if (draft.memberId != leavingMemberId) return super.recordPayment(draft);
+
+    final index = roster.indexWhere((member) => member.id == leavingMemberId);
+    final leaving = roster[index];
+    roster[index] = buildMember(
+      id: leaving.id,
+      firstName: leaving.firstName,
+      lastName: leaving.lastName,
+      daysOverdue: leaving.daysOverdue,
+    );
+    throw ValidationException('not in the group');
+  }
+}
+
 class LongHistoryPaymentSource extends PaymentFakeDataSource {
   static const int paymentCount = 60;
 
@@ -595,11 +621,12 @@ void main() {
 
     Future<void> openFamilyPaymentWith(
       WidgetTester tester,
-      PaymentFakeDataSource Function(MemberRemoteDataSource members) payments,
-    ) async {
+      PaymentFakeDataSource Function(MemberRemoteDataSource members) payments, {
+      List<MemberModel>? roster,
+    }) async {
       await bootClub(
         tester,
-        memberSource: MemberRosterDataSource(family),
+        memberSource: MemberRosterDataSource(roster ?? family),
         payments: payments,
       );
       await openLedgerOf(tester, 'Juan Zárate');
@@ -736,6 +763,68 @@ void main() {
             AppStrings.memberCount(2),
             r'$30.000',
           ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('leaving out who is missing finishes with what was registered',
+        (tester) async {
+      await openFamilyPaymentWith(
+        tester,
+        (members) => RelativeFailingPaymentSource(
+          members: members,
+          failingMemberId: 2,
+        ),
+      );
+      await reviewAndConfirm(tester, r'$30.000');
+
+      final ana = find.widgetWithText(CheckboxListTile, 'Ana Zárate');
+      await tester.ensureVisible(ana);
+      await tester.pumpAndSettle();
+      await tester.tap(ana);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.familyPaymentFinishAction,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
+      expect(
+        find.text(
+          AppStrings.familyPaymentRegistered(
+            AppStrings.memberCount(1),
+            r'$15.000',
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a relative who left the group is named after the payment', (
+      tester,
+    ) async {
+      final roster = [...family];
+      await openFamilyPaymentWith(
+        tester,
+        (members) => LeavingRelativePaymentSource(
+          members: members,
+          roster: roster,
+          leavingMemberId: 2,
+        ),
+        roster: roster,
+      );
+
+      await reviewAndConfirm(tester, r'$30.000');
+
+      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
+      expect(
+        find.text(
+          '${AppStrings.familyPaymentRegistered(AppStrings.memberCount(1), r'$15.000')}. '
+          '${AppStrings.familyPaymentRelativesLeft('Ana Zárate', 1)}',
         ),
         findsOneWidget,
       );

@@ -334,6 +334,9 @@ class AppStrings {
       'Quedaron integrantes sin cobrar.';
   static const String familyPaymentPayerLeft =
       'Quien figuraba como pagador ya no está en el grupo: lo que falta se registra como pagado por el socio.';
+  static const String familyPaymentFinishAction = 'Terminar el pago';
+  static const String familyPaymentFinishHint =
+      'Quien faltaba quedó afuera de este pago. Tocá Terminar el pago para cerrarlo con lo que ya se registró.';
   static const String familyPaymentLocked =
       'Para cambiar los meses, el importe, el medio de pago o quién pagó, terminá este pago o salí y volvé a empezar.';
 

@@ -77,21 +77,34 @@ class _MemberLedgerViewState extends State<_MemberLedgerView> {
   }
 
   void _announce(PaymentReceipt receipt) {
-    final total = DisplayFormats.pesos(receipt.totalCents);
-    final familyMembers = receipt.familyMemberCount;
+    final leftOut = receipt.leftOutNames;
 
     showAppSnackBar(
       context,
-      familyMembers == null
-          ? AppStrings.paymentRegistered(
-              PaymentFormats.monthsSummary(receipt.months).toLowerCase(),
-              total,
-            )
-          : AppStrings.familyPaymentRegistered(
-              AppStrings.memberCount(familyMembers),
-              total,
-            ),
+      [
+        _registeredMessageOf(receipt),
+        if (leftOut.isNotEmpty)
+          AppStrings.familyPaymentRelativesLeft(
+            DisplayFormats.listed(leftOut),
+            leftOut.length,
+          ),
+      ].join('. '),
     );
+  }
+
+  static String _registeredMessageOf(PaymentReceipt receipt) {
+    final total = DisplayFormats.pesos(receipt.totalCents);
+    final familyMembers = receipt.familyMemberCount;
+
+    return familyMembers == null
+        ? AppStrings.paymentRegistered(
+            PaymentFormats.monthsSummary(receipt.months).toLowerCase(),
+            total,
+          )
+        : AppStrings.familyPaymentRegistered(
+            AppStrings.memberCount(familyMembers),
+            total,
+          );
   }
 
   Future<void> _registerPayment() async {

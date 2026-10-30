@@ -78,6 +78,22 @@ class RegisterPaymentCubit extends Cubit<RegisterPaymentState> {
   void toggleRelative(int memberId) =>
       _edit((form) => form.withFamily(form.family?.toggling(memberId)));
 
+  void finishFamily() {
+    final current = state;
+    if (current is! RegisterPaymentEditing || current.isSubmitting) return;
+    if (!current.form.canFinishFamily) return;
+
+    final notice = current.notice;
+    final leftOutNames = notice is FamilyPaymentIncompleteNotice
+        ? notice.leftNames
+        : const <String>[];
+    emit(
+      RegisterPaymentRegistered(
+        current.form.toFamilyReceipt(leftOutNames: leftOutNames),
+      ),
+    );
+  }
+
   Future<void> submit() async {
     final current = state;
     if (current is! RegisterPaymentEditing) return;

@@ -130,6 +130,18 @@ void main() {
     expect(outcome.failed, {3: const NetworkFailure()});
   });
 
+  test('a history read that timed out never claims the payment may have landed',
+      () async {
+    when(() => repository.loadPrecheck(3))
+        .thenAnswer((_) async => const Left(ResponseTimeoutFailure()));
+
+    final outcome = await registerFamilyPayment(requestFor());
+
+    expect(sentDrafts().map((draft) => draft.memberId), [1, 2]);
+    expect(outcome.failed, {3: const ResponseTimeoutFailure()});
+    expect(outcome.mayHaveLanded, isFalse);
+  });
+
   test('a payment that timed out stays pending and may have landed', () async {
     when(() => repository.recordPayments(any())).thenAnswer(
       (_) async => const [

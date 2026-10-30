@@ -259,6 +259,7 @@ class _FamilyIncompleteNotice extends StatelessWidget {
     PaymentForm form,
   ) {
     if (notice.pendingIds.isEmpty) return const [];
+    if (form.canFinishFamily) return const [AppStrings.familyPaymentFinishHint];
 
     return [
       notice.mayHaveLanded
@@ -282,19 +283,25 @@ class _RetryNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final finishes = form.canFinishFamily;
+
     return AppNotice(
       title: title,
       message: message,
       tone: AppNoticeTone.danger,
       action: OutlinedButton(
         onPressed:
-            form.canReview ? () => _reviewAndSubmit(context, form) : null,
+            finishes || form.canReview ? () => _proceed(context, form) : null,
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.dangerText,
           side: const BorderSide(color: AppColors.dangerText),
           minimumSize: const Size(0, 48),
         ),
-        child: const Text(AppStrings.retryAction),
+        child: Text(
+          finishes
+              ? AppStrings.familyPaymentFinishAction
+              : AppStrings.retryAction,
+        ),
       ),
     );
   }
@@ -534,8 +541,8 @@ class _ReviewBar extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
               ElevatedButton(
-                onPressed: form.canReview && !isSubmitting
-                    ? () => _reviewAndSubmit(context, form)
+                onPressed: _canProceed && !isSubmitting
+                    ? () => _proceed(context, form)
                     : null,
                 child: isSubmitting ? const _ButtonSpinner() : Text(_label),
               ),
@@ -563,17 +570,24 @@ class _ReviewBar extends StatelessWidget {
         : AppStrings.registerPaymentIncomplete;
   }
 
-  String get _label => form.canReview
-      ? AppStrings.registerPaymentReviewWithTotal(
-          DisplayFormats.pesos(form.totalCents),
-        )
-      : AppStrings.registerPaymentReviewAction;
+  bool get _canProceed => form.canReview || form.canFinishFamily;
+
+  String get _label {
+    if (form.canFinishFamily) return AppStrings.familyPaymentFinishAction;
+
+    return form.canReview
+        ? AppStrings.registerPaymentReviewWithTotal(
+            DisplayFormats.pesos(form.totalCents),
+          )
+        : AppStrings.registerPaymentReviewAction;
+  }
 }
 
-Future<void> _reviewAndSubmit(BuildContext context, PaymentForm form) async {
+Future<void> _proceed(BuildContext context, PaymentForm form) async {
   final cubit = context.read<RegisterPaymentCubit>();
-  final confirmed = await PaymentConfirmationSheet.show(context, form);
+  if (form.canFinishFamily) return cubit.finishFamily();
 
+  final confirmed = await PaymentConfirmationSheet.show(context, form);
   if (confirmed) await cubit.submit();
 }
 

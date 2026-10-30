@@ -17,8 +17,7 @@ class FamilyPaymentOutcome extends Equatable {
 
   bool get isComplete => failed.isEmpty;
 
-  bool get mayHaveLanded =>
-      failed.values.any((failure) => failure is ResponseTimeoutFailure);
+  bool get mayHaveLanded => unconfirmed.isNotEmpty;
 
   bool get groupMayHaveChanged => failed.values.any(
         (failure) =>

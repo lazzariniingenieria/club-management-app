@@ -664,7 +664,12 @@ void main() {
         () async {
       stubStatuses();
       stubOutcome(
-        const FamilyPaymentOutcome(failed: {2: ResponseTimeoutFailure()}),
+        const FamilyPaymentOutcome(
+          failed: {2: ResponseTimeoutFailure()},
+          unconfirmed: {
+            2: [september],
+          },
+        ),
       );
       await openForFamily();
 
@@ -882,17 +887,10 @@ void main() {
 
         await cubit.submit();
 
-        expect(
-          notice(),
-          FamilyPaymentIncompleteNotice(
-            registeredIds: const [1, 3],
-            pendingIds: const [],
-            mayHaveLanded: false,
-            leftNames: [relative.fullName],
-          ),
-        );
-        expect(form().chargedMembers.map((member) => member.id), [1, 3]);
-        await cubit.submit();
+        final receipt = (cubit.state as RegisterPaymentRegistered).receipt;
+        expect(receipt.familyMemberCount, 2);
+        expect(receipt.totalCents, 2 * feeCents);
+        expect(receipt.leftOutNames, [relative.fullName]);
         verify(() => registerFamilyPayment(any())).called(1);
       });
 
@@ -903,6 +901,7 @@ void main() {
           const FamilyPaymentOutcome(
             registered: {
               1: [september],
+              3: [september],
             },
             failed: {2: ValidationFailure('not in the group')},
           ),
@@ -913,14 +912,14 @@ void main() {
             familyMembers: [luis],
           ),
         );
-        stubStatusesOf([1, 3]);
+        stubStatusesOf([1, 3], alreadyPaid: [1, 3]);
 
         await cubit.submit();
 
-        final incomplete = notice() as FamilyPaymentIncompleteNotice;
-        expect(incomplete.leftNames, [relative.fullName]);
-        expect(incomplete.pendingIds, isEmpty);
-        expect(form().chargedMembers.map((member) => member.id), [1, 3]);
+        final receipt = (cubit.state as RegisterPaymentRegistered).receipt;
+        expect(receipt.familyMemberCount, 2);
+        expect(receipt.totalCents, 2 * feeCents);
+        expect(receipt.leftOutNames, [relative.fullName]);
       });
 
       test('who is left still pending keeps the retry', () async {
@@ -1089,6 +1088,34 @@ void main() {
         cubit.toggleRelative(relative.id);
 
         expect(form().family?.includes(relative.id), isFalse);
+      });
+
+      test('leaving out the only one missing lets the admin finish', () async {
+        stubStatuses();
+        stubOutcome(half);
+        await openForFamily();
+        when(() => loadFamilyStatus(any())).thenAnswer(
+          (_) async => Right({1: paid({september}), 2: paid(const {})}),
+        );
+        await cubit.submit();
+
+        cubit.toggleRelative(relative.id);
+        expect(form().canFinishFamily, isTrue);
+        cubit.finishFamily();
+
+        final receipt = (cubit.state as RegisterPaymentRegistered).receipt;
+        expect(receipt.familyMemberCount, 1);
+        expect(receipt.totalCents, feeCents);
+        verify(() => registerFamilyPayment(any())).called(1);
+      });
+
+      test('cannot finish while somebody chosen still owes', () async {
+        await leaveHalfDone();
+
+        cubit.finishFamily();
+
+        expect(cubit.state, isA<RegisterPaymentEditing>());
+        expect(form().canFinishFamily, isFalse);
       });
 
       test('the receipt adds what each fee really cost', () async {
