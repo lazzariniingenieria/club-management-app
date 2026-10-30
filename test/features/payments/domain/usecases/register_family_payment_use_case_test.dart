@@ -120,6 +120,16 @@ void main() {
     expect(outcome.failed, {2: const InactiveMemberFailure()});
   });
 
+  test('a member deactivated meanwhile charges nobody in the group', () async {
+    stubPrecheck(1, isActive: false);
+
+    final outcome = await registerFamilyPayment(requestFor());
+
+    verifyNever(() => repository.recordPayments(any()));
+    expect(outcome.failed, {1: const InactiveMemberFailure()});
+    expect(outcome.registered, isEmpty);
+  });
+
   test('a history that cannot be read keeps that member pending', () async {
     when(() => repository.loadPrecheck(3))
         .thenAnswer((_) async => const Left(NetworkFailure()));

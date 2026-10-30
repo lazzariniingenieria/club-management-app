@@ -257,7 +257,7 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 | En el pago del grupo, el servidor no respondió a tiempo | Igual que en el pago individual: la app relee el historial de cada integrante. Los que figuran con todos sus meses pasan a registrados (si son todos, termina con el comprobante completo, sin aviso de error); a los demás los marca como en duda y dice que no sabe si entró, y *Reintentar* vuelve a revisar el historial antes de enviar |
 | Otro admin ya cobró esos meses a todos los elegidos | Aviso; la lista se actualiza y no queda nada para cobrar. Solo aparece si ningún pedido de esta pantalla pudo haber entrado |
 | El socio ya no existe | Pantalla de "No encontramos a este socio" con *Volver a Pagos* |
-| El socio fue dado de baja mientras tanto | Pantalla de "Este socio está dado de baja" con *Volver* |
+| El socio fue dado de baja mientras tanto | Pantalla de "Este socio está dado de baja" con *Volver*. En el pago del grupo, la baja se detecta al releer el historial antes de enviar, así que no se le cobra a nadie del grupo |
 | Otro error del servidor | Aviso con el mensaje; el formulario sigue editable |
 
 **Reintentar siempre vuelve a la confirmación**: entre el error y el reintento el admin pudo haber cambiado el importe o los meses, y un pago no se manda sin ver el resumen que se va a registrar.

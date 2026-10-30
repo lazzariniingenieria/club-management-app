@@ -16,6 +16,11 @@ class RegisterFamilyPaymentUseCase {
 
   Future<FamilyPaymentOutcome> call(FamilyPaymentRequest request) async {
     final planned = await _plannedDrafts(request);
+    if (_memberLeftTheClub(request, planned)) {
+      return FamilyPaymentOutcome(
+        failed: {request.draft.memberId: const InactiveMemberFailure()},
+      );
+    }
     final failed = {
       for (final MapEntry(key: memberId, value: plan) in planned.entries)
         if (plan.getLeft().toNullable() case final failure?) memberId: failure,
@@ -39,6 +44,15 @@ class RegisterFamilyPaymentUseCase {
       for (var index = 0; index < ids.length; index++)
         ids[index]: _draftFrom(request, ids[index], prechecks[index]),
     };
+  }
+
+  static bool _memberLeftTheClub(
+    FamilyPaymentRequest request,
+    Map<int, Either<Failure, PaymentDraft?>> planned,
+  ) {
+    final plan = planned[request.draft.memberId];
+
+    return plan?.getLeft().toNullable() is InactiveMemberFailure;
   }
 
   static Either<Failure, PaymentDraft?> _draftFrom(
