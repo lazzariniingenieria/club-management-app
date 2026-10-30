@@ -65,6 +65,11 @@ class AdminFakeDataSource implements AdminRemoteDataSource {
     _indexOf(adminId);
   }
 
+  @override
+  Future<void> changeOwnPassword(String newPassword) async {
+    await Future<void>.delayed(latency);
+  }
+
   static AdminModel _fromDraft(
     int id,
     AdminDraft draft, {

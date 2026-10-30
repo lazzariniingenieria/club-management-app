@@ -21,13 +21,15 @@ void main() {
     });
   });
 
-  test('only the super admin edits the club fee', () {
+  test('both admin roles edit the club fee, a member does not', () {
     expect(UserRole.superAdmin.canEditClubFee, isTrue);
-    expect(UserRole.admin.canEditClubFee, isFalse);
+    expect(UserRole.admin.canEditClubFee, isTrue);
+    expect(UserRole.member.canEditClubFee, isFalse);
   });
 
-  test('only an admin can change their own password from the app', () {
+  test('both admin roles change their own password, a member does not', () {
     expect(UserRole.admin.canChangeOwnPassword, isTrue);
-    expect(UserRole.superAdmin.canChangeOwnPassword, isFalse);
+    expect(UserRole.superAdmin.canChangeOwnPassword, isTrue);
+    expect(UserRole.member.canChangeOwnPassword, isFalse);
   });
 }

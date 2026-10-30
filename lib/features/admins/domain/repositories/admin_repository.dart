@@ -19,4 +19,6 @@ abstract class AdminRepository {
   });
 
   Future<Either<Failure, void>> resetPassword(int adminId, String newPassword);
+
+  Future<Either<Failure, void>> changeOwnPassword(String newPassword);
 }

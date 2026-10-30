@@ -15,13 +15,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('an admin sees the club fee but cannot edit it', (tester) async {
+  testWidgets('an admin edits the club fee but does not manage admins', (
+    tester,
+  ) async {
     await openProfile(tester, UserRole.admin);
 
     expect(find.text(AppStrings.profileRoleAdmin), findsOneWidget);
     expect(find.text(r'$15.000'), findsOneWidget);
-    expect(find.text(AppStrings.profileMonthlyFeeReadOnly), findsOneWidget);
-    expect(find.byTooltip(AppStrings.profileEditMonthlyFee), findsNothing);
+    expect(find.byTooltip(AppStrings.profileEditMonthlyFee), findsOneWidget);
     expect(find.text(AppStrings.adminProfileManageAdmins), findsNothing);
   });
 
@@ -43,18 +44,18 @@ void main() {
     expect(find.text(AppStrings.feeSaved), findsOneWidget);
   });
 
-  testWidgets('the super admin is told the password cannot change here', (
-    tester,
-  ) async {
+  testWidgets('the super admin changes their own password', (tester) async {
     await openProfile(tester, UserRole.superAdmin);
 
     await tester.tap(find.text(AppStrings.profileChangePassword));
-    await tester.pump();
-
-    expect(
-      find.text(AppStrings.profileChangePasswordUnavailable),
-      findsOneWidget,
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'nueva-clave-1');
+    await tester.tap(
+      find.widgetWithText(ElevatedButton, AppStrings.passwordChangeAction),
     );
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppStrings.passwordChangedTitle), findsOneWidget);
   });
 
   testWidgets('a short new password is explained in the field', (

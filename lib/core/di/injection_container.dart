@@ -14,6 +14,7 @@ import '../../features/admins/data/datasources/admin_remote_data_source.dart';
 import '../../features/admins/data/repositories/admin_repository_impl.dart';
 import '../../features/admins/domain/repositories/admin_repository.dart';
 import '../../features/admins/domain/usecases/load_admins_use_case.dart';
+import '../../features/admins/domain/usecases/change_own_password_use_case.dart';
 import '../../features/admins/domain/usecases/reset_admin_password_use_case.dart';
 import '../../features/admins/domain/usecases/save_admin_use_case.dart';
 import '../../features/admins/domain/usecases/set_admin_active_use_case.dart';
@@ -296,6 +297,7 @@ void _registerAdmins() {
   );
 
   sl.registerLazySingleton(() => ResetAdminPasswordUseCase(sl()));
+  sl.registerLazySingleton(() => ChangeOwnPasswordUseCase(sl()));
   sl.registerLazySingleton(
     () => LoadAdminsUseCase(admins: sl(), members: sl()),
   );
@@ -363,7 +365,7 @@ void _registerPresentation() {
       loadClub: sl(),
       loadMember: sl(),
       updateMonthlyFee: sl(),
-      resetPassword: sl(),
+      changeOwnPassword: sl(),
     ),
   );
   sl.registerFactory(

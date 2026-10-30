@@ -2,7 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/errors/failures.dart';
-import '../../../admins/domain/usecases/reset_admin_password_use_case.dart';
+import '../../../admins/domain/usecases/change_own_password_use_case.dart';
 import '../../../club/domain/entities/club.dart';
 import '../../../club/domain/usecases/load_club_use_case.dart';
 import '../../../club/domain/usecases/update_monthly_fee_use_case.dart';
@@ -14,17 +14,17 @@ class AdminProfileCubit extends Cubit<AdminProfileState> {
   final LoadClubUseCase _loadClub;
   final LoadMemberUseCase _loadMember;
   final UpdateMonthlyFeeUseCase _updateMonthlyFee;
-  final ResetAdminPasswordUseCase _resetPassword;
+  final ChangeOwnPasswordUseCase _changeOwnPassword;
 
   AdminProfileCubit({
     required LoadClubUseCase loadClub,
     required LoadMemberUseCase loadMember,
     required UpdateMonthlyFeeUseCase updateMonthlyFee,
-    required ResetAdminPasswordUseCase resetPassword,
+    required ChangeOwnPasswordUseCase changeOwnPassword,
   })  : _loadClub = loadClub,
         _loadMember = loadMember,
         _updateMonthlyFee = updateMonthlyFee,
-        _resetPassword = resetPassword,
+        _changeOwnPassword = changeOwnPassword,
         super(const AdminProfileState());
 
   int? _memberId;
@@ -63,8 +63,8 @@ class AdminProfileCubit extends Cubit<AdminProfileState> {
     });
   }
 
-  Future<Failure?> changePassword(int accountId, String newPassword) async {
-    final result = await _resetPassword(accountId, newPassword);
+  Future<Failure?> changePassword(String newPassword) async {
+    final result = await _changeOwnPassword(newPassword);
 
     return result.getLeft().toNullable();
   }

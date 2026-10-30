@@ -62,6 +62,14 @@ class AdminRepositoryImpl implements AdminRepository {
     );
   }
 
+  @override
+  Future<Either<Failure, void>> changeOwnPassword(String newPassword) {
+    return _guard(
+      'changeOwnPassword',
+      () => remoteDataSource.changeOwnPassword(newPassword),
+    );
+  }
+
   Future<Either<Failure, void>> _guardChange(
     String operation,
     Future<void> Function() run,

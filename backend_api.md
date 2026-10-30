@@ -4,6 +4,8 @@ Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, 
 
 **Verificado contra** [`club-management-api`](https://github.com/lazzariniingenieria/club-management-api) `develop`, commit `02ff70e` — 2026-10-15.
 
+**PR #23 de la API** (`feature/close-admin-app-backend-gaps`, commit `f19b4f0`, todavía sin mergear — 2026-10-30): cierra casi todo §10. Lo que cambia se marca en cada sección como *Con el PR #23*. **La app ya usa su cambio de contraseña propio** (§5), así que el PR #14 de la app y el #23 de la API se mergean juntos.
+
 **Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/` (incluido `JwtAuthenticationFilter`), `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
 **Qué no va acá**: pantallas, flujos y entregas van en [app_flows.md](app_flows.md); reglas de código, en [CLAUDE.md](CLAUDE.md).
@@ -102,11 +104,12 @@ DNI + contraseña, sin proveedor externo. El `dni` es único **por club**, así 
 | Ruta | Quién entra |
 | :--- | :--- |
 | `/api/auth/login`, `/api/auth/refresh` | público |
-| `PATCH /api/admins/{id}/password` | `ADMIN`, `SUPER_ADMIN` |
+| `PATCH /api/auth/me/password` (*con el PR #23*) | `ADMIN`, `SUPER_ADMIN` |
+| `PATCH /api/admins/{id}/password` | `ADMIN`, `SUPER_ADMIN`. *Con el PR #23*, **solo `SUPER_ADMIN`**: un `ADMIN` recibe `403` |
 | `/api/admins/**` (todo lo demás) | **solo `SUPER_ADMIN`** |
 | `/api/members/**`, `/api/family-groups/**`, `/api/payments/**` | `ADMIN`, `SUPER_ADMIN` |
 | `GET /api/clubs/me` | `ADMIN`, `SUPER_ADMIN` |
-| `PATCH /api/clubs/me` | **solo `SUPER_ADMIN`** |
+| `PATCH /api/clubs/me` | **solo `SUPER_ADMIN`**. *Con el PR #23*, `ADMIN` y `SUPER_ADMIN` |
 
 **Un token con `role = MEMBER` no entra a ningún endpoint implementado.** Puede autenticarse y nada más.
 
@@ -189,6 +192,10 @@ Todo lo demás sale con este envelope:
 
 **`PATCH /api/admins/{id}/password`** — `{ "newPassword": "..." }`, de 8 a 100 caracteres. Es la única ruta de `/api/admins` abierta también a `ADMIN`, y el servidor **no verifica que sea la propia cuenta**: un admin puede resetear la contraseña de otro admin del club. Revoca todos los refresh tokens vivos de esa cuenta, así que sus sesiones abiertas caen en el próximo refresh: **el access token vigente sigue valiendo hasta su `exp` (hasta 1 hora)**, porque `JwtAuthenticationFilter` solo valida firma y vencimiento. Devuelve el `AdminResponse`. Busca la cuenta con `role = ADMIN`, así que **con el id del SUPER_ADMIN da `404`**: si el SUPER_ADMIN olvida su contraseña, no hay endpoint y se cambia directamente en la base.
 
+*Con el PR #23*, esta ruta queda **solo para `SUPER_ADMIN`** (reset de otro admin), registra `sessions_revoked_at` y corta las sesiones de esa cuenta en el próximo request, no en el próximo refresh.
+
+**`PATCH /api/auth/me/password`** (*con el PR #23*) — cambio de contraseña **de la cuenta logueada**, para `ADMIN` y `SUPER_ADMIN` (`MEMBER` → `403`). Body `{ "newPassword": "..." }`, de 8 a 100 caracteres y sin pedir la actual (decisión de producto). Responde **`204` sin body**. Registra `sessions_revoked_at` y revoca los refresh tokens: se cierran todas las sesiones de la cuenta, incluida la que hizo el cambio. Es la ruta que usa el Perfil (E7).
+
 ### Bajas lógicas
 
 Nunca hay borrado físico, y los dos modelos son reversibles con `/reactivate`:
@@ -202,6 +209,8 @@ Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistingui
 
 **La baja de un admin no es inmediata.** `PATCH /api/admins/{id}/deactivate` solo pone `active = false`, sin revocar tokens, y `JwtAuthenticationFilter` no mira si la cuenta sigue activa. El admin dado de baja **sigue operando con su access token hasta que vence (hasta 1 hora)**: puede cobrar, anular pagos o editar socios. Recién en el próximo `/auth/refresh` recibe `401` y la sesión se cierra.
 
+*Con el PR #23*, `JwtAuthenticationFilter` lee la cuenta en cada request: una cuenta inactiva, o un token emitido antes de `sessions_revoked_at` (o en el mismo segundo), da `401` en el acto. La baja, el reset y el cambio propio cortan la sesión de inmediato.
+
 ### Club — `/api/clubs/me`
 
 ```json
@@ -211,7 +220,7 @@ Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistingui
 
 `GET` devuelve el club del token. `monthlyFeeAmount` es la **cuota de referencia** y es nullable: un club recién migrado no la tiene cargada. El `name` lo pone la migración como `"Club <id>"` hasta que se configure por entorno.
 
-`PATCH` (**solo `SUPER_ADMIN`**) recibe `{ "monthlyFeeAmount": 16000 }` (> 0, hasta 8 enteros y 2 decimales); mandarlo en `null` borra la cuota de referencia. Es solo una referencia: **no cambia ningún pago** ni la forma de calcular la mora, y `POST /api/payments` sigue exigiendo el `amount` explícito.
+`PATCH` (**solo `SUPER_ADMIN`**; *con el PR #23*, también `ADMIN`) recibe `{ "monthlyFeeAmount": 16000 }` (> 0, hasta 8 enteros y 2 decimales); mandarlo en `null` borra la cuota de referencia. Es solo una referencia: **no cambia ningún pago** ni la forma de calcular la mora, y `POST /api/payments` sigue exigiendo el `amount` explícito.
 
 ---
 
@@ -369,15 +378,13 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Mora de un socio y padrón de su grupo familiar sin bajar todo el club (filtro por `memberId` en `GET /api/payments/delinquency`, por `familyGroupId` en `GET /api/members`) | Cuotas del socio a escala — hoy cada apertura del ledger trae el padrón entero y la mora de todo el club para mostrar a un socio. La verificación previa al registrar ya no lo necesita: usa `GET /api/members/{id}` y el historial del socio |
 | Edición de un pago | Corregir un pago es anularlo y registrarlo de nuevo |
 | Días de gracia configurables | El umbral de "en mora" |
-| Cambio de contraseña **de la cuenta logueada**, para los dos roles y sin pedir la actual (decisión de producto). Hoy un ADMIN usa `PATCH /api/admins/{id}/password` con su propio id, que no verifica que la cuenta sea la propia; el SUPER_ADMIN no tiene camino (§5) | E7 — el SUPER_ADMIN ve la acción deshabilitada |
 | Mostrar a un ADMIN quién cargó o anuló un pago: `recordedByUserId` y `voidedByUserId` no se pueden traducir a una persona (`GET /api/admins` es solo para SUPER_ADMIN y un admin no tiene nombre) | "Quién lo cargó" en el detalle del pago |
 | Datos de contacto del club en `GET /api/clubs/me` | El canal de contacto de Recuperar contraseña (E11) |
 | Asignar grupo en el alta y en la edición de forma pareja: `POST /api/members` acepta `familyGroupId` y `PATCH` no | Nada hoy: el grupo se arma desde las cuotas del socio (E6.5) |
-| `DELETE /api/family-groups/{id}`, que saque a los integrantes y borre el grupo sin tocar socios ni pagos | "Eliminar grupo" de E6.5 |
-| Crear un grupo con sus integrantes en una sola operación | Que armar un grupo nunca deje uno vacío (E6.5). La app completa un armado a medias con "Reintentar" sobre el mismo grupo, pero si el `POST /api/family-groups` da timeout no puede saber si el grupo se creó: un reintento puede dejar un grupo vacío para siempre, porque tampoco hay `DELETE` |
-| Registrar el pago de varios socios en una sola operación (una transacción) | Que *Pagar por todo el grupo* (E6.5) nunca quede a medias. Hoy son un `POST /api/payments` por socio, sin transacción: la app saltea lo ya pago al reintentar, así que nadie paga dos veces, pero un corte a mitad deja el grupo pago a medias hasta que alguien reintente |
-| Corte inmediato de la sesión al dar de baja a un admin o al restablecer su contraseña: chequear `active` o una versión de credenciales en `JwtAuthenticationFilter`, o bajar el TTL del access token | Que la baja de un admin sea inmediata (E8). Hoy el access token vigente sigue valiendo hasta 1 hora (§5) |
-| `PATCH /api/clubs/me` abierto también a `ADMIN` | Que un ADMIN edite la cuota de referencia desde Perfil (E7) |
+| `DELETE /api/family-groups/{id}`, que saque a los integrantes y borre el grupo sin tocar socios ni pagos. *Lo trae el PR #23* (`204`, `404` si no es del club) | "Eliminar grupo" de E6.5 |
+| Crear un grupo con sus integrantes en una sola operación. *Lo trae el PR #23*: `POST /api/family-groups` acepta `memberIds`, con `409` si alguno ya tiene grupo y `404` si alguno no es del club | Que armar un grupo nunca deje uno vacío (E6.5). La app completa un armado a medias con "Reintentar" sobre el mismo grupo, pero si el `POST /api/family-groups` da timeout no puede saber si el grupo se creó: un reintento puede dejar un grupo vacío para siempre, porque tampoco hay `DELETE` |
+| Registrar el pago de varios socios en una sola operación (una transacción). *Lo trae el PR #23*: `POST /api/payments/batch` con `{ "payments": [RecordPaymentRequest, …] }` → `201` y la lista plana de pagos; si una entrada falla no se registra ninguna | Que *Pagar por todo el grupo* (E6.5) nunca quede a medias. Hoy son un `POST /api/payments` por socio, sin transacción: la app saltea lo ya pago al reintentar, así que nadie paga dos veces, pero un corte a mitad deja el grupo pago a medias hasta que alguien reintente |
+| Corte inmediato de la sesión al dar de baja a un admin o al restablecer su contraseña. *Lo trae el PR #23* (§5, Bajas lógicas) | Que la baja de un admin sea inmediata (E8). Hoy el access token vigente sigue valiendo hasta 1 hora (§5) |
 | Reset de contraseña de un **socio** por un ADMIN / SUPER_ADMIN | E11 — existe solo para cuentas de admin (§5) |
 | Flag de "debe cambiar la contraseña en el próximo ingreso" | Primer ingreso (E11) |
 | `court`, `court_block`, `recurring_slot`, `reservation` — ni tabla, ni endpoint | **E9 completa**, y "Próximos turnos" del Inicio |

@@ -158,10 +158,10 @@ Tres bloques, de arriba abajo:
 | Bloque | Contenido |
 | :--- | :--- |
 | **Tu cuenta** | El rol ("Administrador" / "Administrador principal") y, si la cuenta está vinculada a un socio, su nombre y DNI. Si no, "Esta cuenta no está vinculada a un socio." No hay más datos: la API no expone la cuenta logueada ([backend_api.md](backend_api.md) §10) |
-| **Club** | Nombre del club y **cuota mensual de referencia** (`monthlyFeeAmount`), o "Sin cargar". El SUPER_ADMIN la edita desde un lápiz que abre una hoja con el mismo campo de importe que Registrar pago; vacío la borra. El ADMIN la ve con la nota "Solo el administrador principal puede cambiarla" hasta que la API le abra el `PATCH` |
+| **Club** | Nombre del club y **cuota mensual de referencia** (`monthlyFeeAmount`), o "Sin cargar". El ADMIN y el SUPER_ADMIN la editan desde un lápiz que abre una hoja con el mismo campo de importe que Registrar pago; vacío la borra |
 | **Sesión y seguridad** | *Cambiar contraseña*, *Administradores* (solo `canManageAdmins`) y *Cerrar sesión* |
 
-**Cambiar contraseña** pide solo la nueva (8 a 100 caracteres, con mostrar/ocultar): decisión de producto, tiene que ser simple. Al guardarla, la API revoca todas las sesiones de la cuenta, así que la app lo avisa antes ("Al cambiarla se cierran tus sesiones abiertas…") y después muestra "Contraseña cambiada. Ingresá de nuevo con la contraseña nueva." y cierra la sesión. Para el **SUPER_ADMIN** la acción se ve pero explica que todavía no se puede desde la app: el endpoint disponible no acepta su cuenta.
+**Cambiar contraseña** pide solo la nueva (8 a 100 caracteres, con mostrar/ocultar): decisión de producto, tiene que ser simple. Al guardarla, la API revoca todas las sesiones de la cuenta, así que la app lo avisa antes ("Al cambiarla se cierran tus sesiones abiertas…") y después muestra "Contraseña cambiada. Ingresá de nuevo con la contraseña nueva." y cierra la sesión. Funciona igual para el ADMIN y el SUPER_ADMIN.
 
 Si el club no carga, el bloque Club muestra el aviso con *Reintentar* y el resto del Perfil sigue usable: cerrar sesión nunca depende de la red.
 
@@ -531,7 +531,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E5 | Alta y edición de socio | No bloquea | ✅ Entregada — sin el scroll al socio recién creado (§4.1) |
 | E6 | Registrar un pago, cuotas del socio y anulación, sobre el listado de E4 | No bloquea | ✅ Entregada |
 | E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar y pagar por todo el grupo | No bloquea (eliminar grupo: **Sí**) | 🚧 En revisión (PR #14) |
-| E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | No bloquea (SUPER_ADMIN y cuota por ADMIN: **Sí**) | 🚧 En revisión (PR #14) |
+| E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | **Sí**: se mergea junto con el PR #23 de la API | 🚧 En revisión (PR #14) |
 | E8 | ABM de administradores (superAdmin) | No bloquea | 🚧 En revisión (PR #14) |
 | E9 | Agenda / Reservas + canchas + bloqueos | **Bloqueada** | — |
 | E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | **Sí**: merge de `feature/add-fee-receipt-report` | 🚧 En revisión (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el backend mergee `feature/add-fee-receipt-report` |
@@ -633,10 +633,10 @@ La primera escritura que mueve plata. Las pantallas y sus decisiones están en �
 Las pantallas están en §3.2.3.
 
 - **Feature `club`**: `GET` y `PATCH /api/clubs/me`. La cuota viaja en pesos y se modela en centavos, igual que los pagos, con la misma conversión (`core/network/money_json.dart`). Es el único lector de `/clubs/me`: las cuotas del socio toman la cuota de referencia de `ClubRepository` en `LoadMemberLedgerUseCase`, y si esa lectura falla el importe arranca vacío.
-- **Cambio de contraseña propio** sobre `PATCH /api/admins/{id}/password` con el `userAccountId` de la sesión: funciona para ADMIN y no pide la actual. `UserRole.canChangeOwnPassword` lo habilita solo para `admin`; `canEditClubFee`, la cuota solo para `superAdmin`. Un solo lugar cada una, como `canManageAdmins`.
+- **Cambio de contraseña propio** sobre `PATCH /api/auth/me/password` (`ChangeOwnPasswordUseCase`), para ADMIN y SUPER_ADMIN, sin pedir la actual. `PATCH /api/admins/{id}/password` queda solo para el reset de otro admin (E8). `UserRole.canChangeOwnPassword` y `canEditClubFee` habilitan las dos acciones para los dos roles del admin. Un solo lugar cada una, como `canManageAdmins`.
 - El socio vinculado se lee con `GET /api/members/{id}` por `memberId`, sin bajar el padrón ni la mora del club. Si esa lectura falla, *Tu cuenta* lo omite y el resto del Perfil sigue usable.
 
-**Terminado cuando**: el ADMIN cambia su contraseña y vuelve al login; el SUPER_ADMIN edita y borra la cuota y la ve precargada al registrar un pago; un fallo del club no impide cerrar sesión; hay tests del mapeo de la cuota, de las reglas de contraseña y del Perfil por rol.
+**Terminado cuando**: el ADMIN y el SUPER_ADMIN cambian su contraseña y vuelven al login; los dos editan y borran la cuota y la ve precargada al registrar un pago; un fallo del club no impide cerrar sesión; hay tests del mapeo de la cuota, de las reglas de contraseña y del Perfil por rol.
 
 ### E8 — ABM de administradores (superAdmin)
 

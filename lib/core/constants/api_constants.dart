@@ -1,6 +1,7 @@
 abstract final class ApiConstants {
   static const String login = '/auth/login';
   static const String refresh = '/auth/refresh';
+  static const String ownPassword = '/auth/me/password';
 
   static const String members = '/members';
   static const String payments = '/payments';

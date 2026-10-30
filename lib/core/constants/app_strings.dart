@@ -661,8 +661,6 @@ class AppStrings {
   static const String profileMonthlyFeeUnset = 'Sin cargar';
   static const String profileMonthlyFeeHelp =
       'Es el importe que aparece precargado al registrar un pago. Cambiarla no modifica pagos ya registrados.';
-  static const String profileMonthlyFeeReadOnly =
-      'Solo el administrador principal puede cambiarla.';
   static const String profileEditMonthlyFee = 'Editar cuota mensual';
   static const String profileClubOffline =
       'Sin conexión: no pudimos cargar los datos del club.';
@@ -670,8 +668,6 @@ class AppStrings {
       'No pudimos cargar los datos del club.';
   static const String profileSecuritySection = 'Sesión y seguridad';
   static const String profileChangePassword = 'Cambiar contraseña';
-  static const String profileChangePasswordUnavailable =
-      'La contraseña de la cuenta principal todavía no se puede cambiar desde la app.';
 
   static String profileLinkedMember(String name) => 'Socio: $name';
 

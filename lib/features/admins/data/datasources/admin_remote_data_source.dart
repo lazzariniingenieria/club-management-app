@@ -16,6 +16,8 @@ abstract class AdminRemoteDataSource {
   Future<void> setAdminActive(int adminId, {required bool isActive});
 
   Future<void> resetPassword(int adminId, String newPassword);
+
+  Future<void> changeOwnPassword(String newPassword);
 }
 
 class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
@@ -76,6 +78,14 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   Future<void> resetPassword(int adminId, String newPassword) {
     return _writer.patch(
       ApiConstants.adminPassword(adminId),
+      body: AdminModel.bodyForPassword(newPassword),
+    );
+  }
+
+  @override
+  Future<void> changeOwnPassword(String newPassword) {
+    return _writer.patch(
+      ApiConstants.ownPassword,
       body: AdminModel.bodyForPassword(newPassword),
     );
   }

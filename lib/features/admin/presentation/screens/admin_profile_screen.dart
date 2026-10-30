@@ -180,13 +180,13 @@ class _ClubCard extends StatelessWidget {
           Text(club.name, style: AppTextStyles.titleMedium),
           const SizedBox(height: AppSpacing.md),
           _MonthlyFeeRow(user: user, monthlyFeeCents: club.monthlyFeeCents),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            user.role.canEditClubFee
-                ? AppStrings.profileMonthlyFeeHelp
-                : AppStrings.profileMonthlyFeeReadOnly,
-            style: AppTextStyles.bodySmall,
-          ),
+          if (user.role.canEditClubFee) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              AppStrings.profileMonthlyFeeHelp,
+              style: AppTextStyles.bodySmall,
+            ),
+          ],
         ],
       ),
     );
@@ -281,11 +281,12 @@ class _SecurityActions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _ProfileAction(
-          icon: Icons.lock_reset_rounded,
-          label: AppStrings.profileChangePassword,
-          onTap: () => _changePassword(context),
-        ),
+        if (user.role.canChangeOwnPassword)
+          _ProfileAction(
+            icon: Icons.lock_reset_rounded,
+            label: AppStrings.profileChangePassword,
+            onTap: () => _changePassword(context),
+          ),
         if (user.role.canManageAdmins) ...[
           const SizedBox(height: AppSpacing.sm),
           _ProfileAction(
@@ -301,11 +302,6 @@ class _SecurityActions extends StatelessWidget {
   }
 
   Future<void> _changePassword(BuildContext context) async {
-    if (!user.role.canChangeOwnPassword) {
-      showAppSnackBar(context, AppStrings.profileChangePasswordUnavailable);
-      return;
-    }
-
     final cubit = context.read<AdminProfileCubit>();
     final changed = await NewPasswordSheet.show(
       context,
@@ -313,7 +309,7 @@ class _SecurityActions extends StatelessWidget {
         title: AppStrings.passwordSheetTitle,
         notice: AppStrings.passwordChangeNotice,
         actionLabel: AppStrings.passwordChangeAction,
-        onSave: (password) => cubit.changePassword(user.id, password),
+        onSave: cubit.changePassword,
       ),
     );
     if (changed && context.mounted) await _signInAgain(context);

@@ -1,7 +1,7 @@
 import 'package:club_management_app/core/errors/failures.dart';
 import 'package:club_management_app/features/admin/presentation/cubit/admin_profile_cubit.dart';
 import 'package:club_management_app/features/admin/presentation/cubit/admin_profile_state.dart';
-import 'package:club_management_app/features/admins/domain/usecases/reset_admin_password_use_case.dart';
+import 'package:club_management_app/features/admins/domain/usecases/change_own_password_use_case.dart';
 import 'package:club_management_app/features/club/domain/entities/club.dart';
 import 'package:club_management_app/features/club/domain/usecases/load_club_use_case.dart';
 import 'package:club_management_app/features/club/domain/usecases/update_monthly_fee_use_case.dart';
@@ -17,14 +17,15 @@ class MockLoadClubUseCase extends Mock implements LoadClubUseCase {}
 class MockUpdateMonthlyFeeUseCase extends Mock
     implements UpdateMonthlyFeeUseCase {}
 
-class MockResetAdminPasswordUseCase extends Mock
-    implements ResetAdminPasswordUseCase {}
+class MockChangeOwnPasswordUseCase extends Mock
+    implements ChangeOwnPasswordUseCase {}
 
 class MockMemberRepository extends Mock implements MemberRepository {}
 
 void main() {
   late MockLoadClubUseCase loadClub;
   late MockMemberRepository members;
+  late MockChangeOwnPasswordUseCase changeOwnPassword;
   late AdminProfileCubit cubit;
 
   const club = Club(id: 1, name: 'Club 1', monthlyFeeCents: 1500000);
@@ -40,11 +41,12 @@ void main() {
   setUp(() {
     loadClub = MockLoadClubUseCase();
     members = MockMemberRepository();
+    changeOwnPassword = MockChangeOwnPasswordUseCase();
     cubit = AdminProfileCubit(
       loadClub: loadClub,
       loadMember: LoadMemberUseCase(members),
       updateMonthlyFee: MockUpdateMonthlyFeeUseCase(),
-      resetPassword: MockResetAdminPasswordUseCase(),
+      changeOwnPassword: changeOwnPassword,
     );
     when(() => loadClub()).thenAnswer((_) async => const Right(club));
   });
@@ -79,5 +81,20 @@ void main() {
 
     verifyNever(() => members.loadMember(any()));
     expect(cubit.state.clubStatus, ProfileClubStatus.ready);
+  });
+
+  test('changes the password of the signed-in account', () async {
+    when(() => changeOwnPassword('nueva-clave-1'))
+        .thenAnswer((_) async => const Right(null));
+
+    expect(await cubit.changePassword('nueva-clave-1'), isNull);
+    verify(() => changeOwnPassword('nueva-clave-1')).called(1);
+  });
+
+  test('hands a rejected password change back to the sheet', () async {
+    when(() => changeOwnPassword(any()))
+        .thenAnswer((_) async => const Left(NetworkFailure()));
+
+    expect(await cubit.changePassword('nueva-clave-1'), const NetworkFailure());
   });
 }
