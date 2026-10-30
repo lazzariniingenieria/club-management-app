@@ -26,7 +26,7 @@ class NewPasswordSheet extends StatefulWidget {
   });
 
   static Future<bool> show(BuildContext context, NewPasswordSheet sheet) {
-    return showAppSheet<bool>(context, (_) => sheet)
+    return showAppSheet<bool>(context, (_) => sheet, dismissible: false)
         .then((saved) => saved ?? false);
   }
 
@@ -77,9 +77,13 @@ class _NewPasswordSheetState extends State<NewPasswordSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return AppSheetFrame(
-      title: widget.title,
-      children: [
+    return PopScope(
+      canPop: !_isSaving,
+      child: AppSheetFrame(title: widget.title, children: _children()),
+    );
+  }
+
+  List<Widget> _children() => [
         if (_failure != null) ...[
           AppNotice(
             tone: AppNoticeTone.danger,
@@ -107,11 +111,9 @@ class _NewPasswordSheetState extends State<NewPasswordSheet> {
         const SizedBox(height: AppSpacing.sm),
         AppSecondaryButton(
           label: AppStrings.cancelAction,
-          onPressed: () => Navigator.of(context).pop(false),
+          onPressed: _isSaving ? null : () => Navigator.of(context).pop(false),
         ),
-      ],
-    );
-  }
+      ];
 }
 
 class _PasswordField extends StatelessWidget {

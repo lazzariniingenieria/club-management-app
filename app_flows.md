@@ -377,7 +377,7 @@ Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la not
 
 **La edición manda siempre `memberId`** (o `null` si se eligió "Sin vincular"): un `PATCH` sin el campo desvincula al admin de su socio ([backend_api.md](backend_api.md) §9). El `409` puede ser DNI repetido o socio ya vinculado a otra cuenta y la API no los distingue sin leer el `message`, así que el formulario avisa arriba "Ese DNI o ese socio ya los usa otra cuenta del club" y conserva lo cargado.
 
-En la edición, debajo del botón de guardar: **Restablecer contraseña** (hoja con la contraseña nueva y el aviso de que, si tiene la app abierta, la sesión se le cierra en el momento) y **Dar de baja / Reactivar** con el diálogo estándar. Restablecer es lo que hace posible la pantalla de Recuperar contraseña (§3.1.2).
+En la edición, debajo del botón de guardar: **Restablecer contraseña** (hoja con la contraseña nueva y el aviso de que, si tiene la app abierta, la sesión se le cierra en el momento; como la de *Cambiar contraseña* del Perfil, no se cierra tocando afuera ni deslizando, y mientras guarda tampoco con *Cancelar* ni atrás) y **Dar de baja / Reactivar** con el diálogo estándar. Restablecer es lo que hace posible la pantalla de Recuperar contraseña (§3.1.2).
 
 ### 4.4 Reservar una cancha (admin)
 

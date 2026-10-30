@@ -2,15 +2,22 @@ import 'package:club_management_app/core/constants/app_strings.dart';
 import 'package:club_management_app/core/di/injection_container.dart' as di;
 import 'package:club_management_app/core/router/app_router.dart';
 import 'package:club_management_app/core/router/app_routes.dart';
+import 'package:club_management_app/features/admins/data/datasources/admin_fake_data_source.dart';
+import 'package:club_management_app/features/admins/data/datasources/admin_remote_data_source.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
+import 'package:club_management_app/shared/widgets/app_secondary_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../helpers/app_test_harness.dart';
 
 void main() {
-  Future<void> openProfile(WidgetTester tester, UserRole role) async {
-    await bootApp(tester, signedInAs: role);
+  Future<void> openProfile(
+    WidgetTester tester,
+    UserRole role, {
+    AdminRemoteDataSource? adminSource,
+  }) async {
+    await bootApp(tester, signedInAs: role, adminSource: adminSource);
     di.sl<AppRouter>().router.go(AppRoutes.adminProfile);
     await tester.pumpAndSettle();
   }
@@ -55,6 +62,37 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text(AppStrings.passwordChangedTitle), findsOneWidget);
+  });
+
+  testWidgets('the password sheet cannot be closed while the change is saving',
+      (tester) async {
+    await openProfile(
+      tester,
+      UserRole.admin,
+      adminSource: AdminFakeDataSource(latency: const Duration(seconds: 1)),
+    );
+
+    await tester.tap(find.text(AppStrings.profileChangePassword));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'nueva-clave-1');
+    await tester.tap(
+      find.widgetWithText(ElevatedButton, AppStrings.passwordChangeAction),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final cancel = tester.widget<AppSecondaryButton>(
+      find.widgetWithText(AppSecondaryButton, AppStrings.cancelAction),
+    );
+    expect(cancel.onPressed, isNull);
+
+    await tester.tapAt(const Offset(10, 10));
+    await tester.binding.handlePopRoute();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.text(AppStrings.passwordChangedTitle), findsNothing);
+
+    await tester.pumpAndSettle();
     expect(find.text(AppStrings.passwordChangedTitle), findsOneWidget);
   });
 
