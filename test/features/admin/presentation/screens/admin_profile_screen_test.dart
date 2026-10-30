@@ -71,4 +71,22 @@ void main() {
 
     expect(find.text(AppStrings.passwordTooShort), findsOneWidget);
   });
+
+  testWidgets(
+    'a password over 72 bytes because of its accents is explained in the field',
+    (tester) async {
+      await openProfile(tester, UserRole.admin);
+
+      await tester.tap(find.text(AppStrings.profileChangePassword));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'ñ' * 40);
+      await tester.tap(
+        find.widgetWithText(ElevatedButton, AppStrings.passwordChangeAction),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.passwordTooLong), findsOneWidget);
+      expect(find.text(AppStrings.passwordChangedTitle), findsNothing);
+    },
+  );
 }

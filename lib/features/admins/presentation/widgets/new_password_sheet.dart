@@ -138,10 +138,12 @@ class _PasswordField extends StatelessWidget {
       obscureText: obscured,
       autocorrect: false,
       enableSuggestions: false,
-      maxLength: AdminPasswordRules.maxLength,
+      maxLength: AdminPasswordRules.maxBytes,
       decoration: InputDecoration(
         labelText: AppStrings.passwordNewLabel,
         helperText: AppStrings.passwordHelp,
+        helperMaxLines: 4,
+        errorMaxLines: 4,
         errorText: errorText,
         counterText: '',
         suffixIcon: IconButton(

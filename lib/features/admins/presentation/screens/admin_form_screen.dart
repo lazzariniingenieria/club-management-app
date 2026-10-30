@@ -290,7 +290,8 @@ class _InitialPasswordField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: AppStrings.adminFormPassword,
         helperText: AppStrings.adminFormPasswordHelp,
-        helperMaxLines: 2,
+        helperMaxLines: 4,
+        errorMaxLines: 4,
         prefixIcon: const Icon(Icons.lock_outline_rounded),
         suffixIcon: IconButton(
           onPressed: onToggle,

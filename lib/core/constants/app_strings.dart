@@ -615,7 +615,7 @@ class AppStrings {
   static const String adminFormEmail = 'Email (opcional)';
   static const String adminFormPassword = 'Contraseña inicial';
   static const String adminFormPasswordHelp =
-      'Entre 8 y 100 caracteres. Pasásela a la persona por un canal seguro.';
+      'Entre 8 y 72 caracteres; las letras con tilde y la ñ cuentan como dos. Pasásela a la persona por un canal seguro.';
   static const String adminFormMember = 'Socio vinculado (opcional)';
   static const String adminFormNoMember = 'Sin vincular';
   static const String adminFormMemberPickerTitle = 'Elegí el socio vinculado';
@@ -676,12 +676,14 @@ class AppStrings {
 
   static const String passwordSheetTitle = 'Cambiar contraseña';
   static const String passwordNewLabel = 'Contraseña nueva';
-  static const String passwordHelp = 'Entre 8 y 100 caracteres.';
+  static const String passwordHelp =
+      'Entre 8 y 72 caracteres; las letras con tilde y la ñ cuentan como dos.';
   static const String passwordBlank =
       'La contraseña no puede ser solo espacios.';
   static const String passwordTooShort =
       'Tiene que tener al menos 8 caracteres';
-  static const String passwordTooLong = 'Puede tener hasta 100 caracteres';
+  static const String passwordTooLong =
+      'Es demasiado larga: puede tener hasta 72 caracteres, y las letras con tilde y la ñ cuentan como dos';
   static const String passwordChangeNotice =
       'Al cambiarla se cierran tus sesiones abiertas y vas a ingresar de nuevo con la nueva.';
   static const String passwordChangeAction = 'Cambiar contraseña';

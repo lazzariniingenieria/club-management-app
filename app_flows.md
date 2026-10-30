@@ -161,7 +161,7 @@ Tres bloques, de arriba abajo:
 | **Club** | Nombre del club y **cuota mensual de referencia** (`monthlyFeeAmount`), o "Sin cargar". El ADMIN y el SUPER_ADMIN la editan desde un lápiz que abre una hoja con el mismo campo de importe que Registrar pago; vacío la borra |
 | **Sesión y seguridad** | *Cambiar contraseña*, *Administradores* (solo `canManageAdmins`) y *Cerrar sesión* |
 
-**Cambiar contraseña** pide solo la nueva (8 a 100 caracteres, con mostrar/ocultar): decisión de producto, tiene que ser simple. Al guardarla, la API revoca todas las sesiones de la cuenta, así que la app lo avisa antes ("Al cambiarla se cierran tus sesiones abiertas…") y después muestra "Contraseña cambiada. Ingresá de nuevo con la contraseña nueva." y cierra la sesión. Funciona igual para el ADMIN y el SUPER_ADMIN.
+**Cambiar contraseña** pide solo la nueva (de 8 caracteres a 72 bytes —las letras con tilde y la ñ cuentan como dos—, con mostrar/ocultar): decisión de producto, tiene que ser simple. Al guardarla, la API revoca todas las sesiones de la cuenta, así que la app lo avisa antes ("Al cambiarla se cierran tus sesiones abiertas…") y después muestra "Contraseña cambiada. Ingresá de nuevo con la contraseña nueva." y cierra la sesión. Funciona igual para el ADMIN y el SUPER_ADMIN.
 
 Si el club no carga, el bloque Club muestra el aviso con *Reintentar* y el resto del Perfil sigue usable: cerrar sesión nunca depende de la red.
 
@@ -372,7 +372,7 @@ Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la not
 | :--- | :--- |
 | DNI | Requerido, solo números, hasta 20; se agrupa con puntos y viaja sin ellos |
 | Email (opcional) | Formato y hasta 150 |
-| Contraseña inicial | Solo en el alta, 8 a 100 caracteres, con mostrar/ocultar. La define el SUPER_ADMIN: la API no genera ninguna |
+| Contraseña inicial | Solo en el alta, de 8 caracteres a 72 bytes (las letras con tilde y la ñ cuentan como dos, [backend_api.md](backend_api.md) §5), con mostrar/ocultar. La define el SUPER_ADMIN: la API no genera ninguna |
 | Socio vinculado (opcional) | Campo que abre una hoja con buscador y lista perezosa sobre los socios activos (más el vinculado, si está inactivo) y "Sin vincular". Los socios ya vinculados a otra cuenta se ven deshabilitados con "Ya tiene una cuenta de administrador", para no terminar en un `409` evitable |
 
 **La edición manda siempre `memberId`** (o `null` si se eligió "Sin vincular"): un `PATCH` sin el campo desvincula al admin de su socio ([backend_api.md](backend_api.md) §9). El `409` puede ser DNI repetido o socio ya vinculado a otra cuenta y la API no los distingue sin leer el `message`, así que el formulario avisa arriba "Ese DNI o ese socio ya los usa otra cuenta del club" y conserva lo cargado.
