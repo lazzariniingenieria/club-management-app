@@ -237,7 +237,7 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 - *¿Quién pagó?* vale para todas las cuotas: si pagó el socio de la pantalla, figura como el socio en la suya y como familiar en las demás.
 - La confirmación lista a cada socio con sus meses (o que se le saltea) y el total en cuotas. Al terminar se vuelve a las cuotas del socio con "Pago registrado para 3 socios del grupo · $45.000".
 - **Un pago a medias fija el cobro.** Mientras haya un socio ya registrado, o uno cuyo pedido dio timeout y puede haber entrado, no se pueden cambiar los meses, el importe, el medio de pago ni quién pagó, ni apagar el interruptor; solo se puede destildar a quien falta. Si no, la familia terminaría cobrada con dos importes. El aviso lo dice: «Para cambiar el importe, terminá este pago o salí y volvé a empezar». El comprobante suma lo que costó cada cuota registrada, no el importe del formulario.
-- **No es una sola operación**: la API registra un socio por pedido ([backend_api.md](backend_api.md) §6), así que son un `POST` por socio, en orden. Antes de enviar se relee cada historial y se cobra solo lo que falta; eso hace seguro *Reintentar*: lo ya registrado se saltea y nadie paga dos veces, tampoco después de un timeout. El padrón recibe un solo aviso al terminar.
+- **No es una sola operación**: la app registra un socio por pedido ([backend_api.md](backend_api.md) §6), así que son un `POST` por socio, en orden. La API ya tiene `POST /api/payments/batch`, que registra todo o nada; adoptarlo es un PR de seguimiento (E6.5, §8). Antes de enviar se relee cada historial y se cobra solo lo que falta; eso hace seguro *Reintentar*: lo ya registrado se saltea y nadie paga dos veces, tampoco después de un timeout. El padrón recibe un solo aviso al terminar.
 
 **Confirmación** en una hoja inferior: socio, meses, importe por mes, total, medio y quién pagó, con el aviso *"Un pago registrado no se edita: si hay un error, hay que anularlo desde el historial del socio y cargarlo de nuevo."* y dos acciones, *Confirmar* y *Volver a editar*.
 
@@ -297,7 +297,7 @@ Cuotas del socio ──[card Grupo familiar]
                                        ├─[Sumar integrante]─► Sumar al grupo ──(ya está en otro grupo)──► Pasar de grupo
                                        ├─[quitar en la fila]─► Quitar integrante
                                        ├─[fila]─────────────► Cuotas de ese integrante
-                                       └─[Eliminar grupo]───► Eliminar  (falta backend)
+                                       └─[Eliminar grupo]───► Eliminar  (pendiente en la app)
 ```
 
 **Para qué existe el grupo**: para que un integrante pueda figurar como quien pagó la cuota de otro (*¿Quién pagó?* en Registrar pago, §4.2), y para registrar en un paso la cuota de todo el grupo (*Pagar por todo el grupo*, §4.2). **La cuota sigue siendo individual**: no hay abono familiar ni importe compartido, y la pantalla lo repite donde se arma o se mira un grupo, porque es la duda natural.
@@ -324,7 +324,7 @@ Cuotas del socio ──[card Grupo familiar]
 - **Encabezado** con el nombre (o "Grupo familiar" si no tiene), la cantidad de integrantes y un lápiz que abre *Nombre del grupo*.
 - **Nota**: "Cada integrante paga su propia cuota. Al registrar un pago, cualquiera del grupo puede figurar como quien pagó."
 - **Integrantes**, ordenados por apellido y nombre: nombre, badge **Activo / Inactivo** y, a la derecha, *Quitar* (ícono con `tooltip` y `Semantics`, 48×48). Tocar el resto de la fila abre las cuotas de ese integrante. Un integrante dado de baja **sigue en el grupo** hasta que alguien lo quite.
-- **Eliminar grupo**, como acción de texto al pie de la lista. Hasta que exista el endpoint se dibuja en gris y, al tocarla, explica que todavía no está disponible (regla de §3.2.2).
+- **Eliminar grupo**, como acción de texto al pie de la lista. La API ya tiene `DELETE /api/family-groups/{id}` ([backend_api.md](backend_api.md) §5); hasta que la app lo use (PR de seguimiento, E6.5 en §8) se dibuja en gris y, al tocarla, explica que todavía no está disponible (regla de §3.2.2).
 - **Pie fijo** con *Sumar integrante*.
 
 **Sumar integrante** reutiliza la pantalla de elegir familiar ("¿A quién sumás a Familia Gómez?"), sin los integrantes actuales. Elegir a alguien sin grupo lo suma directo, sin confirmación: es reversible con un toque. Elegir a alguien que ya está en otro grupo pide confirmación, porque lo saca de ese grupo: *"¿Pasar a Valeria Gómez a Familia Gómez? Hoy está en Familia Torres y va a dejar ese grupo. Sus pagos no cambian."*
@@ -344,7 +344,7 @@ Cuotas del socio ──[card Grupo familiar]
 | Se quita al socio desde el que se entró | Se queda en el grupo, que ya no lo lista. Al volver, su card dice "Sin grupo familiar" |
 | Pagos viejos hechos por un ex integrante | No cambian: el historial sigue mostrando "Pagó Laura Gómez (familiar)", porque el nombre sale del padrón y no del grupo |
 | Armar a medias | Crear un grupo son tres llamadas sin transacción. Si una de las asignaciones falla, la hoja dice "El grupo se creó, pero no pudimos sumar a Sofía Acosta" y *Reintentar* repite **solo lo que falta**, sobre el mismo grupo. El progreso vive en la pantalla de *Elegir familiar*, no en la hoja: cerrarla con *Cancelar* y volver a elegir al mismo familiar retoma el mismo grupo. Elegir a otro familiar arranca de cero. Mientras guarda, la hoja no se cierra (ni *Cancelar*, ni atrás, ni tocar afuera) |
-| El servidor no respondió a tiempo al **crear** el grupo | El grupo pudo haberse creado o no, y la app no tiene forma de saberlo: recién creado no tiene integrantes y la API no devuelve nada para buscarlo. La hoja lo dice sin rodeos: "No sabemos si el grupo se creó. … Si reintentás, puede quedar un grupo vacío sin usar, que no afecta a nadie." **Limitación conocida**: hasta que exista crear un grupo con sus integrantes en una sola operación ([backend_api.md](backend_api.md) §10), un reintento después de ese timeout puede dejar un grupo vacío, invisible para la app |
+| El servidor no respondió a tiempo al **crear** el grupo | El grupo pudo haberse creado o no, y la app no tiene forma de saberlo: recién creado no tiene integrantes y la API no devuelve nada para buscarlo. La hoja lo dice sin rodeos: "No sabemos si el grupo se creó. … Si reintentás, puede quedar un grupo vacío sin usar, que no afecta a nadie." **Limitación conocida**: hasta que la app cree el grupo con sus integrantes en un solo `POST` con `memberIds`, que la API ya acepta ([backend_api.md](backend_api.md) §5; PR de seguimiento, E6.5 en §8), un reintento después de ese timeout puede dejar un grupo vacío, invisible para la app |
 | Sin conexión / error del servidor al guardar | Aviso arriba de la hoja. Lo cargado (nombre incluido) queda igual. *Reintentar* |
 | El servidor no respondió a tiempo | Asignar y quitar son idempotentes: se relee el socio (al sumar, `GET /api/members/{id}`) o el grupo (al quitar) y, si el cambio ya figura, se da por hecho. Si no figura, se reintenta sin preguntar dos veces. Un timeout también avisa al padrón, porque el cambio pudo haber entrado |
 
@@ -530,11 +530,11 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E4 | Pagos: padrón de socios, búsqueda, chips y selección para el reporte | — | ✅ Entregada |
 | E5 | Alta y edición de socio | No bloquea | ✅ Entregada — sin el scroll al socio recién creado (§4.1) |
 | E6 | Registrar un pago, cuotas del socio y anulación, sobre el listado de E4 | No bloquea | ✅ Entregada |
-| E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar y pagar por todo el grupo | No bloquea (eliminar grupo: **Sí**) | 🚧 En revisión (PR #14) |
-| E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | **Sí**: se mergea junto con el PR #23 de la API | 🚧 En revisión (PR #14) |
+| E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar y pagar por todo el grupo | No bloquea | 🚧 En revisión (PR #14) — eliminar grupo y el pago y el armado en una sola operación, en un PR de seguimiento |
+| E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | No bloquea: usa el PR #23 de la API, ya en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) |
 | E8 | ABM de administradores (superAdmin) | No bloquea | 🚧 En revisión (PR #14) |
 | E9 | Agenda / Reservas + canchas + bloqueos | **Bloqueada** | — |
-| E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | **Sí**: merge de `feature/add-fee-receipt-report` | 🚧 En revisión (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el backend mergee `feature/add-fee-receipt-report` |
+| E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
 | E11 | Recuperar contraseña (informativa) + primer ingreso | Primer ingreso: **Sí** | Recuperar contraseña 🚧 En revisión (PR #14); primer ingreso en el Bloque 2 |
 | E12+ | Superficie del socio completa | **Bloqueada** | — |
 
@@ -651,7 +651,7 @@ Las decisiones están en §4.3; el contrato, en [backend_api.md](backend_api.md)
 
 ### E10 — Reporte de cuotas cobradas en PDF
 
-Las decisiones están en §4.6. **Depende de que se mergee `feature/add-fee-receipt-report` en el backend**: ni `develop` ni `main` (producción) tienen `GET /api/payments/receipts`, y una ruta sin handler probablemente vuelve `500` por el `@ExceptionHandler(Exception.class)` genérico. Por eso el reporte va detrás de un flag de compilación: con data sources remotos **se habilita con `--dart-define=FEE_RECEIPTS_ENABLED=true`** cuando el backend mergee esa rama; apagado, Pagos no muestra el ícono y `/admin/payments/report` redirige a Pagos. Con los fakes está siempre habilitado. Cuando el endpoint llegue a producción, el flag se saca en un PR aparte.
+Las decisiones están en §4.6. **`GET /api/payments/receipts` está en `develop` (test) desde el PR #22 de la API, pero todavía no en `main` (producción)**, donde una ruta sin handler probablemente vuelve `500` por el `@ExceptionHandler(Exception.class)` genérico. Por eso el reporte va detrás de un flag de compilación: con data sources remotos **se habilita con `--dart-define=FEE_RECEIPTS_ENABLED=true`**, que hoy solo vale contra test; apagado, Pagos no muestra el ícono y `/admin/payments/report` redirige a Pagos. Con los fakes está siempre habilitado. Cuando el endpoint llegue a producción, el flag se saca en un PR aparte.
 
 - **Feature `reports`**: el dominio solo modela el período y el documento (bytes y nombre). El repositorio baja el PDF con `responseType: bytes`, lee el nombre del `Content-Disposition` y traduce el `204` a "sin cobros".
 - Compartir e imprimir con `printing`, detrás de una interfaz para probar el flujo sin el plugin. El fake devuelve un PDF mínimo de prueba.
@@ -672,6 +672,7 @@ El último requisito de la Etapa 1 de V6 sin pantalla. Las decisiones están en 
 - **Fake de grupos** coherente con el padrón fake (que ya trae `familyGroupId`): crea, renombra, asigna, mueve y quita; da `404` a un grupo inexistente.
 - `MemberListTile` suma una variante de acción a la derecha (editar, como hoy, o quitar), sin cambiar la fila de Pagos.
 - **Pagar por todo el grupo** en Registrar pago (§4.2): `LoadFamilyPaymentStatusUseCase` lee el historial de cada integrante activo para mostrar qué se le cobra, y `RegisterFamilyPaymentUseCase` lo relee antes de enviar, saltea lo ya pago y manda un `POST` por socio con `PaymentRepository.recordPayments`, que avisa una sola vez al terminar.
+- **PR de seguimiento** (D4 de la revisión del PR #14), sobre lo que trajo el PR #23 de la API ([backend_api.md](backend_api.md) §5 y §6): pagar por todo el grupo con un solo `POST /api/payments/batch`, que elimina el pago a medias y con él `unconfirmed`, `FamilySettlement` y el bloqueo del cobro; armar el grupo con un solo `POST /api/family-groups` con `memberIds`, cuyo `409` lleva a sumarse al grupo existente; y habilitar *Eliminar grupo* con `DELETE /api/family-groups/{id}`.
 
 **Terminado cuando**: desde las cuotas de un socio sin grupo se arma un grupo en tres toques; desde Registrar pago se cobra a todo el grupo en un paso, salteando los meses que cada uno ya tiene pagos, y un pago a medias se completa con *Reintentar* sin cobrar dos veces; un socio se suma al grupo de un familiar y otro pasa de un grupo a otro con confirmación; se renombra y se quita un integrante; el grupo armado aparece en *¿Quién pagó?* al registrar un pago; armar a medias se completa con *Reintentar* sin duplicar el grupo, también después de cerrar la hoja; los estados de §5 se ven a 130 % y 200 % sin overflow; hay tests de dominio, del mapeo DTO ↔ dominio, de los Cubits y del flujo de armar en pantalla.
 

@@ -2,9 +2,7 @@
 
 Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, shapes, errores o reglas del servidor, se contesta acá y no leyendo el repo del backend.
 
-**Verificado contra** [`club-management-api`](https://github.com/lazzariniingenieria/club-management-api) `develop`, commit `02ff70e` — 2026-10-15.
-
-**PR #23 de la API** (`feature/close-admin-app-backend-gaps`, commit `f19b4f0`, todavía sin mergear — 2026-10-30): cierra casi todo §10. Lo que cambia se marca en cada sección como *Con el PR #23*. **La app ya usa su cambio de contraseña propio** (§5), así que el PR #14 de la app y el #23 de la API se mergean juntos.
+**Verificado contra** [`club-management-api`](https://github.com/lazzariniingenieria/club-management-api) `develop`, commit `12abf91` — 2026-10-30. Incluye el PR #22 (reporte de cuotas cobradas) y el #23 (dependencias del Bloque 1 del admin). **`main` (producción) todavía no tiene ninguno de los dos** (§1).
 
 **Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/` (incluido `JwtAuthenticationFilter`), `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
@@ -30,13 +28,15 @@ Dos entornos en Railway con su propio Postgres: **producción** (deploy desde `m
 | `API_BASE_URL` | `https://<host>/api` — incluye el prefijo, sin barra final |
 | URLs de los dos entornos | **No están en el repo**: son variables de Railway. Hay que pedirlas |
 
+**`main` va detrás de `develop`** (2026-10-30): producción no tiene el reporte de cuotas (§6), `POST /api/payments/batch`, `DELETE /api/family-groups/{id}`, el alta de grupo con `memberIds`, el cambio de contraseña propio, la cuota editable por `ADMIN`, el corte inmediato de sesión ni el límite de 72 bytes (§3 a §6). Un build de la app contra producción que use alguna de esas cosas espera a que el backend las lleve a `main`.
+
 ---
 
 ## 2. Convenciones
 
 | Convención | Valor real |
 | :--- | :--- |
-| Verbos | `GET`, `POST`, `PATCH` y **un** `DELETE` (§5). No hay `PUT`: usarlo da **405** |
+| Verbos | `GET`, `POST`, `PATCH` y **dos** `DELETE` (§5). No hay `PUT`: usarlo da **405** |
 | `id` | **Números** JSON (`Long`), nunca strings. Parsear con `(json['id'] as num).toInt()` |
 | `PATCH` | **Reemplazo completo** de los campos del DTO, no un merge: omitir un campo lo escribe en `null` |
 | Fechas de día | `"2026-09-01"` — ISO, sin hora ni zona (`joinedAt`, `periodCovered`, `lastPeriodCovered`) |
@@ -93,6 +93,12 @@ DNI + contraseña, sin proveedor externo. El `dni` es único **por club**, así 
 
 **Un `401` en `/auth/refresh` es cerrar sesión; en cualquier otro endpoint es refrescar y reintentar una vez.** Sin esa distinción por endpoint, un refresh vencido entra en bucle.
 
+### Corte de sesión
+
+`JwtAuthenticationFilter` lee la cuenta en cada request: un access token de una cuenta **inactiva**, o emitido antes de `sessions_revoked_at` (§8), da `401` aunque no haya vencido. Como el `iat` del JWT solo guarda segundos, también se rechaza un token emitido **en el mismo segundo** del corte; uno que se refresca después de ese segundo vale.
+
+Cortan así todas las sesiones de una cuenta, y además le revocan los refresh tokens (el refresh también da `401`): la baja de un admin, el reset de su contraseña y el cambio de contraseña propio (§5). O sea, **el corte es inmediato**, no al vencer el access token.
+
 ### Claims del JWT
 
 `sub` (= `userAccountId` como string), `userAccountId`, `clubId`, `role`, `memberId` (ausente si es `null`), `iat`, `exp`.
@@ -104,12 +110,10 @@ DNI + contraseña, sin proveedor externo. El `dni` es único **por club**, así 
 | Ruta | Quién entra |
 | :--- | :--- |
 | `/api/auth/login`, `/api/auth/refresh` | público |
-| `PATCH /api/auth/me/password` (*con el PR #23*) | `ADMIN`, `SUPER_ADMIN` |
-| `PATCH /api/admins/{id}/password` | `ADMIN`, `SUPER_ADMIN`. *Con el PR #23*, **solo `SUPER_ADMIN`**: un `ADMIN` recibe `403` |
-| `/api/admins/**` (todo lo demás) | **solo `SUPER_ADMIN`** |
+| `PATCH /api/auth/me/password` | `ADMIN`, `SUPER_ADMIN` |
+| `/api/admins/**`, incluido `PATCH /api/admins/{id}/password` | **solo `SUPER_ADMIN`** |
 | `/api/members/**`, `/api/family-groups/**`, `/api/payments/**` | `ADMIN`, `SUPER_ADMIN` |
-| `GET /api/clubs/me` | `ADMIN`, `SUPER_ADMIN` |
-| `PATCH /api/clubs/me` | **solo `SUPER_ADMIN`**. *Con el PR #23*, `ADMIN` y `SUPER_ADMIN` |
+| `/api/clubs/me` (`GET` y `PATCH`) | `ADMIN`, `SUPER_ADMIN` |
 
 **Un token con `role = MEMBER` no entra a ningún endpoint implementado.** Puede autenticarse y nada más.
 
@@ -122,13 +126,13 @@ Todo lo demás sale con este envelope:
   "message": "dni 30111222 is already in use in this club", "details": [] }
 ```
 
-`error` es el reason phrase de HTTP. `message` está **en inglés y no es estable** — nunca mostrarlo al usuario ni hacer matching sobre su texto. `details` solo se llena en validaciones, con strings `"campo: mensaje"`. **No hay `code` ni `fieldErrors`.**
+El envelope sale siempre como `application/json`, aunque el pedido haya mandado `Accept: application/pdf` (§6, reporte). `error` es el reason phrase de HTTP. `message` está **en inglés y no es estable** — nunca mostrarlo al usuario ni hacer matching sobre su texto. `details` solo se llena en validaciones, con strings `"campo: mensaje"`. **No hay `code` ni `fieldErrors`.**
 
 | Status | Cuándo |
 | :--- | :--- |
-| `400` | Validación fallida (`details` por campo), body ilegible, `paidByMemberId` fuera del grupo familiar, `periodsCovered` con repetidos, rango `from` > `to` en la búsqueda de pagos, query param con un valor que no se puede parsear |
-| `404` | El recurso no existe **en tu club** — indistinguible de uno de otro club, porque todo filtra por el `clubId` del token. Aplica a socios, pagos y admins |
-| `409` | DNI ya usado en el club, un período que el socio ya tiene pago, un pago que ya estaba anulado, o cualquier otra violación de constraint |
+| `400` | Validación fallida (`details` por campo), body ilegible, `paidByMemberId` fuera del grupo familiar, `periodsCovered` con repetidos, rango `from` > `to` en la búsqueda de pagos o `paidFrom` > `paidTo` en el reporte, query param con un valor que no se puede parsear |
+| `404` | El recurso no existe **en tu club** — indistinguible de uno de otro club, porque todo filtra por el `clubId` del token. Aplica a socios, grupos, pagos y admins |
+| `409` | DNI ya usado en el club, un período que el socio ya tiene pago, un pago que ya estaba anulado, un socio que ya tiene grupo al crear un grupo con `memberIds`, o cualquier otra violación de constraint |
 | `500` | Excepción no manejada |
 
 ---
@@ -145,7 +149,7 @@ Todo lo demás sale con este envelope:
 | `PATCH` | `/api/members/{id}` | `200` · `404` · `409` |
 | `PATCH` | `/api/members/{id}/deactivate` · `/reactivate` | `200` · `404` |
 | `PATCH` | `/api/members/{id}/family-group` | `200` · `404` |
-| `DELETE` | `/api/members/{id}/family-group` | `200` · `404` — el único `DELETE` de la API |
+| `DELETE` | `/api/members/{id}/family-group` | `200` · `404` |
 
 ```json
 { "id": 34, "firstName": "Marcos", "lastName": "Gomez", "dni": "30111222",
@@ -166,9 +170,13 @@ Todo lo demás sale con este envelope:
 
 ### Grupos familiares — `/api/family-groups`
 
-`POST` (`201`), `GET` listado, `GET /{id}` y `PATCH /{id}`. Respuesta: `{ id, name, createdAt, updatedAt, createdByUserId, updatedByUserId }`.
+`POST` (`201`), `GET` listado, `GET /{id}`, `PATCH /{id}` y `DELETE /{id}` (`204`). Respuesta: `{ id, name, createdAt, updatedAt, createdByUserId, updatedByUserId }`.
 
 `name` es **opcional** (≤ 150) en el alta y en la edición: un grupo sin nombre es válido, y un `PATCH` sin `name` lo pone en `null`. La respuesta **no trae los integrantes ni cuántos son**: se filtra `GET /api/members` por `familyGroupId`.
+
+**`POST`** acepta además `memberIds` opcional (`[10, 11]`, sin `null` → `400`; los repetidos se ignoran) y **crea el grupo con esos integrantes en una sola transacción**: `404` si alguno no es socio del club y `409` si alguno ya tiene grupo (el `message` lista los ids, sin `code` estable, §4); en los dos casos no se crea nada. Sin `memberIds`, o con la lista vacía, crea un grupo vacío como antes. No mira `status`.
+
+**`DELETE /{id}`** saca a todos los integrantes del grupo (quedan sin grupo, con sus pagos intactos) y borra el grupo, en una transacción. `404` si el grupo no es del club.
 
 ### Administradores — `/api/admins` · solo `SUPER_ADMIN`
 
@@ -182,7 +190,7 @@ Todo lo demás sale con este envelope:
 
 **No trae `role`** (siempre es `ADMIN`) y modela la baja como **`active` booleano**, no con el enum `status` de `member`: el mapeo a dominio tiene que normalizar los dos shapes.
 
-**`POST`** — `dni` requerido (≤ 20, único entre las cuentas del club), `password` requerida (**8 a 100 caracteres**), `email` y `memberId` opcionales. O sea que **la contraseña inicial la define el SUPER_ADMIN**: la API no genera ninguna. El `role` lo fija el servidor en `ADMIN`.
+**`POST`** — `dni` requerido (≤ 20, único entre las cuentas del club), `password` requerida (**de 8 caracteres a 72 bytes UTF-8**: `@MaxUtf8Bytes`, porque BCrypt ignora lo que sigue; las letras con tilde y la ñ cuentan como dos), `email` y `memberId` opcionales. O sea que **la contraseña inicial la define el SUPER_ADMIN**: la API no genera ninguna. El `role` lo fija el servidor en `ADMIN`.
 
 **`PATCH`** sobrescribe `dni`, `email` y `memberId`: mandar el body sin `memberId` **desvincula** al admin de su socio.
 
@@ -190,11 +198,9 @@ Todo lo demás sale con este envelope:
 
 **Dos fuentes de `409` acá**: DNI repetido, y `memberId` ya tomado por otra cuenta (`UNIQUE (member_id)`). Sin `code` estable (§4), distinguirlas obliga a leer el `message`. Un `memberId` que no es un socio del club da `404`.
 
-**`PATCH /api/admins/{id}/password`** — `{ "newPassword": "..." }`, de 8 a 100 caracteres. Es la única ruta de `/api/admins` abierta también a `ADMIN`, y el servidor **no verifica que sea la propia cuenta**: un admin puede resetear la contraseña de otro admin del club. Revoca todos los refresh tokens vivos de esa cuenta, así que sus sesiones abiertas caen en el próximo refresh: **el access token vigente sigue valiendo hasta su `exp` (hasta 1 hora)**, porque `JwtAuthenticationFilter` solo valida firma y vencimiento. Devuelve el `AdminResponse`. Busca la cuenta con `role = ADMIN`, así que **con el id del SUPER_ADMIN da `404`**: si el SUPER_ADMIN olvida su contraseña, no hay endpoint y se cambia directamente en la base.
+**`PATCH /api/admins/{id}/password`** — reset de la contraseña **de otro admin**, solo `SUPER_ADMIN` (un `ADMIN` recibe `403`). `{ "newPassword": "..." }`, con las mismas reglas que la contraseña inicial. Registra `sessions_revoked_at` y revoca los refresh tokens de esa cuenta: sus sesiones se cortan en el próximo request (§3). Devuelve el `AdminResponse`. Busca la cuenta con `role = ADMIN`, así que **con el id del SUPER_ADMIN da `404`**: el SUPER_ADMIN cambia la suya con `/api/auth/me/password`, y si la olvida, se cambia directamente en la base.
 
-*Con el PR #23*, esta ruta queda **solo para `SUPER_ADMIN`** (reset de otro admin), registra `sessions_revoked_at` y corta las sesiones de esa cuenta en el próximo request, no en el próximo refresh.
-
-**`PATCH /api/auth/me/password`** (*con el PR #23*) — cambio de contraseña **de la cuenta logueada**, para `ADMIN` y `SUPER_ADMIN` (`MEMBER` → `403`). Body `{ "newPassword": "..." }`, de 8 a 100 caracteres y sin pedir la actual (decisión de producto). Responde **`204` sin body**. Registra `sessions_revoked_at` y revoca los refresh tokens: se cierran todas las sesiones de la cuenta, incluida la que hizo el cambio. Es la ruta que usa el Perfil (E7).
+**`PATCH /api/auth/me/password`** — cambio de contraseña **de la cuenta logueada**, para `ADMIN` y `SUPER_ADMIN` (`MEMBER` → `403`). Body `{ "newPassword": "..." }`, con las mismas reglas que la contraseña inicial y sin pedir la actual (decisión de producto). Responde **`204` sin body**. Registra `sessions_revoked_at` y revoca los refresh tokens: se cierran todas las sesiones de la cuenta, incluida la que hizo el cambio (§3).
 
 ### Bajas lógicas
 
@@ -207,9 +213,7 @@ Nunca hay borrado físico, y los dos modelos son reversibles con `/reactivate`:
 
 Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistinguible de una contraseña incorrecta (§3).
 
-**La baja de un admin no es inmediata.** `PATCH /api/admins/{id}/deactivate` solo pone `active = false`, sin revocar tokens, y `JwtAuthenticationFilter` no mira si la cuenta sigue activa. El admin dado de baja **sigue operando con su access token hasta que vence (hasta 1 hora)**: puede cobrar, anular pagos o editar socios. Recién en el próximo `/auth/refresh` recibe `401` y la sesión se cierra.
-
-*Con el PR #23*, `JwtAuthenticationFilter` lee la cuenta en cada request: una cuenta inactiva, o un token emitido antes de `sessions_revoked_at` (o en el mismo segundo), da `401` en el acto. La baja, el reset y el cambio propio cortan la sesión de inmediato.
+**La baja de un admin es inmediata.** `PATCH /api/admins/{id}/deactivate` pone `active = false`, registra `sessions_revoked_at` y revoca sus refresh tokens: su próximo request da `401`, el refresh también, y la sesión se cierra (§3). Reactivar no le devuelve las sesiones cortadas: vuelve a ingresar.
 
 ### Club — `/api/clubs/me`
 
@@ -220,7 +224,7 @@ Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistingui
 
 `GET` devuelve el club del token. `monthlyFeeAmount` es la **cuota de referencia** y es nullable: un club recién migrado no la tiene cargada. El `name` lo pone la migración como `"Club <id>"` hasta que se configure por entorno.
 
-`PATCH` (**solo `SUPER_ADMIN`**; *con el PR #23*, también `ADMIN`) recibe `{ "monthlyFeeAmount": 16000 }` (> 0, hasta 8 enteros y 2 decimales); mandarlo en `null` borra la cuota de referencia. Es solo una referencia: **no cambia ningún pago** ni la forma de calcular la mora, y `POST /api/payments` sigue exigiendo el `amount` explícito.
+`PATCH` (`ADMIN` y `SUPER_ADMIN`) recibe `{ "monthlyFeeAmount": 16000 }` (> 0, hasta 8 enteros y 2 decimales); mandarlo en `null` borra la cuota de referencia. Es solo una referencia: **no cambia ningún pago** ni la forma de calcular la mora, y `POST /api/payments` sigue exigiendo el `amount` explícito.
 
 ---
 
@@ -231,11 +235,12 @@ Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistingui
 | Verbo | Ruta | Respuesta |
 | :--- | :--- | :--- |
 | `POST` | `/api/payments` | `201` + `PaymentResponse[]` · `400` · `404` · `409` |
+| `POST` | `/api/payments/batch` | `201` + `PaymentResponse[]` · `400` · `404` · `409` |
 | `GET` | `/api/payments` | `200` + `PaymentResponse[]` · `400` |
 | `GET` | `/api/payments/members/{memberId}` | `200` + `PaymentResponse[]` · `404` |
 | `PATCH` | `/api/payments/{paymentId}/void` | `200` + `PaymentResponse` · `404` · `409` |
 | `GET` | `/api/payments/delinquency` | `200` + `MemberDelinquencyResponse[]` |
-| `GET` | `/api/payments/receipts` | `200` + PDF · `204` · `400` — **solo en la rama `feature/add-fee-receipt-report`** |
+| `GET` | `/api/payments/receipts` | `200` + PDF · `204` · `400` |
 
 ### `POST /api/payments`
 
@@ -256,6 +261,14 @@ Convención de `periodsCovered`: el **primer día del mes** que se paga — `"20
   "voidedAt": null, "voidedByUserId": null, "voidReason": null }
 ```
 
+### `POST /api/payments/batch`
+
+Registra los pagos de **varios socios en una sola transacción**: `{ "payments": [RecordPaymentRequest, …] }`, cada entrada con las mismas reglas que `POST /api/payments` (un socio por entrada, con su `paidByMemberId`, `amount` y `periodsCovered`).
+
+- La lista no puede venir vacía ni con entradas `null` → `400`. Las validaciones de cada entrada nombran su posición en `details` (`"payments[1].amount: amount must be greater than zero"`).
+- **Todo o nada**: si una entrada falla — socio fuera del club (`404`), pagador fuera del grupo o meses repetidos (`400`), período ya pago (`409`) —, no se registra ninguna. El `message` nombra el `memberId` de la entrada que falló, sin `code` estable (§4).
+- `201` con la **lista plana** de los pagos creados de todas las entradas, una fila por socio y mes.
+
 ### `GET /api/payments/members/{memberId}`
 
 Historial del socio por `periodCovered` descendente. **Por defecto oculta los pagos anulados**: con `?includeVoided=true` los incluye, con `voidedAt`, `voidedByUserId` y `voidReason` cargados. `404` si el socio no es del club.
@@ -275,12 +288,13 @@ Todos los pagos del club, del `paidAt` más reciente al más viejo. Filtros opci
 
 ### `GET /api/payments/receipts` — tabletas de cuotas cobradas
 
-**Todavía no está en `develop`**: verificado contra la rama `feature/add-fee-receipt-report`, commit `7470854` (2026-10-19).
+En `develop` desde el PR #22 de la API; todavía no en `main` (§1).
 
 Query params `paidFrom` y `paidTo`, los dos requeridos, en formato `"2026-10-01"`. Filtra por **fecha de cobro** (`paid_at`), en días calendario de Argentina e incluyendo los dos extremos, y deja afuera los pagos anulados. `paidFrom` > `paidTo` → `400`.
 
 - `200` con `Content-Type: application/pdf` y `Content-Disposition: attachment; filename="cuotas-cobradas-<paidFrom>-al-<paidTo>.pdf"`. Es un A4 hecho con PDFBox: una tableta por grupo familiar y mes cubierto (o por socio si no tiene grupo), con cada socio que pagó ese mes, su importe y el total; cada tableta sale dos veces lado a lado, con líneas de corte, y nunca se parte entre páginas. Orden alfabético (es-AR) por el primer socio y después por mes.
 - **`204` sin cuerpo si no hubo cobros** en el rango: no es un error.
+- Un `400` llega con el envelope de error en `application/json` aunque el pedido haya mandado `Accept: application/pdf` (§4).
 - Abierto a `ADMIN` y `SUPER_ADMIN`, como el resto de `/api/payments/**`.
 
 ### `GET /api/payments/delinquency`
@@ -320,11 +334,11 @@ daysOverdue       = max(0, días entre coverageStart y hoy)
 
 ## 8. Modelo de datos
 
-**Seis tablas** (migraciones `V1`–`V12`): `user_account`, `member`, `family_group`, `refresh_token`, `payment` y `club`. El diseño de nueve tablas del `README` del backend es el plan, no el estado.
+**Seis tablas** (migraciones `V1`–`V13`): `user_account`, `member`, `family_group`, `refresh_token`, `payment` y `club`. El diseño de nueve tablas del `README` del backend es el plan, no el estado.
 
 **`club`** tiene `name`, `address`, `courts_enabled`, `member_app_enabled` y `monthly_fee_amount` (la cuota de referencia, nullable y > 0). `member.club_id` y `user_account.club_id` ya tienen FK a esa tabla; cada query sigue filtrando por el `clubId` del token, y las hojas quedan alcanzadas vía `member_id` / `user_account_id`. **Los flags `courts_enabled` y `member_app_enabled` existen en la tabla pero ningún endpoint los expone.**
 
-**`payment`** suma `voided_at`, `voided_by_user_id` y `void_reason` (≤ 150): los dos primeros van juntos o en `null`, y el motivo solo puede existir en un pago anulado. `user_account.member_id` tiene FK a `member` desde `V8`.
+**`payment`** suma `voided_at`, `voided_by_user_id` y `void_reason` (≤ 150): los dos primeros van juntos o en `null`, y el motivo solo puede existir en un pago anulado. `user_account.member_id` tiene FK a `member` desde `V8`, y `user_account.sessions_revoked_at` (`V13`, nullable) guarda el último corte de sesiones de la cuenta (§3). No viaja en ninguna respuesta.
 
 Constraints que el cliente ve como comportamiento HTTP:
 
@@ -360,6 +374,8 @@ Lo que es fácil codear mal porque el contrato dice otra cosa de la que uno espe
 | `401` y `403` no traen cuerpo | Parsear la respuesta para leer `message` revienta | 4 |
 | `GET /api/members` ignora todo query param | Un `?page=` o `?search=` vuelve la lista completa, en silencio | 5 |
 | El `clubId` no vuelve en el login | No se puede derivar de la sesión | 3 |
+| El máximo de una contraseña es en bytes UTF-8, no en caracteres | Una de 40 letras con tilde pasa un `maxLength` y vuelve `400` | 5 |
+| `POST /api/payments` no es transaccional entre socios | Un pago de varios socios con un `POST` por socio puede quedar a medias; para todo o nada está `/batch` | 6 |
 
 ---
 
@@ -373,7 +389,6 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Contadores por estado para los chips del listado | E4 |
 | Cargar el último mes pagado en el alta de socio | E6 — el socio recién creado nace en mora desde el 1° del mes (§7) |
 | `code` estable y `fieldErrors` en el envelope de error | Mapear un error al campo del formulario (E5, E8) |
-| Merge de `feature/add-fee-receipt-report` (`GET /api/payments/receipts`) en `develop` | E10 contra la API real |
 | Filtro de `GET /api/payments` por fecha de carga (`paidAt`) | Nada hoy: el reporte de E10 filtra por fecha de cobro en el backend. La búsqueda sigue filtrando por mes cubierto |
 | Mora de un socio y padrón de su grupo familiar sin bajar todo el club (filtro por `memberId` en `GET /api/payments/delinquency`, por `familyGroupId` en `GET /api/members`) | Cuotas del socio a escala — hoy cada apertura del ledger trae el padrón entero y la mora de todo el club para mostrar a un socio. La verificación previa al registrar ya no lo necesita: usa `GET /api/members/{id}` y el historial del socio |
 | Edición de un pago | Corregir un pago es anularlo y registrarlo de nuevo |
@@ -381,10 +396,6 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Mostrar a un ADMIN quién cargó o anuló un pago: `recordedByUserId` y `voidedByUserId` no se pueden traducir a una persona (`GET /api/admins` es solo para SUPER_ADMIN y un admin no tiene nombre) | "Quién lo cargó" en el detalle del pago |
 | Datos de contacto del club en `GET /api/clubs/me` | El canal de contacto de Recuperar contraseña (E11) |
 | Asignar grupo en el alta y en la edición de forma pareja: `POST /api/members` acepta `familyGroupId` y `PATCH` no | Nada hoy: el grupo se arma desde las cuotas del socio (E6.5) |
-| `DELETE /api/family-groups/{id}`, que saque a los integrantes y borre el grupo sin tocar socios ni pagos. *Lo trae el PR #23* (`204`, `404` si no es del club) | "Eliminar grupo" de E6.5 |
-| Crear un grupo con sus integrantes en una sola operación. *Lo trae el PR #23*: `POST /api/family-groups` acepta `memberIds`, con `409` si alguno ya tiene grupo y `404` si alguno no es del club | Que armar un grupo nunca deje uno vacío (E6.5). La app completa un armado a medias con "Reintentar" sobre el mismo grupo, pero si el `POST /api/family-groups` da timeout no puede saber si el grupo se creó: un reintento puede dejar un grupo vacío para siempre, porque tampoco hay `DELETE` |
-| Registrar el pago de varios socios en una sola operación (una transacción). *Lo trae el PR #23*: `POST /api/payments/batch` con `{ "payments": [RecordPaymentRequest, …] }` → `201` y la lista plana de pagos; si una entrada falla no se registra ninguna | Que *Pagar por todo el grupo* (E6.5) nunca quede a medias. Hoy son un `POST /api/payments` por socio, sin transacción: la app saltea lo ya pago al reintentar, así que nadie paga dos veces, pero un corte a mitad deja el grupo pago a medias hasta que alguien reintente |
-| Corte inmediato de la sesión al dar de baja a un admin o al restablecer su contraseña. *Lo trae el PR #23* (§5, Bajas lógicas) | Que la baja de un admin sea inmediata (E8). Hoy el access token vigente sigue valiendo hasta 1 hora (§5) |
 | Reset de contraseña de un **socio** por un ADMIN / SUPER_ADMIN | E11 — existe solo para cuentas de admin (§5) |
 | Flag de "debe cambiar la contraseña en el próximo ingreso" | Primer ingreso (E11) |
 | `court`, `court_block`, `recurring_slot`, `reservation` — ni tabla, ni endpoint | **E9 completa**, y "Próximos turnos" del Inicio |
