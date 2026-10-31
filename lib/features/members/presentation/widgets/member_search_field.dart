@@ -6,11 +6,13 @@ import '../../../../core/theme/app_colors.dart';
 class MemberSearchField extends StatefulWidget {
   final String query;
   final ValueChanged<String> onChanged;
+  final String hintText;
 
   const MemberSearchField({
     super.key,
     required this.query,
     required this.onChanged,
+    this.hintText = AppStrings.adminMembersSearchHint,
   });
 
   @override
@@ -40,9 +42,10 @@ class _MemberSearchFieldState extends State<MemberSearchField> {
       onChanged: widget.onChanged,
       textInputAction: TextInputAction.search,
       style: Theme.of(context).textTheme.bodyLarge,
-      decoration: const InputDecoration(
-        hintText: AppStrings.adminMembersSearchHint,
-        prefixIcon: Icon(Icons.search_rounded, color: AppColors.textSecondary),
+      decoration: InputDecoration(
+        hintText: widget.hintText,
+        prefixIcon:
+            const Icon(Icons.search_rounded, color: AppColors.textSecondary),
       ),
     );
   }

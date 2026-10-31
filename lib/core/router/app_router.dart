@@ -113,10 +113,14 @@ class AppRouter {
 
   static Widget _buildPaymentsScreen(
       BuildContext context, GoRouterState state) {
+    final query = state.uri.queryParameters;
+
     return AdminMembersScreen(
       filter: MemberCollectionFilter.fromQueryValue(
-        state.uri.queryParameters[AppRoutes.filterQueryParameter],
+        query[AppRoutes.filterQueryParameter],
       ),
+      showsFamilyGroups:
+          query[AppRoutes.viewQueryParameter] == AppRoutes.familyGroupsView,
     );
   }
 
@@ -163,8 +167,12 @@ class AppRouter {
     GoRoute(
       path: AppRoutes.adminPaymentRegistrationPattern,
       redirect: _requireMemberId,
-      builder: (context, state) =>
-          RegisterPaymentScreen(memberId: _memberIdOf(state)!),
+      builder: (context, state) => RegisterPaymentScreen(
+        memberId: _memberIdOf(state)!,
+        startsForFamily: state.uri
+                .queryParameters[AppRoutes.forFamilyQueryParameter] ==
+            'true',
+      ),
     ),
     GoRoute(
       path: AppRoutes.adminFamilyGroupCreationPattern,

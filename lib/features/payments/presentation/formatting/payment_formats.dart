@@ -1,6 +1,8 @@
 import '../../../../core/constants/app_strings.dart';
+import '../../../../shared/formatters/display_formats.dart';
 import '../../domain/entities/billing_month.dart';
 import '../../domain/entities/payment_method.dart';
+import '../../domain/entities/payment_receipt.dart';
 
 abstract final class PaymentFormats {
   static const int _longListThreshold = 3;
@@ -39,6 +41,34 @@ abstract final class PaymentFormats {
         sorted.length > _longListThreshold ? _range(sorted) : _listed(sorted);
 
     return capitalized(summary);
+  }
+
+  static String receiptAnnouncement(PaymentReceipt receipt) {
+    final leftOut = receipt.leftOutNames;
+
+    return [
+      _registeredMessageOf(receipt),
+      if (leftOut.isNotEmpty)
+        AppStrings.familyPaymentRelativesLeft(
+          DisplayFormats.listed(leftOut),
+          leftOut.length,
+        ),
+    ].join('. ');
+  }
+
+  static String _registeredMessageOf(PaymentReceipt receipt) {
+    final total = DisplayFormats.pesos(receipt.totalCents);
+    final familyMembers = receipt.familyMemberCount;
+
+    return familyMembers == null
+        ? AppStrings.paymentRegistered(
+            monthsSummary(receipt.months).toLowerCase(),
+            total,
+          )
+        : AppStrings.familyPaymentRegistered(
+            AppStrings.memberCount(familyMembers),
+            total,
+          );
   }
 
   static String capitalized(String text) =>

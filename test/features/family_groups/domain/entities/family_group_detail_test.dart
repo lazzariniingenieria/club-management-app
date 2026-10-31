@@ -4,14 +4,21 @@ import 'package:club_management_app/features/members/data/models/member_model.da
 import 'package:club_management_app/features/members/domain/entities/member.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-MemberModel _member(int id, String first, String last, {int? groupId}) {
+MemberModel _member(
+  int id,
+  String first,
+  String last, {
+  int? groupId,
+  int daysOverdue = 0,
+  MemberStatus status = MemberStatus.active,
+}) {
   return MemberModel(
     id: id,
     firstName: first,
     lastName: last,
     dni: '${30000000 + id}',
-    status: MemberStatus.active,
-    daysOverdue: 0,
+    status: status,
+    daysOverdue: daysOverdue,
     familyGroupId: groupId,
   );
 }
@@ -40,5 +47,71 @@ void main() {
         FamilyGroupDetail.fromRoster(const FamilyGroup(id: 8), roster);
 
     expect(detail.hasSingleMember, isTrue);
+  });
+
+  group('in the list of groups', () {
+    FamilyGroupDetail groupOf(List<MemberModel> members) =>
+        FamilyGroupDetail(group: const FamilyGroup(id: 9), members: members);
+
+    test('is flagged en mora when an active member owes', () {
+      expect(
+        groupOf([_member(1, 'Ana', 'Ríos', daysOverdue: 30)]).hasOverdueMember,
+        isTrue,
+      );
+      expect(
+        groupOf([
+          _member(
+            1,
+            'Ana',
+            'Ríos',
+            daysOverdue: 30,
+            status: MemberStatus.inactive,
+          ),
+        ]).hasOverdueMember,
+        isFalse,
+      );
+    });
+
+    test('pays from the active member who owes the most', () {
+      final detail = groupOf([
+        _member(1, 'Ana', 'Ríos', daysOverdue: 10),
+        _member(2, 'Bruno', 'Ríos', daysOverdue: 40),
+        _member(
+          3,
+          'Carla',
+          'Ríos',
+          daysOverdue: 90,
+          status: MemberStatus.inactive,
+        ),
+      ]);
+
+      expect(detail.paymentAnchor?.id, 2);
+    });
+
+    test('offers no group payment with fewer than two active members', () {
+      expect(groupOf([_member(1, 'Ana', 'Ríos')]).paymentAnchor, isNull);
+    });
+
+    test('matches its name or any member', () {
+      final detail = FamilyGroupDetail(
+        group: const FamilyGroup(id: 7, name: 'Familia Gómez'),
+        members: [_member(1, 'Tomás', 'Gómez')],
+      );
+
+      expect(detail.matches('familia'), isTrue);
+      expect(detail.matches('tomas'), isTrue);
+      expect(detail.matches('acosta'), isFalse);
+    });
+
+    test('sorts by its first member and leaves empty groups last', () {
+      final empty = groupOf([]);
+      final acosta = groupOf([_member(1, 'Sofía', 'Acosta')]);
+      final gomez = groupOf([_member(2, 'Laura', 'Gómez')]);
+
+      expect(
+        ([gomez, empty, acosta]..sort(FamilyGroupDetail.byFirstMember)),
+        [acosta, gomez, empty],
+      );
+    });
   });
 }

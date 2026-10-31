@@ -19,26 +19,109 @@ import '../../../members/presentation/widgets/member_list_tile.dart';
 import '../../../members/presentation/widgets/member_search_field.dart';
 import '../../../payments/presentation/cubit/member_roster_cubit.dart';
 import '../../../payments/presentation/cubit/member_roster_state.dart';
+import '../cubit/admin_family_groups_cubit.dart';
 import '../widgets/admin_scaffold.dart';
+import '../widgets/family_groups_tab.dart';
 
 class AdminMembersScreen extends StatelessWidget {
   final MemberCollectionFilter filter;
+  final bool showsFamilyGroups;
 
-  const AdminMembersScreen({super.key, required this.filter});
+  const AdminMembersScreen({
+    super.key,
+    required this.filter,
+    this.showsFamilyGroups = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<MemberRosterCubit>(
-      create: (_) => sl<MemberRosterCubit>()..load(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<MemberRosterCubit>(
+          create: (_) => sl<MemberRosterCubit>()..load(),
+        ),
+        BlocProvider<AdminFamilyGroupsCubit>(
+          create: (_) => sl<AdminFamilyGroupsCubit>()..load(),
+        ),
+      ],
       child: AdminScaffold(
         title: AppStrings.adminMembersTitle,
         showsRoleBadge: true,
         actions: [
           if (sl<AppFeatures>().feeReceipts) const _ReportAction(),
         ],
-        floatingActionButton: const _CreateMemberButton(),
-        body: _AdminMembersBody(filter: filter),
+        bottom: _MembersTabBar(
+          filter: filter,
+          showsFamilyGroups: showsFamilyGroups,
+        ),
+        floatingActionButton:
+            showsFamilyGroups ? null : const _CreateMemberButton(),
+        body: showsFamilyGroups
+            ? const FamilyGroupsTab()
+            : _AdminMembersBody(filter: filter),
       ),
+    );
+  }
+}
+
+class _MembersTabBar extends StatefulWidget implements PreferredSizeWidget {
+  final MemberCollectionFilter filter;
+  final bool showsFamilyGroups;
+
+  const _MembersTabBar({required this.filter, required this.showsFamilyGroups});
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kTextTabBarHeight);
+
+  @override
+  State<_MembersTabBar> createState() => _MembersTabBarState();
+}
+
+class _MembersTabBarState extends State<_MembersTabBar>
+    with SingleTickerProviderStateMixin {
+  static const int _familyGroupsIndex = 1;
+
+  late final TabController _controller = TabController(
+    length: 2,
+    vsync: this,
+    initialIndex: _indexOf(widget.showsFamilyGroups),
+  );
+  late MemberCollectionFilter _lastFilter = widget.filter;
+
+  static int _indexOf(bool showsFamilyGroups) =>
+      showsFamilyGroups ? _familyGroupsIndex : 0;
+
+  @override
+  void didUpdateWidget(_MembersTabBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.showsFamilyGroups) _lastFilter = widget.filter;
+    _controller.index = _indexOf(widget.showsFamilyGroups);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _open(int index) {
+    context.go(
+      index == _familyGroupsIndex
+          ? AppRoutes.adminFamilyGroups
+          : AppRoutes.adminMembersWithFilter(_lastFilter),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TabBar(
+      controller: _controller,
+      onTap: _open,
+      labelStyle: AppTextStyles.labelLarge,
+      tabs: const [
+        Tab(text: AppStrings.adminMembersTabMembers),
+        Tab(text: AppStrings.adminMembersTabFamilyGroups),
+      ],
     );
   }
 }

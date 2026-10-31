@@ -78,7 +78,7 @@ Bottom navigation navy, 3 items con ícono **y** etiqueta. Badge `RoleBadge` ("A
 | Tab | Ruta | Contenido |
 | :--- | :--- | :--- |
 | **Inicio** | `/admin` | Resumen General + Accesos Rápidos (§3.2.1) |
-| **Socios** | `/admin/members` | Listado de socios con buscador y chips Todos / En mora / Inactivos (§3.2.2) |
+| **Socios** | `/admin/members` | Dos pestañas: **Socios** (buscador y chips Todos / En mora / Inactivos) y **Grupos familiares** (`?view=groups`) (§3.2.2) |
 | **Perfil** | `/admin/profile` | Datos, cambiar contraseña, logout, y acceso a Administradores si `canManageAdmins` |
 
 **Reservas entra como cuarto tab recién en E9**, cuando la agenda exista. Un tab que no hace nada, tocado varias veces por semana durante varios sprints, se lee como app rota, no como app simple: el costo de que la barra cambie de forma una vez es menor que el de sostener un tab muerto. Hasta entonces la agenda no tiene presencia en ninguna superficie: el `UpcomingSlotsCard` de §3.2.1 se diseñó y quedó **sin construir**, porque un card que no puede mostrar ni un turno real es un hueco anunciado, no una pista útil. Entra con la agenda.
@@ -125,7 +125,7 @@ Los contadores de los chips (§3.2.2) salen del mismo listado que ya está en me
 
 #### 3.2.2 Socios — listado y cobranza
 
-1. **Header**: "Socios" + `RoleBadge`.
+1. **Header**: "Socios" + `RoleBadge`, y debajo dos pestañas: **Socios** (lo que sigue) y **Grupos familiares** (§4.2.2).
 2. **Buscador**: placeholder "Buscar socio por nombre o DNI...". Lo resuelve el cliente sobre el padrón ya cargado, porque la API no expone búsqueda; ignora mayúsculas y acentos, así que "alvarez" encuentra a "Álvarez".
 3. **Filtros**: tres chips con contador — "Todos (n)", "En mora (n)" e "Inactivos (n)". Seleccionado en navy sólido. En un teléfono angosto el tercero puede quedar a medio ver: la fila se desliza de costado y el borde se difumina para anunciarlo.
 4. **Listado**: `ListView.builder` de `MemberListTile`, ordenado por apellido. Cada fila: nombre, badge solo si hay algo que mirar (**En mora** o **Inactivo**) y acción **lápiz** → edición. **Tocar el resto de la fila abre las cuotas del socio** (§4.2.1); el lápiz sigue siendo un target propio de 48×48.
@@ -225,7 +225,7 @@ Socios ──[fila]──► Cuotas del socio ─────────┼─�
 
 **Elegir socio** (`/admin/payments/new`): buscador con foco al entrar y solo socios activos, en dos grupos: **en mora** primero, de más días a menos, y **al día** de la A a la Z. Quien viene a pagar suele ser el que debe. Elegir un socio abre el registro; al confirmar, la pantalla de elegir se reemplaza por las cuotas de ese socio, así que "volver" lleva al Inicio y no a una lista que ya no sirve.
 
-**Registrar pago** (`/admin/members/:memberId/payments/new`), de arriba abajo:
+**Registrar pago** (`/admin/members/:memberId/payments/new`, con `?family=true` para arrancar pagando por todo el grupo), de arriba abajo:
 
 - **Encabezado** con el socio y su situación (al día, días de mora, o sin pagos).
 - **Meses**: grilla de 12 meses (4 × 3) con selector de año. Cada mes está *libre*, *Elegido* o *Pagado*; los pagados no se pueden tocar. Arranca con **un mes sugerido** — el que sigue al último pago, o el del alta si nunca pagó — y un texto que dice por qué. Se pueden sumar meses futuros sin límite y meses viejos sueltos que hayan quedado sin pagar.
@@ -316,7 +316,11 @@ Cuotas del socio ──[card Grupo familiar]
 
 **Para qué existe el grupo**: para que un integrante pueda figurar como quien pagó la cuota de otro (*¿Quién pagó?* en Registrar pago, §4.2), y para registrar en un paso la cuota de todo el grupo (*Pagar por todo el grupo*, §4.2). **La cuota sigue siendo individual**: no hay abono familiar ni importe compartido, y la pantalla lo repite donde se arma o se mira un grupo, porque es la duda natural.
 
-**Se entra desde las cuotas del socio, no desde un listado de grupos.** Un grupo siempre se busca a partir de una persona ("¿con quién paga Marcos?"), y un listado de grupos mostraría para siempre los grupos que quedaron vacíos, porque la API no los borra. Las cuotas del socio son, en la práctica, su ficha: ya tienen al socio, su situación y su historial. Pagos, el alta y la edición de socio no cambian.
+**Se entra desde las cuotas del socio o desde la pestaña Grupos familiares del tab Socios.** La primera versión no tenía listado: un grupo se busca casi siempre a partir de una persona, y la API no borraba los grupos vacíos. Con `DELETE /api/family-groups/{id}` el listado se puede mantener limpio, y la revisión en el celular (2026-10-31) pidió poder entrar a un grupo para pagar por todos o editarlo sin pasar por un socio.
+
+**Pestaña Grupos familiares** (`/admin/members?view=groups`): buscador por nombre del grupo o de un integrante y una fila por grupo con el nombre (o "Grupo familiar"), los integrantes y el badge **En mora** si algún integrante activo debe. Se ordena por el primer integrante; los grupos sin integrantes van al final con "Sin integrantes", para poder entrar y eliminarlos. Tocar la fila abre el grupo. No tiene botón de alta: un grupo se sigue armando desde las cuotas de un socio, y el vacío lo dice. La pestaña viaja en la URL igual que el chip, así una card del Inicio siempre abre la pestaña Socios.
+
+**Registrar pago del grupo**, en el pie de la pantalla del grupo cuando tiene dos o más integrantes activos: abre Registrar pago con *Pagar por todo el grupo* ya activado (`?family=true`), anclado en el integrante con más días de mora, así los meses sugeridos cubren al que más debe y "¿Quién pagó?" arranca en él. Al volver, la pantalla del grupo muestra el mismo snackbar que las cuotas y se recarga. *Sumar integrante* pasa a ser el botón secundario.
 
 **Card "Grupo familiar"** en las cuotas del socio, entre la situación de la cuota y el historial:
 
@@ -450,7 +454,7 @@ GoRouter
 ├── /member                         → superficie del socio en preparación
 ├── StatefulShellRoute (admin + superAdmin)
 │   ├── branch: /admin              → Inicio
-│   ├── branch: /admin/members       → Socios  ?filter=all|overdue|inactive
+│   ├── branch: /admin/members       → Socios  ?filter=all|overdue|inactive · ?view=groups
 │   ├── branch: /admin/profile       → Perfil
 │   └── branch: /admin/reservations  → Agenda        ← se suma en E9
 ├── rutas push del admin
