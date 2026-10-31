@@ -138,7 +138,7 @@ class _GroupContent extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xl),
                 _MembersSection(detail: detail, newMemberId: newMemberId),
                 const SizedBox(height: AppSpacing.md),
-                const _DeleteGroupAction(),
+                _DeleteGroupAction(detail: detail),
               ],
             ),
           ),
@@ -317,18 +317,44 @@ class _EmptyGroup extends StatelessWidget {
 }
 
 class _DeleteGroupAction extends StatelessWidget {
-  const _DeleteGroupAction();
+  final FamilyGroupDetail detail;
+
+  const _DeleteGroupAction({required this.detail});
+
+  Future<void> _delete(BuildContext context) async {
+    final cubit = context.read<FamilyGroupCubit>();
+    final confirmed = await ConfirmationDialog.show(
+      context,
+      ConfirmationDialog(
+        title: AppStrings.familyGroupDeleteTitle(
+          FamilyGroupFormats.displayName(detail.group),
+        ),
+        message: AppStrings.familyGroupDeleteMessage,
+        confirmLabel: AppStrings.familyGroupDeleteConfirm,
+        isDestructive: true,
+      ),
+    );
+    if (!confirmed) return;
+
+    final failure = await cubit.delete();
+    if (!context.mounted) return;
+
+    if (failure != null) {
+      return showAppSnackBar(context, failure.userMessage, isError: true);
+    }
+    showAppSnackBar(context, AppStrings.familyGroupDeleted);
+    _leave(context);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Align(
       alignment: Alignment.centerLeft,
       child: TextButton.icon(
-        onPressed: () =>
-            showAppSnackBar(context, AppStrings.familyGroupDeleteUnavailable),
+        onPressed: () => _delete(context),
         icon: const Icon(Icons.delete_outline_rounded),
         label: const Text(AppStrings.familyGroupDeleteAction),
-        style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+        style: TextButton.styleFrom(foregroundColor: AppColors.dangerText),
       ),
     );
   }

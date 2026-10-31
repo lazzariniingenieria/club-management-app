@@ -10,7 +10,12 @@ abstract class FamilyGroupRepository {
 
   Future<Either<Failure, List<FamilyGroup>>> loadGroups();
 
-  Future<Either<Failure, FamilyGroup>> createGroup({String? name});
+  Future<Either<Failure, FamilyGroup>> createGroup({
+    String? name,
+    List<int> memberIds = const [],
+  });
 
   Future<Either<Failure, void>> renameGroup(int familyGroupId, String? name);
+
+  Future<Either<Failure, void>> deleteGroup(int familyGroupId);
 }

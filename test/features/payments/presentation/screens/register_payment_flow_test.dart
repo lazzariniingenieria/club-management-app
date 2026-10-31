@@ -13,7 +13,6 @@ import 'package:club_management_app/features/payments/data/models/member_ledger_
 import 'package:club_management_app/features/payments/presentation/screens/payment_member_picker_screen.dart';
 import 'package:club_management_app/features/payments/presentation/widgets/payment_history_tile.dart';
 import 'package:club_management_app/features/payments/data/datasources/payment_fake_data_source.dart';
-import 'package:club_management_app/shared/widgets/amount_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -46,6 +45,7 @@ class DroppingPaymentSource extends PaymentFakeDataSource {
 
 class RecordingPaymentSource extends PaymentFakeDataSource {
   final List<PaymentDraft> drafts = [];
+  final List<List<PaymentDraft>> batches = [];
 
   RecordingPaymentSource({required super.members})
       : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
@@ -55,24 +55,57 @@ class RecordingPaymentSource extends PaymentFakeDataSource {
     await super.recordPayment(draft);
     drafts.add(draft);
   }
+
+  @override
+  Future<void> recordPayments(List<PaymentDraft> drafts) async {
+    await super.recordPayments(drafts);
+    batches.add(drafts);
+    this.drafts.addAll(drafts);
+  }
 }
 
-class RelativeFailingPaymentSource extends PaymentFakeDataSource {
-  final int failingMemberId;
-  bool failsNext = true;
+class DroppedBatchPaymentSource extends PaymentFakeDataSource {
+  final Exception error;
+  final bool landsAnyway;
+  int sent = 0;
+  int failuresLeft = 1;
 
-  RelativeFailingPaymentSource({
+  DroppedBatchPaymentSource({
     required super.members,
-    required this.failingMemberId,
+    required this.error,
+    this.landsAnyway = false,
   }) : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
 
   @override
-  Future<void> recordPayment(PaymentDraft draft) async {
-    if (failsNext && draft.memberId == failingMemberId) {
-      failsNext = false;
-      throw NetworkException('offline');
+  Future<void> recordPayments(List<PaymentDraft> drafts) async {
+    sent++;
+    if (failuresLeft > 0) {
+      failuresLeft--;
+      if (landsAnyway) await super.recordPayments(drafts);
+      throw error;
     }
-    await super.recordPayment(draft);
+    await super.recordPayments(drafts);
+  }
+}
+
+class CollectedMonthPaymentSource extends PaymentFakeDataSource {
+  final int collectedMemberId;
+  bool collectsNext = true;
+
+  CollectedMonthPaymentSource({
+    required super.members,
+    required this.collectedMemberId,
+  }) : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
+
+  @override
+  Future<void> recordPayments(List<PaymentDraft> drafts) async {
+    if (!collectsNext) return super.recordPayments(drafts);
+
+    collectsNext = false;
+    await super.recordPayment(
+      drafts.firstWhere((draft) => draft.memberId == collectedMemberId),
+    );
+    throw ConflictException('a period is already paid');
   }
 }
 
@@ -87,8 +120,10 @@ class LeavingRelativePaymentSource extends PaymentFakeDataSource {
   }) : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
 
   @override
-  Future<void> recordPayment(PaymentDraft draft) async {
-    if (draft.memberId != leavingMemberId) return super.recordPayment(draft);
+  Future<void> recordPayments(List<PaymentDraft> drafts) async {
+    if (!drafts.any((draft) => draft.memberId == leavingMemberId)) {
+      return super.recordPayments(drafts);
+    }
 
     final index = roster.indexWhere((member) => member.id == leavingMemberId);
     final leaving = roster[index];
@@ -221,7 +256,9 @@ void main() {
       find.text(AppStrings.registerPaymentReviewWithTotal(total)),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text(AppStrings.confirmPaymentAction(total)));
+    final confirm = find.text(AppStrings.confirmPaymentAction(total));
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
     await tester.pumpAndSettle();
   }
 
@@ -680,9 +717,33 @@ void main() {
       );
     });
 
+    Future<void> retryFromNotice(WidgetTester tester, String total) async {
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppStrings.retryAction));
+      await tester.pumpAndSettle();
+      final confirm = find.text(AppStrings.confirmPaymentAction(total));
+      await tester.ensureVisible(confirm);
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+    }
+
+    void expectFamilySnackBar(int members, String total) {
+      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
+      expect(
+        find.text(
+          AppStrings.familyPaymentRegistered(
+            AppStrings.memberCount(members),
+            total,
+          ),
+        ),
+        findsOneWidget,
+      );
+    }
+
     testWidgets(
-        'registers one payment per member, paid by the member on screen',
-        (tester) async {
+        'registers every member in a single request, paid by the member on '
+        'screen', (tester) async {
       final source = await openFamilyPayment(tester);
 
       await tester.tap(
@@ -697,28 +758,21 @@ void main() {
       await tester.tap(find.text(AppStrings.confirmPaymentAction(r'$30.000')));
       await tester.pumpAndSettle();
 
+      expect(source.batches, hasLength(1));
       expect(source.drafts.map((draft) => draft.memberId), [1, 2]);
       expect(source.drafts.map((draft) => draft.paidByMemberId), [null, 1]);
-      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
-      expect(
-        find.text(
-          AppStrings.familyPaymentRegistered(
-            AppStrings.memberCount(2),
-            r'$30.000',
-          ),
-        ),
-        findsOneWidget,
-      );
+      expectFamilySnackBar(2, r'$30.000');
     });
 
-    testWidgets('a payment left half done locks the charge until it ends', (
-      tester,
-    ) async {
+    testWidgets(
+        'a payment the connection dropped registers nobody and sends everyone '
+        'when retried', (tester) async {
+      late DroppedBatchPaymentSource source;
       await openFamilyPaymentWith(
         tester,
-        (members) => RelativeFailingPaymentSource(
+        (members) => source = DroppedBatchPaymentSource(
           members: members,
-          failingMemberId: 2,
+          error: NetworkException('offline'),
         ),
       );
 
@@ -727,94 +781,49 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.textContaining(AppStrings.familyPaymentPartialTitle),
+        find.textContaining(AppStrings.registerPaymentOfflineTitle),
         findsOneWidget,
       );
-      expect(
-          find.textContaining(AppStrings.familyPaymentLocked), findsOneWidget);
-      await tester.scrollUntilVisible(
-        find.byType(AmountField),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      final amount = tester.widget<TextField>(
-        find.descendant(
-          of: find.byType(AmountField),
-          matching: find.byType(TextField),
-        ),
-      );
-      expect(amount.enabled, isFalse);
-      final cash = find.widgetWithText(ChoiceChip, AppStrings.paymentMethodCash);
-      await tester.scrollUntilVisible(
-        cash,
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(
-        tester.getSemantics(cash),
-        isSemantics(isEnabled: false, hasEnabledState: true, isSelected: true),
-      );
+      expect(currentLocation(), isNot(AppRoutes.adminMemberLedger(1)));
 
-      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(AppStrings.retryAction));
-      await tester.pumpAndSettle();
-      final confirm = find.text(AppStrings.confirmPaymentAction(r'$15.000'));
-      await tester.ensureVisible(confirm);
-      await tester.tap(confirm);
-      await tester.pumpAndSettle();
+      await retryFromNotice(tester, r'$30.000');
 
-      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
-      expect(
-        find.text(
-          AppStrings.familyPaymentRegistered(
-            AppStrings.memberCount(2),
-            r'$30.000',
-          ),
-        ),
-        findsOneWidget,
-      );
+      expect(source.sent, 2);
+      expectFamilySnackBar(2, r'$30.000');
     });
 
-    testWidgets('leaving out who is missing finishes with what was registered',
-        (tester) async {
+    testWidgets(
+        'a month somebody else collected meanwhile registers nobody and '
+        'updates what is charged', (tester) async {
       await openFamilyPaymentWith(
         tester,
-        (members) => RelativeFailingPaymentSource(
+        (members) => CollectedMonthPaymentSource(
           members: members,
-          failingMemberId: 2,
+          collectedMemberId: 2,
         ),
       );
+
       await reviewAndConfirm(tester, r'$30.000');
-
-      final ana = find.widgetWithText(CheckboxListTile, 'Ana Zárate');
-      await tester.ensureVisible(ana);
-      await tester.pumpAndSettle();
-      await tester.tap(ana);
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.widgetWithText(
-          ElevatedButton,
-          AppStrings.familyPaymentFinishAction,
-        ),
-      );
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
       await tester.pumpAndSettle();
 
-      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
       expect(
-        find.text(
-          AppStrings.familyPaymentRegistered(
-            AppStrings.memberCount(1),
-            r'$15.000',
-          ),
-        ),
+        find.textContaining(AppStrings.familyPaymentMonthsCollected),
         findsOneWidget,
       );
+      expect(
+        find.text(AppStrings.registerPaymentReviewWithTotal(r'$15.000')),
+        findsOneWidget,
+      );
+
+      await reviewAndConfirm(tester, r'$15.000');
+
+      expectFamilySnackBar(1, r'$15.000');
     });
 
-    testWidgets('a relative who left the group is named after the payment', (
-      tester,
-    ) async {
+    testWidgets(
+        'a relative who left the group is named and the payment goes again '
+        'without them', (tester) async {
       final roster = [...family];
       await openFamilyPaymentWith(
         tester,
@@ -827,15 +836,63 @@ void main() {
       );
 
       await reviewAndConfirm(tester, r'$30.000');
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+      await tester.pumpAndSettle();
 
-      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
       expect(
-        find.text(
-          '${AppStrings.familyPaymentRegistered(AppStrings.memberCount(1), r'$15.000')}. '
-          '${AppStrings.familyPaymentRelativesLeft('Ana Zárate', 1)}',
-        ),
+        find.textContaining(AppStrings.familyPaymentRelativesLeft('Ana Zárate', 1)),
         findsOneWidget,
       );
+
+      await reviewAndConfirm(tester, r'$15.000');
+
+      expectFamilySnackBar(1, r'$15.000');
+    });
+
+    testWidgets('a timeout that went through ends as registered', (
+      tester,
+    ) async {
+      late DroppedBatchPaymentSource source;
+      await openFamilyPaymentWith(
+        tester,
+        (members) => source = DroppedBatchPaymentSource(
+          members: members,
+          error: ResponseTimeoutException(),
+          landsAnyway: true,
+        ),
+      );
+
+      await reviewAndConfirm(tester, r'$30.000');
+
+      expect(source.sent, 1);
+      expectFamilySnackBar(2, r'$30.000');
+    });
+
+    testWidgets(
+        'a timeout that did not go through asks to retry and registers once',
+        (tester) async {
+      late DroppedBatchPaymentSource source;
+      await openFamilyPaymentWith(
+        tester,
+        (members) => source = DroppedBatchPaymentSource(
+          members: members,
+          error: ResponseTimeoutException(),
+        ),
+      );
+
+      await reviewAndConfirm(tester, r'$30.000');
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(AppStrings.registerPaymentUnconfirmedTitle),
+        findsOneWidget,
+      );
+
+      await retryFromNotice(tester, r'$30.000');
+
+      expect(source.sent, 2);
+      expectFamilySnackBar(2, r'$30.000');
     });
 
     testWidgets('a relative left out is not charged', (tester) async {

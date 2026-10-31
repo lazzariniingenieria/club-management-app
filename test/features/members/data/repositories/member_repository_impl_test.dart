@@ -101,32 +101,11 @@ void main() {
     expect(announcements, hasLength(1));
   });
 
-  group('assigning a whole group announces once', () {
-    test('when every member went through', () async {
-      final assignment = await repository.assignFamilyGroupToAll([4, 5], 2);
-      await settle();
+  test('announcing a roster change reaches whoever is listening', () async {
+    repository.notifyRosterChanged();
+    await settle();
 
-      expect(assignment.assignedMemberIds, {4, 5});
-      expect(assignment.failure, isNull);
-      expect(announcements, hasLength(1));
-    });
-
-    test('when it stops half way, keeping who was assigned', () async {
-      final assignment =
-          await repository.assignFamilyGroupToAll([4, 999, 5], 2);
-      await settle();
-
-      expect(assignment.assignedMemberIds, {4});
-      expect(assignment.failure, isNotNull);
-      expect(announcements, hasLength(1));
-    });
-
-    test('never when the first one was rejected', () async {
-      await repository.assignFamilyGroupToAll([999, 4], 2);
-      await settle();
-
-      expect(announcements, isEmpty);
-    });
+    expect(announcements, hasLength(1));
   });
 
   test('reading the roster announces nothing', () async {

@@ -16,20 +16,17 @@ class FamilyGroupBuilderCubit extends Cubit<FamilyGroupBuilderState> {
         _joinGroup = joinGroup,
         super(const FamilyGroupBuilderState());
 
-  void prepareFor(List<int> memberIds) {
-    if (state.belongsTo(memberIds)) return;
-
-    emit(FamilyGroupBuilderState(memberIds: memberIds));
+  void reset() {
+    if (!state.isSaving) emit(const FamilyGroupBuilderState());
   }
 
   Future<bool> build(FamilyGroupBuildRequest request) async {
-    prepareFor(request.memberIds);
     emit(state.saving());
 
-    final result = await _buildGroup(request, progress: state.progress);
+    final result = await _buildGroup(request);
     if (isClosed) return result is FamilyGroupBuilt;
 
-    emit(_stateAfter(result, request.memberIds));
+    emit(_stateAfter(result));
 
     return result is FamilyGroupBuilt;
   }
@@ -53,22 +50,15 @@ class FamilyGroupBuilderCubit extends Cubit<FamilyGroupBuilderState> {
     return failure == null;
   }
 
-  static FamilyGroupBuilderState _stateAfter(
-    FamilyGroupBuildResult result,
-    List<int> memberIds,
-  ) {
+  static FamilyGroupBuilderState _stateAfter(FamilyGroupBuildResult result) {
     return switch (result) {
-      FamilyGroupBuilt() => FamilyGroupBuilderState(
-          status: FamilyGroupSaveStatus.done,
-          memberIds: memberIds,
-        ),
-      FamilyGroupBuildFailed(:final failure, :final progress) =>
-        FamilyGroupBuilderState(
+      FamilyGroupBuilt() =>
+        const FamilyGroupBuilderState(status: FamilyGroupSaveStatus.done),
+      FamilyGroupBuildFailed(:final failure) => FamilyGroupBuilderState(
           status: FamilyGroupSaveStatus.failed,
           failure: failure,
-          memberIds: memberIds,
-          progress: progress,
           isCreationUnconfirmed: result.isCreationUnconfirmed,
+          isStale: result.isStale,
         ),
     };
   }

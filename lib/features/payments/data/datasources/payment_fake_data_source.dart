@@ -70,6 +70,21 @@ class PaymentFakeDataSource implements PaymentRemoteDataSource {
   }
 
   @override
+  Future<void> recordPayments(List<PaymentDraft> drafts) async {
+    final roster = await _seededRoster();
+    for (final draft in drafts) {
+      _rejectInvalid(draft, _memberIn(roster, draft.memberId), roster);
+    }
+
+    for (final draft in drafts) {
+      for (final month in draft.months) {
+        _payments.add(_paymentFor(draft, month));
+      }
+      _announceDelinquency(_memberIn(roster, draft.memberId));
+    }
+  }
+
+  @override
   Future<void> voidPayment(int paymentId, {String? reason}) async {
     final roster = await _seededRoster();
     final index = _payments.indexWhere((payment) => payment.id == paymentId);

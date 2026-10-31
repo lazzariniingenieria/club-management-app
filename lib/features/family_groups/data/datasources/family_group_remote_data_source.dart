@@ -12,9 +12,14 @@ abstract class FamilyGroupRemoteDataSource {
 
   Future<List<FamilyGroupModel>> fetchGroups();
 
-  Future<FamilyGroupModel> createGroup({String? name});
+  Future<FamilyGroupModel> createGroup({
+    String? name,
+    List<int> memberIds = const [],
+  });
 
   Future<void> renameGroup(int familyGroupId, String? name);
+
+  Future<void> deleteGroup(int familyGroupId);
 }
 
 class FamilyGroupRemoteDataSourceImpl implements FamilyGroupRemoteDataSource {
@@ -62,10 +67,13 @@ class FamilyGroupRemoteDataSourceImpl implements FamilyGroupRemoteDataSource {
   }
 
   @override
-  Future<FamilyGroupModel> createGroup({String? name}) async {
+  Future<FamilyGroupModel> createGroup({
+    String? name,
+    List<int> memberIds = const [],
+  }) async {
     final created = await _writer.postForObject(
       ApiConstants.familyGroups,
-      FamilyGroupModel.bodyWithName(name),
+      FamilyGroupModel.bodyForCreation(name, memberIds),
     );
 
     return guardContract(
@@ -81,5 +89,10 @@ class FamilyGroupRemoteDataSourceImpl implements FamilyGroupRemoteDataSource {
       ApiConstants.familyGroup(familyGroupId),
       body: FamilyGroupModel.bodyWithName(name),
     );
+  }
+
+  @override
+  Future<void> deleteGroup(int familyGroupId) {
+    return _writer.delete(ApiConstants.familyGroup(familyGroupId));
   }
 }

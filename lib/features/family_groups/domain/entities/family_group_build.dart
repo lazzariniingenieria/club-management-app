@@ -18,37 +18,6 @@ class FamilyGroupBuildRequest extends Equatable {
   List<Object?> get props => [memberIds, name];
 }
 
-class FamilyGroupBuildProgress extends Equatable {
-  final int? familyGroupId;
-  final Set<int> assignedMemberIds;
-
-  const FamilyGroupBuildProgress({
-    this.familyGroupId,
-    this.assignedMemberIds = const {},
-  });
-
-  bool get hasCreatedGroup => familyGroupId != null;
-
-  FamilyGroupBuildProgress withGroup(int familyGroupId) =>
-      FamilyGroupBuildProgress(
-        familyGroupId: familyGroupId,
-        assignedMemberIds: assignedMemberIds,
-      );
-
-  FamilyGroupBuildProgress withAssigned(Iterable<int> memberIds) =>
-      FamilyGroupBuildProgress(
-        familyGroupId: familyGroupId,
-        assignedMemberIds: {...assignedMemberIds, ...memberIds},
-      );
-
-  List<int> pendingOf(FamilyGroupBuildRequest request) => request.memberIds
-      .where((memberId) => !assignedMemberIds.contains(memberId))
-      .toList();
-
-  @override
-  List<Object?> get props => [familyGroupId, assignedMemberIds];
-}
-
 sealed class FamilyGroupBuildResult extends Equatable {
   const FamilyGroupBuildResult();
 }
@@ -64,15 +33,13 @@ class FamilyGroupBuilt extends FamilyGroupBuildResult {
 
 class FamilyGroupBuildFailed extends FamilyGroupBuildResult {
   final Failure failure;
-  final FamilyGroupBuildProgress progress;
 
-  const FamilyGroupBuildFailed(this.failure, this.progress);
+  const FamilyGroupBuildFailed(this.failure);
 
-  bool get isPartial => progress.hasCreatedGroup;
+  bool get isCreationUnconfirmed => failure is ResponseTimeoutFailure;
 
-  bool get isCreationUnconfirmed =>
-      !isPartial && failure is ResponseTimeoutFailure;
+  bool get isStale => failure is ConflictFailure;
 
   @override
-  List<Object?> get props => [failure, progress];
+  List<Object?> get props => [failure];
 }

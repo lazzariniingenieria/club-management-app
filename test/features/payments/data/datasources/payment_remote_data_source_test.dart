@@ -290,6 +290,63 @@ void main() {
       );
     });
 
+    group('paying for several members at once', () {
+      const relativeDraft = PaymentDraft(
+        memberId: 2,
+        months: [BillingMonth(2026, 10)],
+        amountCents: 1500000,
+        method: PaymentMethod.cash,
+        paidByMemberId: 2,
+      );
+
+      test('makes a single request with one entry per member', () async {
+        final dataSource =
+            buildDataSource((_, __) => jsonListResponse(201, []));
+
+        await dataSource.recordPayments([draft, relativeDraft]);
+
+        final request = adapter.requests.single;
+        expect(request.method, 'POST');
+        expect(request.path, ApiConstants.paymentBatch);
+        expect(request.data, {
+          'payments': [
+            {
+              'memberId': 1,
+              'paidByMemberId': 2,
+              'amount': 15000,
+              'periodsCovered': ['2026-09-01', '2026-10-01'],
+              'paymentMethod': 'CASH',
+            },
+            {
+              'memberId': 2,
+              'paidByMemberId': 2,
+              'amount': 15000,
+              'periodsCovered': ['2026-10-01'],
+              'paymentMethod': 'CASH',
+            },
+          ],
+        });
+      });
+
+      test('a month somebody else collected comes back as a conflict', () {
+        final dataSource = buildDataSource((_, __) => jsonResponse(409));
+
+        expect(
+          dataSource.recordPayments([draft, relativeDraft]),
+          throwsA(isA<ConflictException>()),
+        );
+      });
+
+      test('a payer outside the group comes back as a validation error', () {
+        final dataSource = buildDataSource((_, __) => jsonResponse(400));
+
+        expect(
+          dataSource.recordPayments([draft, relativeDraft]),
+          throwsA(isA<ValidationException>()),
+        );
+      });
+    });
+
     test('voids a payment sending the reason', () async {
       final dataSource = buildDataSource((_, __) => jsonResponse(200));
 

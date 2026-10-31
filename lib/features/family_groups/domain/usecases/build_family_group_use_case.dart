@@ -1,5 +1,5 @@
-import 'package:fpdart/fpdart.dart';
-
+import '../../../../core/errors/failures.dart';
+import '../../../members/domain/entities/member.dart';
 import '../../../members/domain/repositories/member_repository.dart';
 import '../entities/family_group_build.dart';
 import '../repositories/family_group_repository.dart';
@@ -10,47 +10,43 @@ class BuildFamilyGroupUseCase {
 
   BuildFamilyGroupUseCase({required this.groups, required this.members});
 
-  Future<FamilyGroupBuildResult> call(
-    FamilyGroupBuildRequest request, {
-    FamilyGroupBuildProgress progress = const FamilyGroupBuildProgress(),
-  }) async {
-    final withGroup = await _ensureGroup(request, progress);
-
-    return withGroup.fold<Future<FamilyGroupBuildResult>>(
-      (failed) async => failed,
-      (progress) => _assignPending(request, progress),
+  Future<FamilyGroupBuildResult> call(FamilyGroupBuildRequest request) async {
+    final created = await groups.createGroup(
+      name: request.trimmedName,
+      memberIds: request.memberIds,
     );
+    final failure = created.getLeft().toNullable();
+    if (failure == null) {
+      members.notifyRosterChanged();
+
+      return FamilyGroupBuilt(created.getRight().toNullable()!.id);
+    }
+    if (failure is! ResponseTimeoutFailure && failure is! ConflictFailure) {
+      return FamilyGroupBuildFailed(failure);
+    }
+
+    return _afterUncertainFailure(request, failure);
   }
 
-  Future<Either<FamilyGroupBuildFailed, FamilyGroupBuildProgress>> _ensureGroup(
+  Future<FamilyGroupBuildResult> _afterUncertainFailure(
     FamilyGroupBuildRequest request,
-    FamilyGroupBuildProgress progress,
+    Failure failure,
   ) async {
-    if (progress.hasCreatedGroup) return Right(progress);
+    members.notifyRosterChanged();
+    final familyGroupId = await _sharedGroupOf(request.memberIds);
 
-    final created = await groups.createGroup(name: request.trimmedName);
-
-    return created.bimap(
-      (failure) => FamilyGroupBuildFailed(failure, progress),
-      (group) => progress.withGroup(group.id),
-    );
+    return familyGroupId == null
+        ? FamilyGroupBuildFailed(failure)
+        : FamilyGroupBuilt(familyGroupId);
   }
 
-  Future<FamilyGroupBuildResult> _assignPending(
-    FamilyGroupBuildRequest request,
-    FamilyGroupBuildProgress progress,
-  ) async {
-    final familyGroupId = progress.familyGroupId!;
-    final assignment = await members.assignFamilyGroupToAll(
-      progress.pendingOf(request),
-      familyGroupId,
-    );
-    final failure = assignment.failure;
-    if (failure == null) return FamilyGroupBuilt(familyGroupId);
+  Future<int?> _sharedGroupOf(List<int> memberIds) async {
+    final loaded = await Future.wait(memberIds.map(members.loadMember));
+    final groupIds = <int?>{
+      for (final member in loaded)
+        member.fold<int?>((_) => null, (Member member) => member.familyGroupId),
+    };
 
-    return FamilyGroupBuildFailed(
-      failure,
-      progress.withAssigned(assignment.assignedMemberIds),
-    );
+    return groupIds.length == 1 ? groupIds.single : null;
   }
 }

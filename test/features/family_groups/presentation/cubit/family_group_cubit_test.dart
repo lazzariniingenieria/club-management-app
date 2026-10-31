@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:club_management_app/core/errors/failures.dart';
 import 'package:club_management_app/features/family_groups/domain/entities/family_group.dart';
 import 'package:club_management_app/features/family_groups/domain/entities/family_group_detail.dart';
+import 'package:club_management_app/features/family_groups/domain/usecases/delete_family_group_use_case.dart';
 import 'package:club_management_app/features/family_groups/domain/usecases/leave_family_group_use_case.dart';
 import 'package:club_management_app/features/family_groups/domain/usecases/load_family_group_detail_use_case.dart';
 import 'package:club_management_app/features/family_groups/domain/usecases/rename_family_group_use_case.dart';
@@ -20,6 +21,8 @@ class MockLoadDetail extends Mock implements LoadFamilyGroupDetailUseCase {}
 class MockRename extends Mock implements RenameFamilyGroupUseCase {}
 
 class MockLeave extends Mock implements LeaveFamilyGroupUseCase {}
+
+class MockDelete extends Mock implements DeleteFamilyGroupUseCase {}
 
 class MockWatchRoster extends Mock implements WatchRosterChangesUseCase {}
 
@@ -53,6 +56,7 @@ FamilyGroupDetail detailWith(List<Member> members) =>
 void main() {
   late MockLoadDetail loadDetail;
   late MockLeave leave;
+  late MockDelete delete;
   late StreamController<void> rosterChanges;
   late StreamController<void> groupChanges;
   late FamilyGroupCubit cubit;
@@ -65,6 +69,7 @@ void main() {
   setUp(() {
     loadDetail = MockLoadDetail();
     leave = MockLeave();
+    delete = MockDelete();
     rosterChanges = StreamController<void>.broadcast();
     groupChanges = StreamController<void>.broadcast();
     final watchRoster = MockWatchRoster();
@@ -75,6 +80,7 @@ void main() {
       loadDetail: loadDetail,
       rename: MockRename(),
       leave: leave,
+      delete: delete,
       watchRosterChanges: watchRoster,
       watchGroupChanges: watchGroups,
     );
@@ -124,6 +130,53 @@ void main() {
           .thenAnswer((_) async => const Left(ServerFailure()));
 
       expect(await cubit.remove(tomas), const ServerFailure());
+      verify(() => loadDetail(7)).called(1);
+    });
+  });
+
+  group('delete', () {
+    test('a confirmed deletion reports no failure', () async {
+      await loadWithBoth();
+      when(() => delete(7)).thenAnswer((_) async => const Right(null));
+
+      expect(await cubit.delete(), isNull);
+      verify(() => delete(7)).called(1);
+    });
+
+    test('a group that was already gone counts as done', () async {
+      await loadWithBoth();
+      when(() => delete(7))
+          .thenAnswer((_) async => const Left(NotFoundFailure()));
+
+      expect(await cubit.delete(), isNull);
+    });
+
+    test('a timeout already applied on the server counts as done', () async {
+      await loadWithBoth();
+      when(() => delete(7))
+          .thenAnswer((_) async => const Left(ResponseTimeoutFailure()));
+      detailAnswers([const Left(NotFoundFailure())]);
+
+      expect(await cubit.delete(), isNull);
+      expect(cubit.state, const FamilyGroupMissing());
+    });
+
+    test('a timeout that did not apply keeps the failure', () async {
+      await loadWithBoth();
+      when(() => delete(7))
+          .thenAnswer((_) async => const Left(ResponseTimeoutFailure()));
+      detailAnswers([Right(detailWith(const [tomas, laura]))]);
+
+      expect(await cubit.delete(), const ResponseTimeoutFailure());
+      expect(cubit.state, FamilyGroupReady(detailWith(const [tomas, laura])));
+    });
+
+    test('a server error is reported without reloading', () async {
+      await loadWithBoth();
+      when(() => delete(7))
+          .thenAnswer((_) async => const Left(ServerFailure()));
+
+      expect(await cubit.delete(), const ServerFailure());
       verify(() => loadDetail(7)).called(1);
     });
   });

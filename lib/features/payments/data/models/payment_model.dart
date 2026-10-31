@@ -23,6 +23,7 @@ class PaymentModel extends Payment {
   static const String _amountKey = 'amount';
   static const String _periodCoveredKey = 'periodCovered';
   static const String _periodsCoveredKey = 'periodsCovered';
+  static const String _batchKey = 'payments';
   static const String _paymentMethodKey = 'paymentMethod';
   static const String _paidAtKey = 'paidAt';
   static const String _voidedAtKey = 'voidedAt';
@@ -65,6 +66,12 @@ class PaymentModel extends Payment {
         for (final month in BillingMonth.sorted(draft.months)) month.toIsoDay(),
       ],
       _paymentMethodKey: _methodCodes[draft.method],
+    };
+  }
+
+  static Map<String, dynamic> bodyForBatch(List<PaymentDraft> drafts) {
+    return {
+      _batchKey: [for (final draft in drafts) bodyFromDraft(draft)],
     };
   }
 

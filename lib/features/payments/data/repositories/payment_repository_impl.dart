@@ -49,21 +49,11 @@ class PaymentRepositoryImpl implements PaymentRepository {
   }
 
   @override
-  Future<List<Either<Failure, void>>> recordPayments(
-    List<PaymentDraft> drafts,
-  ) async {
-    final results = <Either<Failure, void>>[];
-    for (final draft in drafts) {
-      results.add(
-        await _send(
-          'recordPayment',
-          () => remoteDataSource.recordPayment(draft),
-        ),
-      );
-    }
-    if (results.any(_mayHaveChangedPayments)) _paymentChanges.add(null);
-
-    return results;
+  Future<Either<Failure, void>> recordPayments(List<PaymentDraft> drafts) {
+    return _write(
+      'recordPayments',
+      () => remoteDataSource.recordPayments(drafts),
+    );
   }
 
   @override

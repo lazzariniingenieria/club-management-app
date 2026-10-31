@@ -15,102 +15,79 @@ class RegisterFamilyPaymentUseCase {
   RegisterFamilyPaymentUseCase(this.repository);
 
   Future<FamilyPaymentOutcome> call(FamilyPaymentRequest request) async {
-    final planned = await _plannedDrafts(request);
-    if (_memberLeftTheClub(request, planned)) {
-      return FamilyPaymentOutcome(
-        failed: {request.draft.memberId: const InactiveMemberFailure()},
-      );
-    }
-    final failed = {
-      for (final MapEntry(key: memberId, value: plan) in planned.entries)
-        if (plan.getLeft().toNullable() case final failure?) memberId: failure,
-    };
-    final drafts = [
-      for (final plan in planned.values)
-        if (plan.getRight().toNullable() case final draft?) draft,
-    ];
-    final results = await repository.recordPayments(drafts);
-
-    return _settle(drafts, results, failed);
-  }
-
-  Future<Map<int, Either<Failure, PaymentDraft?>>> _plannedDrafts(
-    FamilyPaymentRequest request,
-  ) async {
     final ids = request.memberIds;
     final prechecks = await Future.wait(ids.map(repository.loadPrecheck));
+    final unreadable = _firstFailure(prechecks);
+    if (unreadable != null) return FamilyPaymentRejected(unreadable);
 
-    return {
+    final current = {
       for (var index = 0; index < ids.length; index++)
-        ids[index]: _draftFrom(request, ids[index], prechecks[index]),
+        ids[index]: prechecks[index].getRight().toNullable()!,
     };
-  }
-
-  static bool _memberLeftTheClub(
-    FamilyPaymentRequest request,
-    Map<int, Either<Failure, PaymentDraft?>> planned,
-  ) {
-    final plan = planned[request.draft.memberId];
-
-    return plan?.getLeft().toNullable() is InactiveMemberFailure;
-  }
-
-  static Either<Failure, PaymentDraft?> _draftFrom(
-    FamilyPaymentRequest request,
-    int memberId,
-    Either<Failure, PaymentPrecheck> precheck,
-  ) {
-    return precheck.flatMap((current) {
-      if (!current.canRecordPayments) {
-        return const Left(InactiveMemberFailure());
-      }
-      final draft = request.draftFor(memberId, current.paidMonths);
-
-      return Right(draft.months.isEmpty ? null : draft);
-    });
-  }
-
-  Future<FamilyPaymentOutcome> _settle(
-    List<PaymentDraft> drafts,
-    List<Either<Failure, void>> results,
-    Map<int, Failure> failed,
-  ) async {
-    final registered = <int, List<BillingMonth>>{};
-    final unconfirmed = <int, List<BillingMonth>>{};
-    final unsettled = {...failed};
-    for (var index = 0; index < drafts.length; index++) {
-      final draft = drafts[index];
-      final failure = await _unsettledFailure(draft, results[index]);
-      if (failure != null) {
-        unsettled[draft.memberId] = failure;
-      } else if (results[index].isRight()) {
-        registered[draft.memberId] = draft.months;
-      }
-      if (failure is ResponseTimeoutFailure) {
-        unconfirmed[draft.memberId] = draft.months;
-      }
+    if (!current[request.draft.memberId]!.canRecordPayments) {
+      return const FamilyPaymentRejected(InactiveMemberFailure());
     }
 
-    return FamilyPaymentOutcome(
-      registered: registered,
-      failed: unsettled,
-      unconfirmed: unconfirmed,
-    );
+    return _send(request, current);
   }
 
-  Future<Failure?> _unsettledFailure(
-    PaymentDraft draft,
-    Either<Failure, void> result,
+  static Failure? _firstFailure(
+    List<Either<Failure, PaymentPrecheck>> prechecks,
+  ) {
+    for (final precheck in prechecks) {
+      final failure = precheck.getLeft().toNullable();
+      if (failure != null) return failure;
+    }
+
+    return null;
+  }
+
+  Future<FamilyPaymentOutcome> _send(
+    FamilyPaymentRequest request,
+    Map<int, PaymentPrecheck> current,
   ) async {
+    final skippedIds = [
+      for (final MapEntry(:key, :value) in current.entries)
+        if (!value.canRecordPayments) key,
+    ];
+    final drafts = [
+      for (final MapEntry(:key, :value) in current.entries)
+        if (value.canRecordPayments)
+          request.draftFor(key, value.paidMonths),
+    ].where((draft) => draft.months.isNotEmpty).toList();
+    if (drafts.isEmpty) {
+      return FamilyPaymentNothingToCharge(skippedIds: skippedIds);
+    }
+
+    final result = await repository.recordPayments(drafts);
+    final months = {for (final draft in drafts) draft.memberId: draft.months};
     final failure = result.getLeft().toNullable();
-    if (failure is! ConflictFailure) return failure;
+    if (failure == null) {
+      return FamilyPaymentRegistered(months: months, skippedIds: skippedIds);
+    }
+    if (failure is! ResponseTimeoutFailure) return FamilyPaymentRejected(failure);
 
-    final reread = await repository.loadPrecheck(draft.memberId);
-    final stillUnpaid = reread.fold<Iterable<BillingMonth>>(
-      (_) => draft.months,
-      (current) => draft.months.where((m) => !current.paidMonths.contains(m)),
+    return _confirmed(drafts, months, skippedIds);
+  }
+
+  Future<FamilyPaymentOutcome> _confirmed(
+    List<PaymentDraft> drafts,
+    Map<int, List<BillingMonth>> months,
+    List<int> skippedIds,
+  ) async {
+    final histories = await Future.wait(
+      drafts.map((draft) => repository.loadPrecheck(draft.memberId)),
     );
+    final allLanded = [
+      for (var index = 0; index < drafts.length; index++)
+        histories[index].fold(
+          (_) => false,
+          (history) => history.paidMonths.containsAll(drafts[index].months),
+        ),
+    ].every((landed) => landed);
 
-    return stillUnpaid.isEmpty ? null : failure;
+    return allLanded
+        ? FamilyPaymentRegistered(months: months, skippedIds: skippedIds)
+        : FamilyPaymentUnconfirmed(months: months, skippedIds: skippedIds);
   }
 }

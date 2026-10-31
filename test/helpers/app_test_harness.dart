@@ -69,7 +69,10 @@ Future<InMemorySecureStorage> bootApp(
   di.sl.unregister<FamilyGroupRemoteDataSource>();
   di.sl.registerLazySingleton<FamilyGroupRemoteDataSource>(
     () =>
-        familyGroupSource ?? FamilyGroupFakeDataSource(latency: Duration.zero),
+        familyGroupSource ?? FamilyGroupFakeDataSource(
+              members: di.sl<MemberRemoteDataSource>(),
+              latency: Duration.zero,
+            ),
   );
 
   di.sl.unregister<ClubRemoteDataSource>();

@@ -5,6 +5,7 @@ class FamilyGroupModel extends FamilyGroup {
 
   static const String _idKey = 'id';
   static const String _nameKey = 'name';
+  static const String _memberIdsKey = 'memberIds';
 
   factory FamilyGroupModel.fromJson(Map<String, dynamic> json) {
     return FamilyGroupModel(
@@ -14,4 +15,10 @@ class FamilyGroupModel extends FamilyGroup {
   }
 
   static Map<String, dynamic> bodyWithName(String? name) => {_nameKey: name};
+
+  static Map<String, dynamic> bodyForCreation(
+    String? name,
+    List<int> memberIds,
+  ) =>
+      {_nameKey: name, _memberIdsKey: memberIds};
 }

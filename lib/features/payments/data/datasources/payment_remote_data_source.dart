@@ -17,6 +17,8 @@ abstract class PaymentRemoteDataSource {
 
   Future<void> recordPayment(PaymentDraft draft);
 
+  Future<void> recordPayments(List<PaymentDraft> drafts);
+
   Future<void> voidPayment(int paymentId, {String? reason});
 }
 
@@ -92,6 +94,14 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
     return _writer.post(
       ApiConstants.payments,
       PaymentModel.bodyFromDraft(draft),
+    );
+  }
+
+  @override
+  Future<void> recordPayments(List<PaymentDraft> drafts) {
+    return _writer.post(
+      ApiConstants.paymentBatch,
+      PaymentModel.bodyForBatch(drafts),
     );
   }
 

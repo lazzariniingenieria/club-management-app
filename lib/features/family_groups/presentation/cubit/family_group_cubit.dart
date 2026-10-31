@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../../members/domain/usecases/watch_roster_changes_use_case.dart';
+import '../../domain/usecases/delete_family_group_use_case.dart';
 import '../../domain/usecases/leave_family_group_use_case.dart';
 import '../../domain/usecases/load_family_group_detail_use_case.dart';
 import '../../domain/usecases/rename_family_group_use_case.dart';
@@ -15,17 +16,20 @@ class FamilyGroupCubit extends Cubit<FamilyGroupState> {
   final LoadFamilyGroupDetailUseCase _loadDetail;
   final RenameFamilyGroupUseCase _rename;
   final LeaveFamilyGroupUseCase _leave;
+  final DeleteFamilyGroupUseCase _delete;
   late final List<StreamSubscription<void>> _changeSubscriptions;
 
   FamilyGroupCubit({
     required LoadFamilyGroupDetailUseCase loadDetail,
     required RenameFamilyGroupUseCase rename,
     required LeaveFamilyGroupUseCase leave,
+    required DeleteFamilyGroupUseCase delete,
     required WatchRosterChangesUseCase watchRosterChanges,
     required WatchFamilyGroupChangesUseCase watchGroupChanges,
   })  : _loadDetail = loadDetail,
         _rename = rename,
         _leave = leave,
+        _delete = delete,
         super(const FamilyGroupLoading()) {
     _changeSubscriptions = [
       watchRosterChanges().listen((_) => _reloadOnChange()),
@@ -81,6 +85,20 @@ class FamilyGroupCubit extends Cubit<FamilyGroupState> {
     await reload();
 
     return _stillIncludes(member) ? failure : null;
+  }
+
+  Future<Failure?> delete() async {
+    final familyGroupId = _familyGroupId;
+    if (familyGroupId == null) return null;
+
+    final result = await _delete(familyGroupId);
+    final failure = result.getLeft().toNullable();
+    if (failure is NotFoundFailure) return null;
+    if (failure is! ResponseTimeoutFailure) return failure;
+
+    await reload();
+
+    return state is FamilyGroupMissing ? null : failure;
   }
 
   bool _stillIncludes(Member member) {

@@ -14,35 +14,26 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../helpers/app_test_harness.dart';
 
-class FailsOnceToAssign extends MemberFakeDataSource {
-  FailsOnceToAssign(this.memberId) : super(latency: Duration.zero);
-
-  final int memberId;
-  bool _failed = false;
-
-  @override
-  Future<void> assignFamilyGroup(int memberId, int familyGroupId) async {
-    if (memberId == this.memberId && !_failed) {
-      _failed = true;
-      throw ServerException('boom');
-    }
-
-    return super.assignFamilyGroup(memberId, familyGroupId);
-  }
-}
-
 class CountingGroupSource extends FamilyGroupFakeDataSource {
-  CountingGroupSource() : super(latency: Duration.zero);
+  CountingGroupSource({required super.members}) : super(latency: Duration.zero);
 
-  int created = 0;
+  int attempts = 0;
+  bool failsOnce = false;
   Completer<void>? holdCreation;
 
   @override
-  Future<FamilyGroupModel> createGroup({String? name}) async {
-    created++;
+  Future<FamilyGroupModel> createGroup({
+    String? name,
+    List<int> memberIds = const [],
+  }) async {
+    attempts++;
     await holdCreation?.future;
+    if (failsOnce) {
+      failsOnce = false;
+      throw ServerException('boom');
+    }
 
-    return super.createGroup(name: name);
+    return super.createGroup(name: name, memberIds: memberIds);
   }
 }
 
@@ -142,12 +133,12 @@ void main() {
     );
   });
 
-  group('building a group that fails half way', () {
+  group('building a group that does not go through', () {
     late CountingGroupSource groups;
 
-    Future<void> bootFailingOn(WidgetTester tester, int memberId) async {
-      members = FailsOnceToAssign(memberId);
-      groups = CountingGroupSource();
+    Future<void> bootWithCountingGroups(WidgetTester tester) async {
+      members = MemberFakeDataSource(latency: Duration.zero);
+      groups = CountingGroupSource(members: members);
       await bootApp(
         tester,
         signedInAs: UserRole.admin,
@@ -164,37 +155,70 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('resumes on the same group after the sheet was closed', (
+    testWidgets('offers to retry and creates one group with both members', (
       tester,
     ) async {
-      await bootFailingOn(tester, 5);
+      await bootWithCountingGroups(tester);
+      groups.failsOnce = true;
       await pickMartin(tester);
+
       await tester.tap(find.text(AppStrings.familyGroupBuildConfirm));
       await tester.pumpAndSettle();
       expect(
-        find.textContaining(
-          AppStrings.familyGroupBuildPartial('Martín Álvarez'),
-          findRichText: true,
-        ),
+        find.textContaining(AppStrings.familyGroupServerTitle),
         findsOneWidget,
       );
+      var roster = (await tester.runAsync(members.fetchMembers))!;
+      expect(roster.firstWhere((member) => member.id == 4).familyGroupId, isNull);
 
-      await tester.tap(find.text(AppStrings.cancelAction));
-      await tester.pumpAndSettle();
-      await pickMartin(tester);
       await tester.tap(find.text(AppStrings.retryAction));
       await tester.pumpAndSettle();
 
-      expect(groups.created, 1);
-      final roster = (await tester.runAsync(members.fetchMembers))!;
+      expect(groups.attempts, 2);
+      roster = (await tester.runAsync(members.fetchMembers))!;
       final lucia = roster.firstWhere((member) => member.id == 4);
       final martin = roster.firstWhere((member) => member.id == 5);
       expect(lucia.familyGroupId, isNotNull);
       expect(martin.familyGroupId, lucia.familyGroupId);
+      expect(await tester.runAsync(groups.fetchGroups), hasLength(3));
+    });
+
+    testWidgets(
+        'a member grouped by somebody else meanwhile refreshes the list '
+        'instead of retrying', (tester) async {
+      await bootWithCountingGroups(tester);
+      await pickMartin(tester);
+      await tester.runAsync(() => members.assignFamilyGroup(5, 1));
+
+      await tester.tap(find.text(AppStrings.familyGroupBuildConfirm));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(AppStrings.familyGroupStaleTitle),
+        findsOneWidget,
+      );
+      expect(find.text(AppStrings.familyGroupBuildConfirm), findsNothing);
+      expect(find.text(AppStrings.retryAction), findsNothing);
+
+      await tester.tap(find.text(AppStrings.backAction));
+      await tester.pumpAndSettle();
+      await pickMartin(tester);
+
+      expect(
+        find.text(
+          AppStrings.familyGroupConfirmJoinTitle(
+            'Lucía Álvarez',
+            'Familia Álvarez',
+          ),
+        ),
+        findsOneWidget,
+      );
+      final roster = (await tester.runAsync(members.fetchMembers))!;
+      expect(roster.firstWhere((member) => member.id == 4).familyGroupId, isNull);
     });
 
     testWidgets('the sheet cannot be closed while it saves', (tester) async {
-      await bootFailingOn(tester, 0);
+      await bootWithCountingGroups(tester);
       groups.holdCreation = Completer<void>();
       await pickMartin(tester);
 
@@ -213,6 +237,65 @@ void main() {
       groups.holdCreation!.complete();
       await tester.pumpAndSettle();
       expect(find.text(AppStrings.familyGroupConfirmBuildTitle), findsNothing);
+    });
+  });
+
+  group('deleting a group', () {
+    testWidgets('asks to confirm and leaves its members without a group', (
+      tester,
+    ) async {
+      await boot(tester);
+      await openRoute(tester, AppRoutes.adminFamilyGroup(1));
+      final before = (await tester.runAsync(members.fetchMembers))!;
+      final inGroup = before
+          .where((member) => member.familyGroupId == 1)
+          .map((member) => member.id)
+          .toList();
+      expect(inGroup, isNotEmpty);
+
+      await tester.scrollUntilVisible(
+        find.text(AppStrings.familyGroupDeleteAction),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text(AppStrings.familyGroupDeleteAction));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(AppStrings.familyGroupDeleteTitle('Familia Álvarez')),
+        findsOneWidget,
+      );
+      await tester.tap(find.text(AppStrings.familyGroupDeleteConfirm));
+      await tester.pumpAndSettle();
+
+      final after = (await tester.runAsync(members.fetchMembers))!;
+      expect(
+        after.where((member) => inGroup.contains(member.id)).map(
+              (member) => member.familyGroupId,
+            ),
+        everyElement(isNull),
+      );
+      expect(find.text(AppStrings.familyGroupDeleted), findsOneWidget);
+      expect(find.text(AppStrings.familyGroupScreenTitle), findsNothing);
+    });
+
+    testWidgets('cancelling leaves the group as it was', (tester) async {
+      await boot(tester);
+      await openRoute(tester, AppRoutes.adminFamilyGroup(1));
+
+      await tester.scrollUntilVisible(
+        find.text(AppStrings.familyGroupDeleteAction),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text(AppStrings.familyGroupDeleteAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppStrings.cancelAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.familyGroupScreenTitle), findsOneWidget);
+      expect(find.text(AppStrings.familyGroupDeleted), findsNothing);
+      final roster = (await tester.runAsync(members.fetchMembers))!;
+      expect(roster.where((member) => member.familyGroupId == 1), isNotEmpty);
     });
   });
 

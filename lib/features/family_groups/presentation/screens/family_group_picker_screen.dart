@@ -74,6 +74,14 @@ class _PickerBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return BlocListener<FamilyGroupBuilderCubit, FamilyGroupBuilderState>(
+      listenWhen: (_, current) => current.isStale,
+      listener: (context, _) => context.read<FamilyGroupPickerCubit>().load(),
+      child: _pickerStates(),
+    );
+  }
+
+  Widget _pickerStates() {
     return BlocBuilder<FamilyGroupPickerCubit, FamilyGroupPickerState>(
       builder: (context, state) => switch (state) {
         FamilyGroupPickerLoading() => const _PickerSkeleton(),

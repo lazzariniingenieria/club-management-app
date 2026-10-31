@@ -42,10 +42,15 @@ class FamilyGroupRepositoryImpl implements FamilyGroupRepository {
   }
 
   @override
-  Future<Either<Failure, FamilyGroup>> createGroup({String? name}) {
+  Future<Either<Failure, FamilyGroup>> createGroup({
+    String? name,
+    List<int> memberIds = const [],
+  }) {
     return _guard(
       'createGroup',
-      () async => Right(await remoteDataSource.createGroup(name: name)),
+      () async => Right(
+        await remoteDataSource.createGroup(name: name, memberIds: memberIds),
+      ),
     );
   }
 
@@ -54,6 +59,15 @@ class FamilyGroupRepositoryImpl implements FamilyGroupRepository {
     return _guard('renameGroup', () async {
       await remoteDataSource.renameGroup(familyGroupId, name);
       _groupChanges.add(null);
+
+      return const Right(null);
+    });
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteGroup(int familyGroupId) {
+    return _guard('deleteGroup', () async {
+      await remoteDataSource.deleteGroup(familyGroupId);
 
       return const Right(null);
     });

@@ -18,16 +18,8 @@ void main() {
   late FamilyGroupBuilderCubit cubit;
 
   const pair = FamilyGroupBuildRequest(memberIds: [4, 5], name: 'Familia');
-  const otherPair = FamilyGroupBuildRequest(memberIds: [4, 6], name: '');
-  const halfWay = FamilyGroupBuildProgress(
-    familyGroupId: 7,
-    assignedMemberIds: {4},
-  );
 
-  setUpAll(() {
-    registerFallbackValue(pair);
-    registerFallbackValue(const FamilyGroupBuildProgress());
-  });
+  setUpAll(() => registerFallbackValue(pair));
 
   setUp(() {
     buildGroup = MockBuildGroup();
@@ -41,55 +33,59 @@ void main() {
   tearDown(() => cubit.close());
 
   void buildAnswers(FamilyGroupBuildResult result) {
-    when(() => buildGroup(any(), progress: any(named: 'progress')))
-        .thenAnswer((_) async => result);
+    when(() => buildGroup(any())).thenAnswer((_) async => result);
   }
 
-  test('a failed assignment keeps the progress for the retry', () async {
-    buildAnswers(const FamilyGroupBuildFailed(ServerFailure(), halfWay));
+  test('a built group is done', () async {
+    buildAnswers(const FamilyGroupBuilt(7));
+
+    expect(await cubit.build(pair), isTrue);
+    expect(cubit.state.status, FamilyGroupSaveStatus.done);
+  });
+
+  test('a failed creation keeps the failure to show it', () async {
+    buildAnswers(const FamilyGroupBuildFailed(NetworkFailure()));
 
     expect(await cubit.build(pair), isFalse);
     expect(cubit.state.status, FamilyGroupSaveStatus.failed);
-    expect(cubit.state.progress, halfWay);
-    expect(cubit.state.isPartial, isTrue);
-  });
-
-  test('the retry for the same pair resumes on the same group', () async {
-    buildAnswers(const FamilyGroupBuildFailed(ServerFailure(), halfWay));
-    await cubit.build(pair);
-    buildAnswers(const FamilyGroupBuilt(7));
-
-    cubit.prepareFor(pair.memberIds);
-    expect(await cubit.build(pair), isTrue);
-
-    verify(() => buildGroup(pair, progress: halfWay)).called(1);
-  });
-
-  test('another pair starts from scratch', () async {
-    buildAnswers(const FamilyGroupBuildFailed(ServerFailure(), halfWay));
-    await cubit.build(pair);
-    buildAnswers(const FamilyGroupBuilt(8));
-
-    cubit.prepareFor(otherPair.memberIds);
-    expect(cubit.state.failure, isNull);
-    await cubit.build(otherPair);
-
-    verify(
-      () => buildGroup(otherPair, progress: const FamilyGroupBuildProgress()),
-    ).called(1);
+    expect(cubit.state.isOffline, isTrue);
+    expect(cubit.state.isCreationUnconfirmed, isFalse);
+    expect(cubit.state.isStale, isFalse);
   });
 
   test('a creation timeout is flagged as unconfirmed', () async {
-    buildAnswers(
-      const FamilyGroupBuildFailed(
-        ResponseTimeoutFailure(),
-        FamilyGroupBuildProgress(),
-      ),
-    );
+    buildAnswers(const FamilyGroupBuildFailed(ResponseTimeoutFailure()));
 
     await cubit.build(pair);
 
     expect(cubit.state.isCreationUnconfirmed, isTrue);
+  });
+
+  test('a member already in a group flags the list as stale', () async {
+    buildAnswers(const FamilyGroupBuildFailed(ConflictFailure()));
+
+    await cubit.build(pair);
+
+    expect(cubit.state.isStale, isTrue);
+  });
+
+  test('a retry sends the same request again', () async {
+    buildAnswers(const FamilyGroupBuildFailed(ServerFailure()));
+    await cubit.build(pair);
+    buildAnswers(const FamilyGroupBuilt(7));
+
+    expect(await cubit.build(pair), isTrue);
+
+    verify(() => buildGroup(pair)).called(2);
+  });
+
+  test('resetting clears a failure so the next pair starts clean', () async {
+    buildAnswers(const FamilyGroupBuildFailed(ServerFailure()));
+    await cubit.build(pair);
+
+    cubit.reset();
+
+    expect(cubit.state, const FamilyGroupBuilderState());
   });
 
   test('saving is visible while the build runs', () async {
@@ -102,7 +98,6 @@ void main() {
     await subscription.cancel();
 
     expect(states.map((state) => state.status), [
-      FamilyGroupSaveStatus.idle,
       FamilyGroupSaveStatus.saving,
       FamilyGroupSaveStatus.done,
     ]);

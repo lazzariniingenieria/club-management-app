@@ -42,6 +42,7 @@ import '../../features/family_groups/data/datasources/family_group_remote_data_s
 import '../../features/family_groups/data/repositories/family_group_repository_impl.dart';
 import '../../features/family_groups/domain/repositories/family_group_repository.dart';
 import '../../features/family_groups/domain/usecases/build_family_group_use_case.dart';
+import '../../features/family_groups/domain/usecases/delete_family_group_use_case.dart';
 import '../../features/family_groups/domain/usecases/join_family_group_use_case.dart';
 import '../../features/family_groups/domain/usecases/leave_family_group_use_case.dart';
 import '../../features/family_groups/domain/usecases/load_family_group_candidates_use_case.dart';
@@ -232,7 +233,7 @@ void _registerPaymentDomain() {
 void _registerFamilyGroups() {
   sl.registerLazySingleton<FamilyGroupRemoteDataSource>(
     () => AppEnvironment.usesFakeDataSources
-        ? FamilyGroupFakeDataSource()
+        ? FamilyGroupFakeDataSource(members: sl())
         : FamilyGroupRemoteDataSourceImpl(sl(), sl()),
   );
   sl.registerLazySingleton<FamilyGroupRepository>(
@@ -252,6 +253,9 @@ void _registerFamilyGroups() {
   sl.registerLazySingleton(() => RenameFamilyGroupUseCase(sl()));
   sl.registerLazySingleton(() => JoinFamilyGroupUseCase(sl()));
   sl.registerLazySingleton(() => LeaveFamilyGroupUseCase(sl()));
+  sl.registerLazySingleton(
+    () => DeleteFamilyGroupUseCase(groups: sl(), members: sl()),
+  );
   sl.registerLazySingleton(() => WatchFamilyGroupChangesUseCase(sl()));
 
   sl.registerFactory(
@@ -262,6 +266,7 @@ void _registerFamilyGroups() {
       loadDetail: sl(),
       rename: sl(),
       leave: sl(),
+      delete: sl(),
       watchRosterChanges: sl(),
       watchGroupChanges: sl(),
     ),

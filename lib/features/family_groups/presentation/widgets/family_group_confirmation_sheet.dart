@@ -38,8 +38,7 @@ class FamilyGroupConfirmationSheet extends StatefulWidget {
     BuildContext context,
     FamilyGroupConfirmationSheet sheet,
   ) {
-    final cubit = context.read<FamilyGroupBuilderCubit>()
-      ..prepareFor(sheet._memberIds);
+    final cubit = context.read<FamilyGroupBuilderCubit>()..reset();
 
     return showAppSheet<String>(
       context,
@@ -113,11 +112,11 @@ class _FamilyGroupConfirmationSheetState
       title: _title(),
       children: [
         if (state.failure != null) ...[
-          _FailureNotice(state: state, pending: _pendingMembers(state)),
+          _FailureNotice(state: state),
           const SizedBox(height: AppSpacing.lg),
         ],
         SummaryTable(rows: _rows(state)),
-        if (_joinTarget == null && !state.isPartial) ...[
+        if (_joinTarget == null) ...[
           const SizedBox(height: AppSpacing.lg),
           _GroupNameField(controller: _name, enabled: !state.isSaving),
         ],
@@ -143,15 +142,9 @@ class _FamilyGroupConfirmationSheetState
       ? AppStrings.familyGroupIndividualFeePair
       : AppStrings.familyGroupIndividualFeeGroup;
 
-  List<Member> _pendingMembers(FamilyGroupBuilderState state) => [
-        widget.member,
-        widget.relative,
-      ].where((m) => !state.progress.assignedMemberIds.contains(m.id)).toList();
-
   List<SummaryRow> _rows(FamilyGroupBuilderState state) {
     final target = _joinTarget;
     if (target != null) return _joinRows(target);
-    if (state.isPartial) return _partialRows(state);
 
     return [
       SummaryRow(
@@ -173,34 +166,17 @@ class _FamilyGroupConfirmationSheetState
         SummaryRow(AppStrings.familyGroupRowJoining, widget.member.fullName),
       ];
 
-  List<SummaryRow> _partialRows(FamilyGroupBuilderState state) {
-    final pending = _pendingMembers(state);
-    final assigned = [widget.member, widget.relative]
-        .where((member) => !pending.contains(member))
-        .toList();
-
-    return [
-      if (assigned.isNotEmpty)
-        SummaryRow(
-          AppStrings.familyGroupRowAlreadyIn,
-          FamilyGroupFormats.namesInLines(assigned),
-        ),
-      SummaryRow(
-        AppStrings.familyGroupRowMissing,
-        FamilyGroupFormats.namesInLines(pending),
-      ),
-    ];
-  }
-
   List<Widget> _actions(FamilyGroupBuilderState state) => [
-        AppButton(
-          text: _primaryLabel(state),
-          isLoading: state.isSaving,
-          onPressed: _confirm,
-        ),
-        const SizedBox(height: AppSpacing.sm),
+        if (!state.isStale) ...[
+          AppButton(
+            text: _primaryLabel(state),
+            isLoading: state.isSaving,
+            onPressed: _confirm,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
         AppSecondaryButton(
-          label: AppStrings.cancelAction,
+          label: state.isStale ? AppStrings.backAction : AppStrings.cancelAction,
           onPressed: state.isSaving ? null : () => Navigator.of(context).pop(),
         ),
       ];
@@ -237,9 +213,8 @@ class _GroupNameField extends StatelessWidget {
 
 class _FailureNotice extends StatelessWidget {
   final FamilyGroupBuilderState state;
-  final List<Member> pending;
 
-  const _FailureNotice({required this.state, required this.pending});
+  const _FailureNotice({required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -253,10 +228,10 @@ class _FailureNotice extends StatelessWidget {
   }
 
   (String, String) _copy() {
-    if (state.isPartial) {
+    if (state.isStale) {
       return (
-        AppStrings.familyGroupPartialTitle,
-        AppStrings.familyGroupBuildPartial(FamilyGroupFormats.namesList(pending)),
+        AppStrings.familyGroupStaleTitle,
+        AppStrings.familyGroupStaleMessage,
       );
     }
     if (state.isCreationUnconfirmed) {

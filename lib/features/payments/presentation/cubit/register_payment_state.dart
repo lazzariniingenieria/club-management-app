@@ -82,24 +82,21 @@ class PayerLeftGroupNotice extends RegisterPaymentNotice {
   const PayerLeftGroupNotice();
 }
 
-class FamilyPaymentIncompleteNotice extends RegisterPaymentNotice {
-  final List<int> registeredIds;
-  final List<int> pendingIds;
-  final bool mayHaveLanded;
+class FamilyGroupChangedNotice extends RegisterPaymentNotice {
   final List<String> leftNames;
   final bool payerLeft;
 
-  const FamilyPaymentIncompleteNotice({
-    required this.registeredIds,
-    required this.pendingIds,
-    required this.mayHaveLanded,
+  const FamilyGroupChangedNotice({
     this.leftNames = const [],
     this.payerLeft = false,
   });
 
   @override
-  List<Object?> get props =>
-      [registeredIds, pendingIds, mayHaveLanded, leftNames, payerLeft];
+  List<Object?> get props => [leftNames, payerLeft];
+}
+
+class FamilyMonthsCollectedNotice extends RegisterPaymentNotice {
+  const FamilyMonthsCollectedNotice();
 }
 
 class FamilyAlreadyPaidNotice extends RegisterPaymentNotice {

@@ -7,7 +7,6 @@ import '../../domain/entities/billing_month.dart';
 import '../../domain/entities/family_payment_request.dart';
 import '../../domain/entities/member_ledger.dart';
 import '../../domain/entities/payment_draft.dart';
-import '../../domain/entities/family_payment_outcome.dart';
 import '../../domain/entities/payment_method.dart';
 import '../../domain/entities/payment_precheck.dart';
 import '../../domain/entities/payment_receipt.dart';
@@ -61,15 +60,6 @@ class PaymentForm extends Equatable {
   bool get startsFromLastPaid => ledger.lastPaidMonth != null;
 
   bool get paysForFamily => family != null;
-
-  bool get isChargeLocked => family?.hasProgress ?? false;
-
-  bool get canFinishFamily {
-    final current = family;
-    if (current == null || current.hasUnconfirmed) return false;
-
-    return current.registered.isNotEmpty && current.isReady && feeCount == 0;
-  }
 
   List<Member> get activeRelatives =>
       ledger.familyMembers.where((relative) => relative.isActive).toList();
@@ -190,17 +180,8 @@ class PaymentForm extends Equatable {
     );
   }
 
-  PaymentForm afterFamilySubmit(FamilyPaymentOutcome outcome) {
-    return withFamily(
-      family?.afterSubmit(outcome, amountCents: amountCents ?? 0),
-    );
-  }
-
-  PaymentForm withFamilyHistory(Map<int, PaymentPrecheck> statuses) {
-    return withFamily(
-      family?.loaded(statuses).confirmingLanded(amountCents: amountCents ?? 0),
-    );
-  }
+  PaymentForm withFamilyHistory(Map<int, PaymentPrecheck> statuses) =>
+      withFamily(family?.loaded(statuses));
 
   List<Member> relativesMissingIn(PaymentForm refreshed) {
     final staying = {for (final each in refreshed.activeRelatives) each.id};
@@ -237,15 +218,21 @@ class PaymentForm extends Equatable {
     );
   }
 
-  PaymentReceipt toFamilyReceipt({List<String> leftOutNames = const []}) {
-    final registered = family?.registered ?? const <int, RegisteredFee>{};
+  PaymentReceipt toFamilyReceipt(
+    Map<int, List<BillingMonth>> registered, {
+    List<int> skippedIds = const [],
+  }) {
+    final fees = registered.values.fold(0, (sum, months) => sum + months.length);
 
     return PaymentReceipt(
       memberId: ledger.member.id,
-      months: registered[ledger.member.id]?.months ?? const [],
-      totalCents: registered.values.fold(0, (sum, fee) => sum + fee.totalCents),
+      months: registered[ledger.member.id] ?? const [],
+      totalCents: (amountCents ?? 0) * fees,
       familyMemberCount: registered.length,
-      leftOutNames: leftOutNames,
+      leftOutNames: [
+        for (final id in skippedIds)
+          if (ledger.nameOf(id) case final name?) name,
+      ],
     );
   }
 

@@ -45,20 +45,21 @@ class FailingWrites implements PaymentRemoteDataSource {
   Future<void> recordPayment(PaymentDraft draft) async => throw error;
 
   @override
+  Future<void> recordPayments(List<PaymentDraft> drafts) async => throw error;
+
+  @override
   Future<void> voidPayment(int paymentId, {String? reason}) async =>
       throw error;
 }
 
 class RecordingWrites extends FailingWrites {
-  final int? failingMemberId;
-  final List<int> recordedMemberIds = [];
+  final List<List<int>> batches = [];
 
-  RecordingWrites({this.failingMemberId}) : super(NetworkException());
+  RecordingWrites() : super(NetworkException());
 
   @override
-  Future<void> recordPayment(PaymentDraft draft) async {
-    if (draft.memberId == failingMemberId) throw error;
-    recordedMemberIds.add(draft.memberId);
+  Future<void> recordPayments(List<PaymentDraft> drafts) async {
+    batches.add([for (final draft in drafts) draft.memberId]);
   }
 }
 
@@ -147,7 +148,8 @@ void main() {
           method: draft.method,
         );
 
-    test('sends every member and announces a single change', () async {
+    test('sends every member in one request and announces one change',
+        () async {
       final source = RecordingWrites();
       final repository = PaymentRepositoryImpl(
         remoteDataSource: source,
@@ -156,26 +158,44 @@ void main() {
       final announcements = <void>[];
       repository.paymentChanges.listen(announcements.add);
 
-      await repository.recordPayments([draftOf(1), draftOf(2), draftOf(3)]);
+      final result =
+          await repository.recordPayments([draftOf(1), draftOf(2), draftOf(3)]);
       await Future<void>.delayed(Duration.zero);
 
-      expect(source.recordedMemberIds, [1, 2, 3]);
+      expect(result.isRight(), isTrue);
+      expect(source.batches, [
+        [1, 2, 3],
+      ]);
       expect(announcements, hasLength(1));
     });
 
-    test('keeps going after one member fails and reports each result',
+    test('a request the server rejected registers nobody and announces nothing',
         () async {
-      final source = RecordingWrites(failingMemberId: 2);
-      final repository = PaymentRepositoryImpl(
-        remoteDataSource: source,
-        logger: const SilentLogger(),
+      final announcements = await announcementsAfter(
+        ValidationException(),
+        (repository) => repository.recordPayments([draftOf(1), draftOf(2)]),
       );
 
-      final results =
-          await repository.recordPayments([draftOf(1), draftOf(2), draftOf(3)]);
+      expect(announcements, isEmpty);
+    });
 
-      expect(source.recordedMemberIds, [1, 3]);
-      expect(results.map((result) => result.isRight()), [true, false, true]);
+    test('a request nobody answered may have landed and announces a change',
+        () async {
+      final announcements = await announcementsAfter(
+        ResponseTimeoutException(),
+        (repository) => repository.recordPayments([draftOf(1), draftOf(2)]),
+      );
+
+      expect(announcements, hasLength(1));
+    });
+
+    test('a month somebody else collected announces a change', () async {
+      final announcements = await announcementsAfter(
+        ConflictException(),
+        (repository) => repository.recordPayments([draftOf(1), draftOf(2)]),
+      );
+
+      expect(announcements, hasLength(1));
     });
 
     test('announces nothing when no payment left the device', () async {

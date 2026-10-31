@@ -92,9 +92,7 @@ class _FamilyBody extends StatelessWidget {
           _FamilyMemberTile(
             form: form,
             member: relative,
-            onToggle: form.family?.hasSettled(relative.id) ?? false
-                ? null
-                : () => onToggleRelative(relative.id),
+            onToggle: () => onToggleRelative(relative.id),
           ),
         if (form.inactiveRelatives.isNotEmpty)
           _InactiveRelativesNote(relatives: form.inactiveRelatives),

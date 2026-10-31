@@ -1,11 +1,8 @@
-import 'package:club_management_app/core/errors/failures.dart';
 import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
-import 'package:club_management_app/features/payments/domain/entities/family_payment_outcome.dart';
+import 'package:club_management_app/features/payments/domain/entities/payment_method.dart';
 import 'package:club_management_app/features/payments/domain/entities/payment_precheck.dart';
 import 'package:club_management_app/features/payments/presentation/cubit/family_payment.dart';
-import 'package:club_management_app/features/payments/presentation/cubit/family_settlement.dart';
 import 'package:club_management_app/features/payments/presentation/cubit/payment_form.dart';
-import 'package:club_management_app/features/payments/presentation/cubit/register_payment_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../helpers/payment_builders.dart';
@@ -14,141 +11,80 @@ void main() {
   const september = BillingMonth(2026, 9);
   const october = BillingMonth(2026, 10);
 
-  PaymentPrecheck paidOf(Set<BillingMonth> months) =>
-      PaymentPrecheck(isActive: true, paidMonths: months);
+  PaymentForm familyForm({Set<BillingMonth> months = const {}}) {
+    return PaymentForm(
+      ledger: buildLedger(
+        familyMembers: [
+          buildLedgerMember(id: 2, firstName: 'María'),
+          buildLedgerMember(id: 3, firstName: 'Luis'),
+        ],
+      ),
+      selectedMonths: months,
+      suggestedMonth: september,
+      visibleYear: 2026,
+      method: PaymentMethod.cash,
+      amountCents: feeCents,
+      family: const FamilyPayment(),
+    );
+  }
 
-  group('registering fees at different amounts', () {
-    test('the receipt adds what each fee really cost', () {
-      final form = PaymentForm.start(
-        buildLedger(familyMembers: [buildLedgerMember(id: 2)]),
-        DateTime(2026, 10, 14),
-      ).withFamily(
-        const FamilyPayment(
-          registered: {
-            1: RegisteredFee(months: [september], amountCents: 1500000),
-            2: RegisteredFee(
-              months: [september, october],
-              amountCents: 1200000,
-            ),
-          },
-        ),
-      );
+  group('the receipt of a payment for the whole group', () {
+    test('multiplies the amount of one month by every fee registered', () {
+      final receipt = familyForm().toFamilyReceipt({
+        1: [september],
+        2: [september, october],
+      });
 
-      final receipt = form.toFamilyReceipt();
-
-      expect(receipt.totalCents, 1500000 + 2 * 1200000);
+      expect(receipt.totalCents, 3 * feeCents);
       expect(receipt.familyMemberCount, 2);
       expect(receipt.months, [september]);
     });
 
-    test('a submit stores the amount the form had when it was sent', () {
-      const outcome = FamilyPaymentOutcome(
-        registered: {
-          2: [september],
-        },
-      );
+    test('names the relatives who were left out of the payment', () {
+      final receipt = familyForm().toFamilyReceipt({
+        1: [september],
+      }, skippedIds: [2]);
 
-      final family = const FamilyPayment().afterSubmit(
-        outcome,
-        amountCents: 1200000,
-      );
-
-      expect(family.registered[2]?.amountCents, 1200000);
-      expect(family.registered[2]?.totalCents, 1200000);
+      expect(receipt.leftOutNames, ['María Álvarez']);
     });
-  });
 
-  group('timeouts', () {
-    const timedOut = FamilyPaymentOutcome(
-      failed: {2: ResponseTimeoutFailure()},
-      unconfirmed: {
-        2: [september],
-      },
-    );
-
-    FamilyPayment afterTimeout() =>
-        const FamilyPayment().afterSubmit(timedOut, amountCents: 1500000);
-
-    test('keep the months that may have landed and lock the charge', () {
-      final family = afterTimeout();
-
-      expect(family.unconfirmed, {
+    test('has no months of its own when the member had them paid', () {
+      final receipt = familyForm().toFamilyReceipt({
         2: [september],
       });
-      expect(family.hasProgress, isTrue);
-      expect(family.hasSettled(2), isTrue);
-    });
 
-    test('become registered once the history shows every month paid', () {
-      final family = afterTimeout()
-          .loaded({2: paidOf({september})}).confirmingLanded(amountCents: 1500000);
-
-      expect(family.unconfirmed, isEmpty);
-      expect(family.registered[2]?.months, [september]);
-    });
-
-    test('stay unconfirmed while the history misses a month', () {
-      final family = afterTimeout()
-          .loaded({2: paidOf({october})}).confirmingLanded(amountCents: 1500000);
-
-      expect(family.unconfirmed.keys, [2]);
-      expect(family.registered, isEmpty);
-    });
-
-    test('are dropped once a later submit registers that member', () {
-      const retried = FamilyPaymentOutcome(
-        registered: {
-          2: [september],
-        },
-      );
-
-      final family = afterTimeout().afterSubmit(retried, amountCents: 1500000);
-
-      expect(family.unconfirmed, isEmpty);
-      expect(family.registered.keys, [2]);
+      expect(receipt.months, isEmpty);
+      expect(receipt.familyMemberCount, 1);
     });
   });
 
-  group('settling a payment after a relative left the group', () {
-    final leaving = buildLedgerMember(id: 2, firstName: 'Luis');
-    final staying = buildLedgerMember(id: 3, firstName: 'Ana');
+  group('choosing who is charged', () {
+    test('every active relative starts chosen', () {
+      final form = familyForm();
 
-    PaymentForm formWith(List<int> relativeIds, FamilyPayment family) {
-      return PaymentForm.start(
-        buildLedger(
-          familyMembers: [
-            for (final relative in [leaving, staying])
-              if (relativeIds.contains(relative.id)) relative,
-          ],
-        ),
-        DateTime(2026, 9, 14),
-      ).withFamily(family);
-    }
+      expect(form.chargedMembers.map((member) => member.id), [1, 2, 3]);
+    });
 
-    test('ends as registered when nobody is pending, naming who left', () {
-      const outcome = FamilyPaymentOutcome(
-        registered: {
-          1: [september],
-          3: [september],
-        },
-        failed: {2: ValidationFailure('not in the group')},
+    test('a relative can be left out and brought back at any time', () {
+      final left = familyForm().withFamily(
+        familyForm().family!.toggling(2),
       );
-      final sent = formWith([2, 3], const FamilyPayment());
-      final settled = formWith(
-        [3],
-        const FamilyPayment().afterSubmit(outcome, amountCents: 1500000),
-      );
+      final back = left.withFamily(left.family!.toggling(2));
 
-      final state = FamilySettlement(
-        sent: sent,
-        settled: settled,
-        outcome: outcome,
-      ).toState();
+      expect(left.chargedMembers.map((member) => member.id), [1, 3]);
+      expect(back.chargedMembers.map((member) => member.id), [1, 2, 3]);
+    });
 
-      final receipt = (state as RegisterPaymentRegistered).receipt;
-      expect(receipt.familyMemberCount, 2);
-      expect(receipt.totalCents, 2 * 1500000);
-      expect(receipt.leftOutNames, [leaving.fullName]);
+    test('a month a member already paid is not charged again', () {
+      final form = familyForm(months: {september, october})
+          .withFamilyHistory({
+        1: const PaymentPrecheck(isActive: true, paidMonths: {}),
+        2: PaymentPrecheck(isActive: true, paidMonths: {september}),
+        3: const PaymentPrecheck(isActive: true, paidMonths: {}),
+      });
+
+      expect(form.monthsFor(form.ledger.familyMembers.first), [october]);
+      expect(form.feeCount, 5);
     });
   });
 }

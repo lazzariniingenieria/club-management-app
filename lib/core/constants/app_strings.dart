@@ -318,27 +318,14 @@ class AppStrings {
       'Ya tiene pagos esos meses: no se le cobra';
   static const String registerPaymentFamilyNothingLeft =
       'Ningún socio elegido tiene meses para cobrar.';
-  static const String familyPaymentPartialTitle =
-      'El pago del grupo quedó a medias.';
-  static const String familyPaymentNotRegisteredTitle =
-      'Los pagos no se registraron.';
-  static const String familyPaymentUnconfirmedTitle =
-      'No sabemos si los pagos se registraron.';
-  static const String familyPaymentRetryUnconfirmed =
-      'El servidor no respondió a tiempo. Al reintentar revisamos el historial de cada uno antes de enviar, así nadie paga dos veces.';
-  static const String familyPaymentRetryPending =
-      'Tus datos siguen cargados. Al reintentar se cobra solo lo que falta.';
   static const String familyPaymentAlreadyPaid =
       'Esos meses ya figuran pagos para todos los socios elegidos. Actualizamos la lista: no queda nada para cobrar.';
-  static const String familyPaymentLeftOutTitle =
-      'Quedaron integrantes sin cobrar.';
+  static const String familyPaymentMonthsCollected =
+      'Otro administrador cobró alguno de esos meses mientras tanto, así que no se registró ningún pago. Actualizamos lo que se le cobra a cada uno: revisalo y volvé a registrar.';
   static const String familyPaymentPayerLeft =
-      'Quien figuraba como pagador ya no está en el grupo: lo que falta se registra como pagado por el socio.';
-  static const String familyPaymentFinishAction = 'Terminar el pago';
-  static const String familyPaymentFinishHint =
-      'Quien faltaba quedó afuera de este pago. Tocá Terminar el pago para cerrarlo con lo que ya se registró.';
-  static const String familyPaymentLocked =
-      'Para cambiar los meses, el importe, el medio de pago o quién pagó, terminá este pago o salí y volvé a empezar.';
+      'Quien figuraba como pagador ya no está en el grupo: quién pagó vuelve al socio.';
+  static const String familyPaymentReviewAndRetry =
+      'No se registró ningún pago. Revisá lo que se le cobra a cada uno y volvé a registrar.';
 
   static String monthCount(int count) => count == 1 ? '1 mes' : '$count meses';
 
@@ -393,11 +380,6 @@ class AppStrings {
 
   static String familyPaymentRegistered(String members, String total) =>
       'Pago registrado para $members del grupo · $total';
-
-  static String familyPaymentRegisteredFor(String names) =>
-      'Se registró el pago de $names.';
-
-  static String familyPaymentPendingFor(String names) => 'Falta el de $names.';
 
   static String familyPaymentRelativesLeft(String names, int count) => count == 1
       ? '$names ya no figura entre los integrantes activos del grupo, así que no se le cobró.'
@@ -474,8 +456,6 @@ class AppStrings {
   static const String familyGroupRowGroup = 'Grupo';
   static const String familyGroupRowCurrentMembers = 'Integrantes hoy';
   static const String familyGroupRowJoining = 'Se suma';
-  static const String familyGroupRowAlreadyIn = 'Ya está';
-  static const String familyGroupRowMissing = 'Falta sumar';
   static const String familyGroupNameLabel = 'Nombre del grupo (opcional)';
   static const String familyGroupNameHelp = 'Podés dejarlo vacío.';
   static const String familyGroupIndividualFeePair =
@@ -490,11 +470,13 @@ class AppStrings {
   static const String familyGroupServerTitle = 'No pudimos guardar el cambio.';
   static const String familyGroupServerMessage =
       'El sistema del club tuvo un problema. Probá de nuevo en unos minutos.';
-  static const String familyGroupPartialTitle = 'Falta un paso.';
   static const String familyGroupUnconfirmedTitle =
       'No sabemos si el grupo se creó.';
   static const String familyGroupUnconfirmedMessage =
-      'El sistema del club no respondió a tiempo. Si reintentás, puede quedar un grupo vacío sin usar, que no afecta a nadie.';
+      'El sistema del club no respondió a tiempo. Si reintentás y el grupo ya se había armado, lo detectamos y no se crea otro.';
+  static const String familyGroupStaleTitle = 'La lista estaba desactualizada.';
+  static const String familyGroupStaleMessage =
+      'Alguno de los dos socios ya está en un grupo: lo armó otra persona mientras tanto. No se creó nada. Actualizamos la lista: volvé a elegir.';
 
   static String familyGroupConfirmJoinTitle(String member, String group) =>
       '¿Sumar a $member a $group?';
@@ -504,9 +486,6 @@ class AppStrings {
 
   static String familyGroupJoined(String member, String group) =>
       '$member se sumó a $group';
-
-  static String familyGroupBuildPartial(String names) =>
-      'El grupo se creó, pero no pudimos sumar a $names. Reintentá para terminar: no se crea otro grupo.';
 
   static const String familyGroupScreenTitle = 'Grupo familiar';
   static const String familyGroupEditNameAction = 'Editar nombre del grupo';
@@ -519,8 +498,13 @@ class AppStrings {
   static const String familyGroupAddAction = 'Sumar integrante';
   static const String familyGroupRemoveTooltip = 'Quitar del grupo';
   static const String familyGroupDeleteAction = 'Eliminar grupo';
-  static const String familyGroupDeleteUnavailable =
-      'Eliminar un grupo todavía no está disponible. Mientras tanto, podés quitar a cada integrante.';
+  static const String familyGroupDeleteConfirm = 'Eliminar';
+  static const String familyGroupDeleteMessage =
+      'Los integrantes siguen siendo socios, sus pagos no cambian y cada uno paga su propia cuota. Solo dejan de figurar juntos.';
+  static const String familyGroupDeleted = 'Grupo eliminado';
+
+  static String familyGroupDeleteTitle(String group) =>
+      '¿Eliminar $group?';
   static const String familyGroupLoadOfflineMessage =
       'No pudimos cargar el grupo familiar. Revisá la conexión y probá de nuevo.';
   static const String familyGroupLoadServerTitle = 'No pudimos cargar el grupo';

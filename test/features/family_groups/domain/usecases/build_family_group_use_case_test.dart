@@ -3,7 +3,7 @@ import 'package:club_management_app/features/family_groups/domain/entities/famil
 import 'package:club_management_app/features/family_groups/domain/entities/family_group_build.dart';
 import 'package:club_management_app/features/family_groups/domain/repositories/family_group_repository.dart';
 import 'package:club_management_app/features/family_groups/domain/usecases/build_family_group_use_case.dart';
-import 'package:club_management_app/features/members/domain/entities/family_group_assignment.dart';
+import 'package:club_management_app/features/members/domain/entities/member.dart';
 import 'package:club_management_app/features/members/domain/repositories/member_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
@@ -23,89 +23,125 @@ void main() {
     name: '  Familia Gómez ',
   );
 
-  void assignmentAnswers(FamilyGroupAssignment assignment) {
-    when(() => members.assignFamilyGroupToAll(any(), any()))
-        .thenAnswer((_) async => assignment);
+  Member memberIn(int id, int? familyGroupId) => Member(
+        id: id,
+        firstName: 'Socio',
+        lastName: '$id',
+        dni: '3000000$id',
+        status: MemberStatus.active,
+        daysOverdue: 0,
+        familyGroupId: familyGroupId,
+      );
+
+  void stubCreation(Either<Failure, FamilyGroup> result) {
+    when(
+      () => groups.createGroup(
+        name: any(named: 'name'),
+        memberIds: any(named: 'memberIds'),
+      ),
+    ).thenAnswer((_) async => result);
+  }
+
+  void stubMemberGroups(Map<int, int?> groupOf) {
+    for (final MapEntry(:key, :value) in groupOf.entries) {
+      when(() => members.loadMember(key))
+          .thenAnswer((_) async => Right(memberIn(key, value)));
+    }
   }
 
   setUp(() {
     groups = MockFamilyGroupRepository();
     members = MockMemberRepository();
     buildGroup = BuildFamilyGroupUseCase(groups: groups, members: members);
-    when(() => groups.createGroup(name: any(named: 'name')))
-        .thenAnswer((_) async => const Right(FamilyGroup(id: 7)));
-    assignmentAnswers(const FamilyGroupAssignment(assignedMemberIds: {1, 2}));
+    stubCreation(const Right(FamilyGroup(id: 7)));
   });
 
-  test('creates the group with the trimmed name and assigns both', () async {
+  test('creates the group with its members in a single request', () async {
     final result = await buildGroup(request);
 
     expect(result, const FamilyGroupBuilt(7));
-    verify(() => groups.createGroup(name: 'Familia Gómez')).called(1);
-    verify(() => members.assignFamilyGroupToAll([1, 2], 7)).called(1);
+    verify(
+      () => groups.createGroup(name: 'Familia Gómez', memberIds: [1, 2]),
+    ).called(1);
+    verifyNever(() => members.assignFamilyGroup(any(), any()));
+  });
+
+  test('tells the roster that the groups changed', () async {
+    await buildGroup(request);
+
+    verify(() => members.notifyRosterChanged()).called(1);
   });
 
   test('an empty name creates a group without name', () async {
     await buildGroup(const FamilyGroupBuildRequest(memberIds: [1], name: ' '));
 
-    verify(() => groups.createGroup(name: null)).called(1);
+    verify(() => groups.createGroup(name: null, memberIds: [1])).called(1);
   });
 
-  test('a failed creation assigns nobody and is not partial', () async {
-    when(() => groups.createGroup(name: any(named: 'name')))
-        .thenAnswer((_) async => const Left(NetworkFailure()));
+  group('a creation that failed for sure', () {
+    test('is reported as it is and nothing is reread', () async {
+      stubCreation(const Left(NetworkFailure()));
 
-    final result = await buildGroup(request);
+      final result = await buildGroup(request) as FamilyGroupBuildFailed;
 
-    expect(result, isA<FamilyGroupBuildFailed>());
-    expect((result as FamilyGroupBuildFailed).isPartial, isFalse);
-    verifyNever(() => members.assignFamilyGroupToAll(any(), any()));
+      expect(result.failure, const NetworkFailure());
+      expect(result.isCreationUnconfirmed, isFalse);
+      expect(result.isStale, isFalse);
+      verifyNever(() => members.loadMember(any()));
+      verifyNever(() => members.notifyRosterChanged());
+    });
   });
 
-  test('a creation that timed out is told apart from being offline', () async {
-    when(() => groups.createGroup(name: any(named: 'name')))
-        .thenAnswer((_) async => const Left(ResponseTimeoutFailure()));
+  group('a creation nobody answered', () {
+    setUp(() => stubCreation(const Left(ResponseTimeoutFailure())));
 
-    final result = await buildGroup(request) as FamilyGroupBuildFailed;
+    test('is built when both members now share a group', () async {
+      stubMemberGroups({1: 7, 2: 7});
 
-    expect(result.isCreationUnconfirmed, isTrue);
-    expect(result.isPartial, isFalse);
+      final result = await buildGroup(request);
+
+      expect(result, const FamilyGroupBuilt(7));
+      verify(() => members.notifyRosterChanged()).called(1);
+    });
+
+    test('is unconfirmed while the members still have no group', () async {
+      stubMemberGroups({1: null, 2: null});
+
+      final result = await buildGroup(request) as FamilyGroupBuildFailed;
+
+      expect(result.isCreationUnconfirmed, isTrue);
+    });
+
+    test('is unconfirmed when the members cannot be read', () async {
+      when(() => members.loadMember(any()))
+          .thenAnswer((_) async => const Left(NetworkFailure()));
+
+      final result = await buildGroup(request) as FamilyGroupBuildFailed;
+
+      expect(result.isCreationUnconfirmed, isTrue);
+    });
   });
 
-  test('an offline creation is known not to have happened', () async {
-    when(() => groups.createGroup(name: any(named: 'name')))
-        .thenAnswer((_) async => const Left(NetworkFailure()));
+  group('a creation that found a member already in a group', () {
+    setUp(() => stubCreation(const Left(ConflictFailure())));
 
-    final result = await buildGroup(request) as FamilyGroupBuildFailed;
+    test('means the list was stale when they are in different groups',
+        () async {
+      stubMemberGroups({1: null, 2: 3});
 
-    expect(result.isCreationUnconfirmed, isFalse);
-  });
+      final result = await buildGroup(request) as FamilyGroupBuildFailed;
 
-  test('remembers what was done when an assignment fails', () async {
-    assignmentAnswers(
-      const FamilyGroupAssignment(
-        assignedMemberIds: {1},
-        failure: ServerFailure(),
-      ),
-    );
+      expect(result.isStale, isTrue);
+      verify(() => members.notifyRosterChanged()).called(1);
+    });
 
-    final result = await buildGroup(request) as FamilyGroupBuildFailed;
+    test('is built when the earlier request already put both together',
+        () async {
+      stubMemberGroups({1: 7, 2: 7});
 
-    expect(result.isPartial, isTrue);
-    expect(result.progress.familyGroupId, 7);
-    expect(result.progress.assignedMemberIds, {1});
-  });
+      final result = await buildGroup(request);
 
-  test('a retry finishes only what is missing, on the same group', () async {
-    const progress = FamilyGroupBuildProgress(
-      familyGroupId: 7,
-      assignedMemberIds: {1},
-    );
-
-    final result = await buildGroup(request, progress: progress);
-
-    expect(result, const FamilyGroupBuilt(7));
-    verifyNever(() => groups.createGroup(name: any(named: 'name')));
-    verify(() => members.assignFamilyGroupToAll([2], 7)).called(1);
+      expect(result, const FamilyGroupBuilt(7));
+    });
   });
 }
