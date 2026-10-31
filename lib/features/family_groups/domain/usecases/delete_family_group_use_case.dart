@@ -13,9 +13,14 @@ class DeleteFamilyGroupUseCase {
   Future<Either<Failure, void>> call(int familyGroupId) async {
     final deleted = await groups.deleteGroup(familyGroupId);
     final failure = deleted.getLeft().toNullable();
-    final mayHaveChanged = failure == null || failure is ResponseTimeoutFailure;
-    if (mayHaveChanged) members.notifyRosterChanged();
+    if (_leftMembersWithoutGroup(failure)) members.notifyRosterChanged();
 
     return deleted;
+  }
+
+  static bool _leftMembersWithoutGroup(Failure? failure) {
+    return failure == null ||
+        failure is ResponseTimeoutFailure ||
+        failure is NotFoundFailure;
   }
 }
