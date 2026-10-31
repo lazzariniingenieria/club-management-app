@@ -6,6 +6,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/formatters/display_formats.dart';
 import '../../../../shared/widgets/app_sheet_frame.dart';
+import '../../../members/domain/entities/homonyms.dart';
 import '../../../members/domain/entities/member.dart';
 
 class LinkedMemberField extends StatelessWidget {
@@ -30,8 +31,9 @@ class LinkedMemberField extends StatelessWidget {
   }
 
   String get _selectedLabel {
+    final homonyms = Homonyms.among(_choices);
     for (final member in members) {
-      if (member.id == selectedMemberId) return _labelOf(member);
+      if (member.id == selectedMemberId) return _labelOf(member, homonyms);
     }
 
     return AppStrings.adminFormNoMember;
@@ -75,8 +77,9 @@ class LinkedMemberField extends StatelessWidget {
   }
 }
 
-String _labelOf(Member member) =>
-    '${member.fullName} · ${AppStrings.memberDni(DisplayFormats.dni(member.dni))}';
+String _labelOf(Member member, Homonyms homonyms) => homonyms.includes(member)
+    ? '${member.fullName} · ${AppStrings.memberDni(DisplayFormats.dni(member.dni))}'
+    : member.fullName;
 
 class _LinkedMemberChoice {
   final int? memberId;
@@ -101,6 +104,7 @@ class _LinkedMemberSheet extends StatefulWidget {
 
 class _LinkedMemberSheetState extends State<_LinkedMemberSheet> {
   String _query = '';
+  late final Homonyms _homonyms = Homonyms.among(widget.choices);
 
   List<Member> get _visible =>
       widget.choices.where((member) => member.matches(_query)).toList();
@@ -137,11 +141,17 @@ class _LinkedMemberSheetState extends State<_LinkedMemberSheet> {
 
         return _MemberChoiceTile(
           member: member,
-          isTaken: widget.takenMemberIds.contains(member.id),
+          detail: _detailOf(member),
           isSelected: member.id == widget.selectedMemberId,
         );
       },
     );
+  }
+
+  _ChoiceDetail _detailOf(Member member) {
+    if (widget.takenMemberIds.contains(member.id)) return _ChoiceDetail.taken;
+
+    return _homonyms.includes(member) ? _ChoiceDetail.dni : _ChoiceDetail.none;
   }
 
   Widget _noMemberOrEmpty(bool isEmpty) {
@@ -223,29 +233,36 @@ class _NoMemberTile extends StatelessWidget {
   }
 }
 
+enum _ChoiceDetail { none, dni, taken }
+
 class _MemberChoiceTile extends StatelessWidget {
   final Member member;
-  final bool isTaken;
+  final _ChoiceDetail detail;
   final bool isSelected;
 
   const _MemberChoiceTile({
     required this.member,
-    required this.isTaken,
+    required this.detail,
     required this.isSelected,
   });
 
+  String? get _subtitle => switch (detail) {
+        _ChoiceDetail.none => null,
+        _ChoiceDetail.dni =>
+          AppStrings.memberDni(DisplayFormats.dni(member.dni)),
+        _ChoiceDetail.taken => AppStrings.adminFormMemberTaken,
+      };
+
   @override
   Widget build(BuildContext context) {
+    final subtitle = _subtitle;
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-      enabled: !isTaken,
+      enabled: detail != _ChoiceDetail.taken,
       selected: isSelected,
       title: Text(member.fullName),
-      subtitle: Text(
-        isTaken
-            ? AppStrings.adminFormMemberTaken
-            : AppStrings.memberDni(DisplayFormats.dni(member.dni)),
-      ),
+      subtitle: subtitle == null ? null : Text(subtitle),
       trailing: isSelected ? const Icon(Icons.check_rounded) : null,
       onTap: () =>
           Navigator.of(context).pop(_LinkedMemberChoice(member.id)),

@@ -151,8 +151,7 @@ class _AccountCard extends StatelessWidget {
     if (member == null) return const SizedBox.shrink();
 
     return Text(
-      '${AppStrings.profileLinkedMember(member.fullName)} · '
-      '${AppStrings.memberDni(DisplayFormats.dni(member.dni))}',
+      AppStrings.profileLinkedMember(member.fullName),
       style: AppTextStyles.bodyMedium,
     );
   }

@@ -10,7 +10,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/formatters/display_formats.dart';
 import '../../../../shared/widgets/app_pill.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/confirmation_dialog.dart';
@@ -193,12 +192,7 @@ class _AdminIdentity extends StatelessWidget {
     );
   }
 
-  String _details() {
-    final email = admin.email ?? AppStrings.adminRowNoEmail;
-    if (member == null) return email;
-
-    return '${AppStrings.memberDni(DisplayFormats.dni(admin.dni))} · $email';
-  }
+  String _details() => admin.email ?? AppStrings.adminRowNoEmail;
 }
 
 class _ReactivateAction extends StatelessWidget {

@@ -163,7 +163,7 @@ Tres bloques, de arriba abajo:
 
 | Bloque | Contenido |
 | :--- | :--- |
-| **Tu cuenta** | El rol ("Administrador" / "Administrador principal") y, si la cuenta está vinculada a un socio, su nombre y DNI. Si no, "Esta cuenta no está vinculada a un socio." No hay más datos: la API no expone la cuenta logueada ([backend_api.md](backend_api.md) §10) |
+| **Tu cuenta** | El rol ("Administrador" / "Administrador principal") y, si la cuenta está vinculada a un socio, su nombre. Si no, "Esta cuenta no está vinculada a un socio." No hay más datos: la API no expone la cuenta logueada ([backend_api.md](backend_api.md) §10) |
 | **Club** | Nombre del club y **cuota mensual de referencia** (`monthlyFeeAmount`), o "Sin cargar". El ADMIN y el SUPER_ADMIN la editan desde un lápiz que abre una hoja con el mismo campo de importe que Registrar pago; vacío la borra |
 | **Sesión y seguridad** | *Cambiar contraseña*, *Administradores* (solo `canManageAdmins`) y *Cerrar sesión* |
 
@@ -206,6 +206,8 @@ Inicio ──[Total de socios ⇒ chip Todos ]──►
 
 - La búsqueda y el filtrado hoy los resuelve el cliente sobre el padrón completo, porque la API devuelve la lista entera sin paginar ni filtrar. Sirve con los ~245 socios del club; cuando el backend exponga paginación, el listado pasa a "cargando más" al pie y el mapeo no cambia.
 - El DNI duplicado lo valida el backend y se muestra en el campo, no en un snackbar genérico (E5).
+- **El DNI se escribe, pero casi no se muestra** (revisión en el celular, 2026-10-31): no es un dato que el admin quiera leer a cada rato. Se ve en los formularios, en la fila de un administrador sin socio vinculado (es lo único que lo identifica) y, en los buscadores para elegir un socio (registrar pago, armar grupo, vincular admin), **solo cuando hay otro socio con el mismo nombre y apellido**. La búsqueda por DNI sigue funcionando aunque no se vea.
+- **El DNI acepta de 6 a 8 dígitos**, en el login y en las altas: 7 u 8 es lo normal (los de extranjeros también tienen 8) y 6 cubre las LE/LC más viejas. La API acepta hasta 20, así que la regla es del cliente.
 - Al volver de un alta exitosa el listado refresca y hace scroll al socio creado.
 - El listado se recarga solo cuando el padrón cambia (alta, edición, baja o reactivación), venga el cambio de donde venga: un alta hecha desde el Inicio ya aparece al abrir Socios, sin pull-to-refresh. La recarga conserva búsqueda y chip.
 - Abandonar un formulario con cambios pide confirmación, también con el gesto de deslizar desde el borde en iOS. Sin cambios, el gesto vuelve directo. La búsqueda y el filtro sobreviven a la ida y vuelta.
@@ -225,7 +227,7 @@ Socios ──[fila]──► Cuotas del socio ─────────┼─�
 
 **Registrar pago** (`/admin/members/:memberId/payments/new`), de arriba abajo:
 
-- **Encabezado** con el socio, su DNI y su situación (al día, días de mora, o sin pagos).
+- **Encabezado** con el socio y su situación (al día, días de mora, o sin pagos).
 - **Meses**: grilla de 12 meses (4 × 3) con selector de año. Cada mes está *libre*, *Elegido* o *Pagado*; los pagados no se pueden tocar. Arranca con **un mes sugerido** — el que sigue al último pago, o el del alta si nunca pagó — y un texto que dice por qué. Se pueden sumar meses futuros sin límite y meses viejos sueltos que hayan quedado sin pagar.
 - **Importe por mes**, precargado con la cuota de referencia del club cuando existe; si el club no la tiene cargada, el campo arranca vacío y lo dice. Acepta lo mismo que la API: hasta 8 enteros y 2 decimales, con coma decimal (`15.000,50`). Solo la coma abre los decimales: un punto tipeado a mano se ignora, porque los puntos de miles los pone el campo y en es-AR el punto se lee como miles — tipear `15.000` tiene que dar quince mil, no quince pesos. Debajo, el **total** (importe × meses) se actualiza mientras se elige, porque la API registra el importe por mes ([backend_api.md](backend_api.md) §6).
 - **Medio de pago**: Efectivo (por defecto), Transferencia u Otro.
@@ -377,7 +379,7 @@ Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la not
 
 | Campo | Regla |
 | :--- | :--- |
-| DNI | Requerido, solo números, hasta 20; se agrupa con puntos y viaja sin ellos |
+| DNI | Requerido, solo números, de 6 a 8; se agrupa con puntos y viaja sin ellos |
 | Email (opcional) | Formato y hasta 150 |
 | Contraseña inicial | Solo en el alta, de 8 caracteres a 72 bytes (las letras con tilde y la ñ cuentan como dos, [backend_api.md](backend_api.md) §5), con mostrar/ocultar. La define el SUPER_ADMIN: la API no genera ninguna |
 | Socio vinculado (opcional) | Campo que abre una hoja con buscador y lista perezosa sobre los socios activos (más el vinculado, si está inactivo) y "Sin vincular". Los socios ya vinculados a otra cuenta se ven deshabilitados con "Ya tiene una cuenta de administrador", para no terminar en un `409` evitable |

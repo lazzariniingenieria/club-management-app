@@ -15,6 +15,7 @@ import '../../../../shared/widgets/confirmation_dialog.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../../shared/widgets/status_message_view.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
+import '../../../members/domain/entities/homonyms.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../domain/entities/family_group_candidates.dart';
 import '../cubit/family_group_builder_cubit.dart';
@@ -135,6 +136,7 @@ class _PickerSelection {
   final String query;
   final Member? anchorMember;
   final List<Member> groupMembers;
+  final Homonyms homonyms;
 
   const _PickerSelection({
     required this.mode,
@@ -142,6 +144,7 @@ class _PickerSelection {
     required this.query,
     required this.anchorMember,
     required this.groupMembers,
+    required this.homonyms,
   });
 
   static _PickerSelection? from(
@@ -149,6 +152,9 @@ class _PickerSelection {
     FamilyGroupPickerReady state,
   ) {
     final candidates = state.candidates;
+    final homonyms = Homonyms.among(
+      candidates.roster.where((member) => member.isActive),
+    );
 
     return switch (mode) {
       BuildGroupForMember(:final memberId) =>
@@ -160,6 +166,7 @@ class _PickerSelection {
                 query: state.searchQuery,
                 anchorMember: candidates.memberById(memberId),
                 groupMembers: const [],
+                homonyms: homonyms,
               ),
       AddToFamilyGroup(:final familyGroupId) => _PickerSelection(
           mode: mode,
@@ -167,6 +174,7 @@ class _PickerSelection {
           query: state.searchQuery,
           anchorMember: null,
           groupMembers: candidates.membersOf(familyGroupId),
+          homonyms: homonyms,
         ),
     };
   }
@@ -417,6 +425,7 @@ class _CandidateTile extends StatelessWidget {
               groupName: group == null
                   ? null
                   : FamilyGroupFormats.displayName(group),
+              showsDni: selection.homonyms.includes(member),
             ),
           ),
         ),
@@ -428,8 +437,13 @@ class _CandidateTile extends StatelessWidget {
 class _CandidateTileContent extends StatelessWidget {
   final Member member;
   final String? groupName;
+  final bool showsDni;
 
-  const _CandidateTileContent({required this.member, required this.groupName});
+  const _CandidateTileContent({
+    required this.member,
+    required this.groupName,
+    required this.showsDni,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -441,10 +455,11 @@ class _CandidateTileContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(member.fullName, style: AppTextStyles.labelLarge),
-                Text(
-                  AppStrings.memberDni(DisplayFormats.dni(member.dni)),
-                  style: AppTextStyles.bodyMedium,
-                ),
+                if (showsDni)
+                  Text(
+                    AppStrings.memberDni(DisplayFormats.dni(member.dni)),
+                    style: AppTextStyles.bodyMedium,
+                  ),
               ],
             ),
           ),
