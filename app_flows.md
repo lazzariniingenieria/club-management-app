@@ -461,6 +461,8 @@ Una ruta con un `:familyGroupId` que no es un número vuelve a Pagos, igual que 
 
 `StatefulShellRoute.indexedStack`: preserva el estado de cada tab, que es lo que el admin espera al volver de Pagos a un listado a medio filtrar. `initialLocation` es `/`; el destino post-login del admin es `/admin`.
 
+**Atrás del sistema** (botón o gesto de Android): en una pantalla apilada vuelve a la anterior, igual que la flecha del AppBar; en un tab que no es Inicio vuelve a Inicio; en Inicio sale de la app, sin "tocá de nuevo para salir". El shell no lo resuelve solo: sin el `PopScope` del `AdminShell`, el navegador raíz tiene una sola página y atrás cerraba la app desde cualquier tab.
+
 **Guards** en el `redirect`:
 
 1. Sin sesión + ruta protegida → `/login`.

@@ -12,6 +12,7 @@ import 'package:club_management_app/features/members/data/models/member_model.da
 import 'package:club_management_app/features/members/domain/entities/member.dart';
 import 'package:club_management_app/features/members/domain/entities/member_collection_filter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/app_test_harness.dart';
@@ -251,5 +252,59 @@ void main() {
 
     expect(dataSource.calls, 2);
     expect(find.text('231'), findsOneWidget);
+  });
+
+  group('the system back button', () {
+    int selectedTab(WidgetTester tester) =>
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex;
+
+    testWidgets('on another tab goes to the home instead of leaving the app', (
+      tester,
+    ) async {
+      await bootHome(tester);
+      await tapTab(tester, AppStrings.adminTabProfile);
+
+      await tester.binding.handlePopRoute();
+      await settleSession(tester);
+
+      expect(currentLocation(), AppRoutes.adminHome);
+      expect(selectedTab(tester), 0);
+    });
+
+    testWidgets('on the home leaves the app', (tester) async {
+      final platformCalls = <String>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          platformCalls.add(call.method);
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger
+            .setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+      await bootHome(tester);
+
+      await tester.binding.handlePopRoute();
+      await settleSession(tester);
+
+      expect(platformCalls, contains('SystemNavigator.pop'));
+    });
+
+    testWidgets('on a pushed screen goes back to the tab it was opened from', (
+      tester,
+    ) async {
+      await bootHome(tester);
+      await tapTab(tester, AppStrings.adminTabPayments);
+      await tester.tap(find.text('Ana Álvarez'));
+      await settleSession(tester);
+
+      await tester.binding.handlePopRoute();
+      await settleSession(tester);
+
+      expect(currentLocation(), AppRoutes.adminPayments);
+      expect(selectedTab(tester), 1);
+    });
   });
 }
