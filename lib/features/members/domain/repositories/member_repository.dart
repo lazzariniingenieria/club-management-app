@@ -9,6 +9,8 @@ abstract class MemberRepository {
 
   Future<Either<Failure, List<Member>>> loadMembers();
 
+  Future<Either<Failure, Member>> loadMember(int memberId);
+
   Future<Either<Failure, void>> createMember(MemberDraft draft);
 
   Future<Either<Failure, void>> updateMember(int memberId, MemberDraft draft);
@@ -17,4 +19,13 @@ abstract class MemberRepository {
     int memberId, {
     required bool isActive,
   });
+
+  Future<Either<Failure, void>> assignFamilyGroup(
+    int memberId,
+    int familyGroupId,
+  );
+
+  Future<Either<Failure, void>> removeFromFamilyGroup(int memberId);
+
+  void notifyRosterChanged();
 }

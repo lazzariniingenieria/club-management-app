@@ -26,6 +26,16 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
   }
 
   @override
+  Future<MemberModel> fetchMember(int memberId) async {
+    await Future<void>.delayed(latency);
+
+    for (final member in _roster) {
+      if (member.id == memberId) return member;
+    }
+    throw NotFoundException('Unknown member $memberId');
+  }
+
+  @override
   Future<void> createMember(MemberDraft draft) async {
     await Future<void>.delayed(latency);
     _rejectDuplicatedDni(draft.dni);
@@ -78,6 +88,35 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
         status: isActive ? MemberStatus.active : MemberStatus.inactive,
         daysOverdue: isActive ? current.daysOverdue : 0,
       ),
+    );
+  }
+
+  @override
+  Future<void> assignFamilyGroup(int memberId, int familyGroupId) async {
+    await Future<void>.delayed(latency);
+
+    _replace(memberId, (current) => _inGroup(current, familyGroupId));
+  }
+
+  @override
+  Future<void> removeFromFamilyGroup(int memberId) async {
+    await Future<void>.delayed(latency);
+
+    _replace(memberId, (current) => _inGroup(current, null));
+  }
+
+  static MemberModel _inGroup(MemberModel current, int? familyGroupId) {
+    return MemberModel(
+      id: current.id,
+      firstName: current.firstName,
+      lastName: current.lastName,
+      dni: current.dni,
+      status: current.status,
+      daysOverdue: current.daysOverdue,
+      phone: current.phone,
+      email: current.email,
+      familyGroupId: familyGroupId,
+      joinedAt: current.joinedAt,
     );
   }
 

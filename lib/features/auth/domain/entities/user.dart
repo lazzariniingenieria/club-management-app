@@ -5,6 +5,10 @@ enum UserRole { member, admin, superAdmin }
 extension UserRolePermissions on UserRole {
   bool get canManageAdmins => this == UserRole.superAdmin;
 
+  bool get canEditClubFee => usesAdminSurface;
+
+  bool get canChangeOwnPassword => usesAdminSurface;
+
   bool get usesAdminSurface =>
       this == UserRole.admin || this == UserRole.superAdmin;
 }

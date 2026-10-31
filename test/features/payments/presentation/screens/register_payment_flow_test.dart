@@ -43,6 +43,100 @@ class DroppingPaymentSource extends PaymentFakeDataSource {
   }
 }
 
+class RecordingPaymentSource extends PaymentFakeDataSource {
+  final List<PaymentDraft> drafts = [];
+  final List<List<PaymentDraft>> batches = [];
+
+  RecordingPaymentSource({required super.members})
+      : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
+
+  @override
+  Future<void> recordPayment(PaymentDraft draft) async {
+    await super.recordPayment(draft);
+    drafts.add(draft);
+  }
+
+  @override
+  Future<void> recordPayments(List<PaymentDraft> drafts) async {
+    await super.recordPayments(drafts);
+    batches.add(drafts);
+    this.drafts.addAll(drafts);
+  }
+}
+
+class DroppedBatchPaymentSource extends PaymentFakeDataSource {
+  final Exception error;
+  final bool landsAnyway;
+  int sent = 0;
+  int failuresLeft = 1;
+
+  DroppedBatchPaymentSource({
+    required super.members,
+    required this.error,
+    this.landsAnyway = false,
+  }) : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
+
+  @override
+  Future<void> recordPayments(List<PaymentDraft> drafts) async {
+    sent++;
+    if (failuresLeft > 0) {
+      failuresLeft--;
+      if (landsAnyway) await super.recordPayments(drafts);
+      throw error;
+    }
+    await super.recordPayments(drafts);
+  }
+}
+
+class CollectedMonthPaymentSource extends PaymentFakeDataSource {
+  final int collectedMemberId;
+  bool collectsNext = true;
+
+  CollectedMonthPaymentSource({
+    required super.members,
+    required this.collectedMemberId,
+  }) : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
+
+  @override
+  Future<void> recordPayments(List<PaymentDraft> drafts) async {
+    if (!collectsNext) return super.recordPayments(drafts);
+
+    collectsNext = false;
+    await super.recordPayment(
+      drafts.firstWhere((draft) => draft.memberId == collectedMemberId),
+    );
+    throw ConflictException('a period is already paid');
+  }
+}
+
+class LeavingRelativePaymentSource extends PaymentFakeDataSource {
+  final List<MemberModel> roster;
+  final int leavingMemberId;
+
+  LeavingRelativePaymentSource({
+    required super.members,
+    required this.roster,
+    required this.leavingMemberId,
+  }) : super(latency: Duration.zero, clock: () => DateTime(2026, 10, 14));
+
+  @override
+  Future<void> recordPayments(List<PaymentDraft> drafts) async {
+    if (!drafts.any((draft) => draft.memberId == leavingMemberId)) {
+      return super.recordPayments(drafts);
+    }
+
+    final index = roster.indexWhere((member) => member.id == leavingMemberId);
+    final leaving = roster[index];
+    roster[index] = buildMember(
+      id: leaving.id,
+      firstName: leaving.firstName,
+      lastName: leaving.lastName,
+      daysOverdue: leaving.daysOverdue,
+    );
+    throw ValidationException('not in the group');
+  }
+}
+
 class LongHistoryPaymentSource extends PaymentFakeDataSource {
   static const int paymentCount = 60;
 
@@ -162,7 +256,9 @@ void main() {
       find.text(AppStrings.registerPaymentReviewWithTotal(total)),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text(AppStrings.confirmPaymentAction(total)));
+    final confirm = find.text(AppStrings.confirmPaymentAction(total));
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
     await tester.pumpAndSettle();
   }
 
@@ -299,7 +395,9 @@ void main() {
       expect(find.text(AppStrings.confirmPaymentTitle), findsOneWidget);
       expect(source.recorded, 0);
 
-      await tester.tap(find.text(AppStrings.confirmPaymentAction(r'$15.000')));
+      final confirm = find.text(AppStrings.confirmPaymentAction(r'$15.000'));
+      await tester.ensureVisible(confirm);
+      await tester.tap(confirm);
       await tester.pumpAndSettle();
 
       expect(source.recorded, 1);
@@ -360,7 +458,10 @@ void main() {
       await bootClub(tester);
       await openLedgerOf(tester, 'Juan Zárate');
 
-      await tester.tap(find.byType(PaymentHistoryTile).first);
+      final lastPayment = find.byType(PaymentHistoryTile).first;
+      await tester.ensureVisible(lastPayment);
+      await tester.pumpAndSettle();
+      await tester.tap(lastPayment);
       await tester.pumpAndSettle();
       expect(
         find.text(AppStrings.paymentDetailTitle('agosto 2026')),
@@ -368,6 +469,11 @@ void main() {
       );
 
       await tester.tap(find.text(AppStrings.paymentDetailVoidAction));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> scrollLedgerToTop(WidgetTester tester) async {
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
       await tester.pumpAndSettle();
     }
 
@@ -404,6 +510,7 @@ void main() {
         find.text(AppStrings.paymentVoidReason('Socio equivocado')),
         findsOneWidget,
       );
+      await scrollLedgerToTop(tester);
       expect(find.text(AppStrings.ledgerLastPaid('julio 2026')), findsWidgets);
 
       await tester.pump(const Duration(seconds: 5));
@@ -416,6 +523,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.paymentVoidedTag), findsNothing);
+      await scrollLedgerToTop(tester);
       expect(
         find.text(AppStrings.ledgerLastPaid('agosto 2026')),
         findsWidgets,
@@ -518,6 +626,283 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(currentLocation(), AppRoutes.adminMemberEdition(3));
+    });
+  });
+
+  group('paying for the whole family group', () {
+    final family = <MemberModel>[
+      buildMember(
+        id: 1,
+        firstName: 'Juan',
+        lastName: 'Zárate',
+        daysOverdue: 42,
+        familyGroupId: 7,
+      ),
+      buildMember(
+        id: 2,
+        firstName: 'Ana',
+        lastName: 'Zárate',
+        daysOverdue: 42,
+        familyGroupId: 7,
+      ),
+      buildMember(
+          id: 3, firstName: 'Lucía', lastName: 'Zárate', familyGroupId: 7),
+      buildMember(
+        id: 4,
+        firstName: 'Pedro',
+        lastName: 'Zárate',
+        status: MemberStatus.inactive,
+        familyGroupId: 7,
+      ),
+    ];
+
+    Future<void> openFamilyPaymentWith(
+      WidgetTester tester,
+      PaymentFakeDataSource Function(MemberRemoteDataSource members) payments, {
+      List<MemberModel>? roster,
+    }) async {
+      await bootClub(
+        tester,
+        memberSource: MemberRosterDataSource(roster ?? family),
+        payments: payments,
+      );
+      await openLedgerOf(tester, 'Juan Zárate');
+      await tester.tap(find.text(AppStrings.ledgerRegisterAction));
+      await tester.pumpAndSettle();
+
+      final toggle = find.text(AppStrings.registerPaymentFamilyToggle);
+      await tester.scrollUntilVisible(
+        toggle,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+    }
+
+    Future<RecordingPaymentSource> openFamilyPayment(
+      WidgetTester tester,
+    ) async {
+      late RecordingPaymentSource source;
+      await openFamilyPaymentWith(
+        tester,
+        (members) => source = RecordingPaymentSource(members: members),
+      );
+
+      return source;
+    }
+
+    testWidgets('shows what each member is charged, before confirming', (
+      tester,
+    ) async {
+      await openFamilyPayment(tester);
+
+      expect(
+        find.text(
+            AppStrings.registerPaymentFamilyCharges('septiembre de 2026')),
+        findsNWidgets(2),
+      );
+      expect(
+        find.text(AppStrings.registerPaymentFamilyNothingToCharge),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+            AppStrings.registerPaymentFamilyInactiveLeftOut('Pedro Zárate')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(AppStrings.registerPaymentReviewWithTotal(r'$30.000')),
+        findsOneWidget,
+      );
+    });
+
+    Future<void> retryFromNotice(WidgetTester tester, String total) async {
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppStrings.retryAction));
+      await tester.pumpAndSettle();
+      final confirm = find.text(AppStrings.confirmPaymentAction(total));
+      await tester.ensureVisible(confirm);
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+    }
+
+    void expectFamilySnackBar(int members, String total) {
+      expect(currentLocation(), AppRoutes.adminMemberLedger(1));
+      expect(
+        find.text(
+          AppStrings.familyPaymentRegistered(
+            AppStrings.memberCount(members),
+            total,
+          ),
+        ),
+        findsOneWidget,
+      );
+    }
+
+    testWidgets(
+        'registers every member in a single request, paid by the member on '
+        'screen', (tester) async {
+      final source = await openFamilyPayment(tester);
+
+      await tester.tap(
+        find.text(AppStrings.registerPaymentReviewWithTotal(r'$30.000')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(
+            AppStrings.confirmPaymentMemberSkipped('Lucía Zárate')),
+        findsOneWidget,
+      );
+      await tester.tap(find.text(AppStrings.confirmPaymentAction(r'$30.000')));
+      await tester.pumpAndSettle();
+
+      expect(source.batches, hasLength(1));
+      expect(source.drafts.map((draft) => draft.memberId), [1, 2]);
+      expect(source.drafts.map((draft) => draft.paidByMemberId), [null, 1]);
+      expectFamilySnackBar(2, r'$30.000');
+    });
+
+    testWidgets(
+        'a payment the connection dropped registers nobody and sends everyone '
+        'when retried', (tester) async {
+      late DroppedBatchPaymentSource source;
+      await openFamilyPaymentWith(
+        tester,
+        (members) => source = DroppedBatchPaymentSource(
+          members: members,
+          error: NetworkException('offline'),
+        ),
+      );
+
+      await reviewAndConfirm(tester, r'$30.000');
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(AppStrings.registerPaymentOfflineTitle),
+        findsOneWidget,
+      );
+      expect(currentLocation(), isNot(AppRoutes.adminMemberLedger(1)));
+
+      await retryFromNotice(tester, r'$30.000');
+
+      expect(source.sent, 2);
+      expectFamilySnackBar(2, r'$30.000');
+    });
+
+    testWidgets(
+        'a month somebody else collected meanwhile registers nobody and '
+        'updates what is charged', (tester) async {
+      await openFamilyPaymentWith(
+        tester,
+        (members) => CollectedMonthPaymentSource(
+          members: members,
+          collectedMemberId: 2,
+        ),
+      );
+
+      await reviewAndConfirm(tester, r'$30.000');
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(AppStrings.familyPaymentMonthsCollected),
+        findsOneWidget,
+      );
+      expect(
+        find.text(AppStrings.registerPaymentReviewWithTotal(r'$15.000')),
+        findsOneWidget,
+      );
+
+      await reviewAndConfirm(tester, r'$15.000');
+
+      expectFamilySnackBar(1, r'$15.000');
+    });
+
+    testWidgets(
+        'a relative who left the group is named and the payment goes again '
+        'without them', (tester) async {
+      final roster = [...family];
+      await openFamilyPaymentWith(
+        tester,
+        (members) => LeavingRelativePaymentSource(
+          members: members,
+          roster: roster,
+          leavingMemberId: 2,
+        ),
+        roster: roster,
+      );
+
+      await reviewAndConfirm(tester, r'$30.000');
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(AppStrings.familyPaymentRelativesLeft('Ana Zárate', 1)),
+        findsOneWidget,
+      );
+
+      await reviewAndConfirm(tester, r'$15.000');
+
+      expectFamilySnackBar(1, r'$15.000');
+    });
+
+    testWidgets('a timeout that went through ends as registered', (
+      tester,
+    ) async {
+      late DroppedBatchPaymentSource source;
+      await openFamilyPaymentWith(
+        tester,
+        (members) => source = DroppedBatchPaymentSource(
+          members: members,
+          error: ResponseTimeoutException(),
+          landsAnyway: true,
+        ),
+      );
+
+      await reviewAndConfirm(tester, r'$30.000');
+
+      expect(source.sent, 1);
+      expectFamilySnackBar(2, r'$30.000');
+    });
+
+    testWidgets(
+        'a timeout that did not go through asks to retry and registers once',
+        (tester) async {
+      late DroppedBatchPaymentSource source;
+      await openFamilyPaymentWith(
+        tester,
+        (members) => source = DroppedBatchPaymentSource(
+          members: members,
+          error: ResponseTimeoutException(),
+        ),
+      );
+
+      await reviewAndConfirm(tester, r'$30.000');
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(AppStrings.registerPaymentUnconfirmedTitle),
+        findsOneWidget,
+      );
+
+      await retryFromNotice(tester, r'$30.000');
+
+      expect(source.sent, 2);
+      expectFamilySnackBar(2, r'$30.000');
+    });
+
+    testWidgets('a relative left out is not charged', (tester) async {
+      final source = await openFamilyPayment(tester);
+
+      await tester.tap(find.widgetWithText(CheckboxListTile, 'Ana Zárate'));
+      await tester.pumpAndSettle();
+      await reviewAndConfirm(tester, r'$15.000');
+
+      expect(source.drafts.map((draft) => draft.memberId), [1]);
     });
   });
 }

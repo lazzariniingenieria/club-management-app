@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_button.dart';
@@ -116,12 +118,11 @@ class _ForgotPasswordLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO(E11): navigate to /login/forgot once the flow exists.
-    return const Align(
+    return Align(
       alignment: Alignment.centerRight,
       child: TextButton(
-        onPressed: null,
-        child: Text(AppStrings.loginForgotPassword),
+        onPressed: () => context.push(AppRoutes.loginForgotPassword),
+        child: const Text(AppStrings.loginForgotPassword),
       ),
     );
   }

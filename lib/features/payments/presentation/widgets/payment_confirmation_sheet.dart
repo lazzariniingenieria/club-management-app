@@ -4,11 +4,13 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/formatters/display_formats.dart';
+import '../../../../shared/widgets/app_notice.dart';
+import '../../../../shared/widgets/app_secondary_button.dart';
+import '../../../../shared/widgets/summary_table.dart';
+import '../../../members/domain/entities/member.dart';
 import '../cubit/payment_form.dart';
 import '../formatting/payment_formats.dart';
-import 'payment_notice.dart';
-import 'payment_secondary_button.dart';
-import 'payment_summary_table.dart';
 
 class PaymentConfirmationSheet extends StatelessWidget {
   final PaymentForm form;
@@ -26,7 +28,7 @@ class PaymentConfirmationSheet extends StatelessWidget {
     return confirmed ?? false;
   }
 
-  String get _total => PaymentFormats.pesos(form.totalCents);
+  String get _total => DisplayFormats.pesos(form.totalCents);
 
   @override
   Widget build(BuildContext context) {
@@ -47,9 +49,9 @@ class PaymentConfirmationSheet extends StatelessWidget {
               style: AppTextStyles.titleLarge,
             ),
             const SizedBox(height: AppSpacing.lg),
-            PaymentSummaryTable(rows: _rows(), total: _totalRow()),
+            SummaryTable(rows: _rows(), total: _totalRow()),
             const SizedBox(height: AppSpacing.lg),
-            const PaymentNotice(
+            const AppNotice(
               title: AppStrings.confirmPaymentNoticeTitle,
               message: AppStrings.confirmPaymentNotice,
             ),
@@ -59,7 +61,7 @@ class PaymentConfirmationSheet extends StatelessWidget {
               onPressed: () => Navigator.of(context).pop(true),
             ),
             const SizedBox(height: AppSpacing.sm),
-            PaymentSecondaryButton(
+            AppSecondaryButton(
               label: AppStrings.confirmPaymentBackAction,
               onPressed: () => Navigator.of(context).pop(false),
             ),
@@ -69,38 +71,63 @@ class PaymentConfirmationSheet extends StatelessWidget {
     );
   }
 
-  List<PaymentSummaryRow> _rows() {
-    final member = form.ledger.member;
-
+  List<SummaryRow> _rows() {
     return [
-      PaymentSummaryRow(
-        AppStrings.confirmPaymentMember,
-        '${member.fullName}\n'
-        '${AppStrings.memberDni(PaymentFormats.dni(member.dni))}',
-      ),
-      PaymentSummaryRow(
-        AppStrings.confirmPaymentMonths,
-        PaymentFormats.monthsSummary(form.selectedMonths),
-      ),
-      PaymentSummaryRow(
+      if (form.paysForFamily) _familyRow() else ..._memberRows(),
+      SummaryRow(
         AppStrings.confirmPaymentAmount,
-        PaymentFormats.pesos(form.amountCents ?? 0),
+        DisplayFormats.pesos(form.amountCents ?? 0),
       ),
-      PaymentSummaryRow(
+      SummaryRow(
         AppStrings.confirmPaymentMethod,
         PaymentFormats.method(form.method),
       ),
-      PaymentSummaryRow(AppStrings.confirmPaymentPayer, _payerName()),
+      SummaryRow(AppStrings.confirmPaymentPayer, _payerName()),
     ];
   }
 
-  PaymentSummaryRow _totalRow() {
-    return PaymentSummaryRow(
-      AppStrings.confirmPaymentTotal(
-        AppStrings.monthCount(form.selectedMonths.length),
+  List<SummaryRow> _memberRows() {
+    final member = form.ledger.member;
+
+    return [
+      SummaryRow(
+        AppStrings.confirmPaymentMember,
+        '${member.fullName}\n'
+        '${AppStrings.memberDni(DisplayFormats.dni(member.dni))}',
       ),
-      _total,
+      SummaryRow(
+        AppStrings.confirmPaymentMonths,
+        PaymentFormats.monthsSummary(form.selectedMonths),
+      ),
+    ];
+  }
+
+  SummaryRow _familyRow() {
+    final lines = [
+      for (final member in form.chargedMembers) _familyLineOf(member),
+    ];
+
+    return SummaryRow(AppStrings.confirmPaymentMembers, lines.join('\n'));
+  }
+
+  String _familyLineOf(Member member) {
+    final months = form.monthsFor(member);
+    if (months.isEmpty) {
+      return AppStrings.confirmPaymentMemberSkipped(member.fullName);
+    }
+
+    return AppStrings.confirmPaymentMemberMonths(
+      member.fullName,
+      PaymentFormats.monthsSummary(months),
     );
+  }
+
+  SummaryRow _totalRow() {
+    final count = form.paysForFamily
+        ? AppStrings.feeCount(form.feeCount)
+        : AppStrings.monthCount(form.selectedMonths.length);
+
+    return SummaryRow(AppStrings.confirmPaymentTotal(count), _total);
   }
 
   String _payerName() {

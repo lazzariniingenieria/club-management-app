@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/config/app_features.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/router/app_routes.dart';
@@ -9,7 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
-import '../../../../shared/widgets/error_retry_view.dart';
+import '../../../../shared/widgets/inline_error_card.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../members/domain/entities/member.dart';
@@ -31,6 +32,10 @@ class AdminPaymentsScreen extends StatelessWidget {
       create: (_) => sl<AdminPaymentsCubit>()..load(),
       child: AdminScaffold(
         title: AppStrings.adminPaymentsTitle,
+        showsRoleBadge: true,
+        actions: [
+          if (sl<AppFeatures>().feeReceipts) const _ReportAction(),
+        ],
         floatingActionButton: const _CreateMemberButton(),
         body: _AdminPaymentsBody(filter: filter),
       ),
@@ -261,7 +266,7 @@ class _RosterError extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      child: ErrorRetryView(
+      child: InlineErrorCard(
         title: AppStrings.adminPaymentsErrorTitle,
         message: message,
         onRetry: context.read<AdminPaymentsCubit>().load,
@@ -309,4 +314,17 @@ String _emptyMessageFor(
     MemberCollectionFilter.all => AppStrings.adminPaymentsEmptyRoster,
     MemberCollectionFilter.overdue => AppStrings.adminPaymentsEmptyOverdue,
   };
+}
+
+class _ReportAction extends StatelessWidget {
+  const _ReportAction();
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: () => context.push(AppRoutes.adminPaymentReport),
+      tooltip: AppStrings.reportTitle,
+      icon: const Icon(Icons.picture_as_pdf_outlined),
+    );
+  }
 }

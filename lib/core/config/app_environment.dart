@@ -26,6 +26,13 @@ abstract final class AppEnvironment {
 
   static const bool usesRemoteDataSources = !usesFakeDataSources;
 
+  static const bool _feeReceiptsFlag = bool.fromEnvironment(
+    'FEE_RECEIPTS_ENABLED',
+  );
+
+  static const bool feeReceiptsEnabled =
+      usesFakeDataSources || _feeReceiptsFlag;
+
   static void guardAgainstFakesInRelease({bool isReleaseBuild = kReleaseMode}) {
     if (!isReleaseBuild || !usesFakeDataSources) return;
 

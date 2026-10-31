@@ -49,6 +49,14 @@ class PaymentRepositoryImpl implements PaymentRepository {
   }
 
   @override
+  Future<Either<Failure, void>> recordPayments(List<PaymentDraft> drafts) {
+    return _write(
+      'recordPayments',
+      () => remoteDataSource.recordPayments(drafts),
+    );
+  }
+
+  @override
   Future<Either<Failure, void>> voidPayment(int paymentId, {String? reason}) {
     return _write(
       'voidPayment',
@@ -60,14 +68,21 @@ class PaymentRepositoryImpl implements PaymentRepository {
     String operation,
     Future<void> Function() send,
   ) async {
-    final result = await _guard<void>(operation, () async {
+    final result = await _send(operation, send);
+    if (_mayHaveChangedPayments(result)) _paymentChanges.add(null);
+
+    return result;
+  }
+
+  Future<Either<Failure, void>> _send(
+    String operation,
+    Future<void> Function() send,
+  ) {
+    return _guard<void>(operation, () async {
       await send();
 
       return const Right(null);
     });
-    if (_mayHaveChangedPayments(result)) _paymentChanges.add(null);
-
-    return result;
   }
 
   static bool _mayHaveChangedPayments(Either<Failure, void> result) {

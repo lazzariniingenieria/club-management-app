@@ -45,8 +45,22 @@ class FailingWrites implements PaymentRemoteDataSource {
   Future<void> recordPayment(PaymentDraft draft) async => throw error;
 
   @override
+  Future<void> recordPayments(List<PaymentDraft> drafts) async => throw error;
+
+  @override
   Future<void> voidPayment(int paymentId, {String? reason}) async =>
       throw error;
+}
+
+class RecordingWrites extends FailingWrites {
+  final List<List<int>> batches = [];
+
+  RecordingWrites() : super(NetworkException());
+
+  @override
+  Future<void> recordPayments(List<PaymentDraft> drafts) async {
+    batches.add([for (final draft in drafts) draft.memberId]);
+  }
 }
 
 void main() {
@@ -124,5 +138,73 @@ void main() {
     );
 
     expect(announcements, isEmpty);
+  });
+
+  group('paying for several members', () {
+    PaymentDraft draftOf(int memberId) => PaymentDraft(
+          memberId: memberId,
+          months: draft.months,
+          amountCents: draft.amountCents,
+          method: draft.method,
+        );
+
+    test('sends every member in one request and announces one change',
+        () async {
+      final source = RecordingWrites();
+      final repository = PaymentRepositoryImpl(
+        remoteDataSource: source,
+        logger: const SilentLogger(),
+      );
+      final announcements = <void>[];
+      repository.paymentChanges.listen(announcements.add);
+
+      final result =
+          await repository.recordPayments([draftOf(1), draftOf(2), draftOf(3)]);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(result.isRight(), isTrue);
+      expect(source.batches, [
+        [1, 2, 3],
+      ]);
+      expect(announcements, hasLength(1));
+    });
+
+    test('a request the server rejected registers nobody and announces nothing',
+        () async {
+      final announcements = await announcementsAfter(
+        ValidationException(),
+        (repository) => repository.recordPayments([draftOf(1), draftOf(2)]),
+      );
+
+      expect(announcements, isEmpty);
+    });
+
+    test('a request nobody answered may have landed and announces a change',
+        () async {
+      final announcements = await announcementsAfter(
+        ResponseTimeoutException(),
+        (repository) => repository.recordPayments([draftOf(1), draftOf(2)]),
+      );
+
+      expect(announcements, hasLength(1));
+    });
+
+    test('a month somebody else collected announces a change', () async {
+      final announcements = await announcementsAfter(
+        ConflictException(),
+        (repository) => repository.recordPayments([draftOf(1), draftOf(2)]),
+      );
+
+      expect(announcements, hasLength(1));
+    });
+
+    test('announces nothing when no payment left the device', () async {
+      final announcements = await announcementsAfter(
+        NetworkException(),
+        (repository) => repository.recordPayments([draftOf(1), draftOf(2)]),
+      );
+
+      expect(announcements, isEmpty);
+    });
   });
 }

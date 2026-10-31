@@ -1,3 +1,4 @@
+import '../../../../core/network/money_json.dart';
 import '../../domain/entities/billing_month.dart';
 import '../../domain/entities/payment.dart';
 import '../../domain/entities/payment_draft.dart';
@@ -22,6 +23,7 @@ class PaymentModel extends Payment {
   static const String _amountKey = 'amount';
   static const String _periodCoveredKey = 'periodCovered';
   static const String _periodsCoveredKey = 'periodsCovered';
+  static const String _batchKey = 'payments';
   static const String _paymentMethodKey = 'paymentMethod';
   static const String _paidAtKey = 'paidAt';
   static const String _voidedAtKey = 'voidedAt';
@@ -39,7 +41,7 @@ class PaymentModel extends Payment {
       id: (json[_idKey] as num).toInt(),
       memberId: (json[_memberIdKey] as num).toInt(),
       paidByMemberId: (json[_paidByMemberIdKey] as num?)?.toInt(),
-      amountCents: centsFrom(json[_amountKey] as num),
+      amountCents: centsFromJson(json[_amountKey] as num),
       month: BillingMonth.parse(json[_periodCoveredKey] as String),
       method: _methodFrom(json[_paymentMethodKey] as String),
       paidAt: DateTime.parse(json[_paidAtKey] as String),
@@ -59,7 +61,7 @@ class PaymentModel extends Payment {
     return {
       _memberIdKey: draft.memberId,
       _paidByMemberIdKey: draft.paidByMemberId,
-      _amountKey: amountFrom(draft.amountCents),
+      _amountKey: amountToJson(draft.amountCents),
       _periodsCoveredKey: [
         for (final month in BillingMonth.sorted(draft.months)) month.toIsoDay(),
       ],
@@ -67,10 +69,11 @@ class PaymentModel extends Payment {
     };
   }
 
-  static int centsFrom(num amount) => (amount * 100).round();
-
-  static num amountFrom(int cents) =>
-      cents % 100 == 0 ? cents ~/ 100 : cents / 100;
+  static Map<String, dynamic> bodyForBatch(List<PaymentDraft> drafts) {
+    return {
+      _batchKey: [for (final draft in drafts) bodyFromDraft(draft)],
+    };
+  }
 
   static PaymentMethod _methodFrom(String code) {
     for (final entry in _methodCodes.entries) {

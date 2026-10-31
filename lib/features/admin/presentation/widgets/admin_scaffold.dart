@@ -11,12 +11,16 @@ class AdminScaffold extends StatelessWidget {
   final String title;
   final Widget body;
   final Widget? floatingActionButton;
+  final bool showsRoleBadge;
+  final List<Widget> actions;
 
   const AdminScaffold({
     super.key,
     required this.title,
     required this.body,
     this.floatingActionButton,
+    this.showsRoleBadge = false,
+    this.actions = const [],
   });
 
   @override
@@ -24,7 +28,11 @@ class AdminScaffold extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        actions: const [_CurrentRoleBadge(), SizedBox(width: AppSpacing.lg)],
+        actions: [
+          ...actions,
+          if (showsRoleBadge) const _CurrentRoleBadge(),
+          const SizedBox(width: AppSpacing.lg),
+        ],
       ),
       body: body,
       floatingActionButton: floatingActionButton,
@@ -35,6 +43,8 @@ class AdminScaffold extends StatelessWidget {
 class _CurrentRoleBadge extends StatelessWidget {
   const _CurrentRoleBadge();
 
+  static const double _maxBadgeTextScale = 1.3;
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
@@ -44,7 +54,10 @@ class _CurrentRoleBadge extends StatelessWidget {
         if (role == null || role == UserRole.member) {
           return const SizedBox.shrink();
         }
-        return RoleBadge(role: role);
+        return MediaQuery.withClampedTextScaling(
+          maxScaleFactor: _maxBadgeTextScale,
+          child: RoleBadge(role: role),
+        );
       },
     );
   }
