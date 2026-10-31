@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,6 +6,8 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../shared/formatters/digit_layout_formatter.dart';
+import '../../../../shared/validation/dni_rules.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_form_field.dart';
 import '../cubit/login_cubit.dart';
@@ -25,8 +26,6 @@ class _LoginFormState extends State<LoginForm> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
-  static const int _maxDniLength = 20;
-
   @override
   void dispose() {
     _dniController.dispose();
@@ -37,7 +36,7 @@ class _LoginFormState extends State<LoginForm> {
   void _submitForm() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<LoginCubit>().login(
-            _dniController.text,
+            DigitLayouts.digitsOf(_dniController.text),
             _passwordController.text,
           );
     }
@@ -48,10 +47,12 @@ class _LoginFormState extends State<LoginForm> {
   }
 
   String? _validateDni(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return AppStrings.loginDniRequired;
-    }
-    return null;
+    return switch (DniRules.validate(DigitLayouts.digitsOf(value ?? ''))) {
+      DniError.required => AppStrings.loginDniRequired,
+      DniError.nonNumeric => AppStrings.memberFormDniOnlyDigits,
+      DniError.invalidLength => AppStrings.dniInvalidLength,
+      null => null,
+    };
   }
 
   String? _validatePassword(String? value) {
@@ -74,8 +75,11 @@ class _LoginFormState extends State<LoginForm> {
               hintText: AppStrings.loginDniHint,
               prefixIcon: Icons.badge_outlined,
               keyboardType: TextInputType.number,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(_maxDniLength),
+              inputFormatters: const [
+                DigitLayoutFormatter(
+                  layout: DigitLayouts.groupedByThousands,
+                  maxDigits: DniRules.maxLength,
+                ),
               ],
               autofillHints: const [AutofillHints.username],
               textInputAction: TextInputAction.next,

@@ -97,6 +97,7 @@ class AppStrings {
   static const String memberFormRequiredField = 'Este dato es obligatorio';
   static const String memberFormTooLong = 'Es demasiado largo';
   static const String memberFormDniOnlyDigits = 'El DNI solo lleva números';
+  static const String dniInvalidLength = 'El DNI tiene entre 6 y 8 números';
   static const String memberFormMalformedEmail =
       'Revisá el email: le falta el @ o el dominio';
   static const String memberFormDniTaken =
