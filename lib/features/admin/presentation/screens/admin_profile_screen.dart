@@ -123,20 +123,26 @@ class _AccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _ProfileCard(
-      child: MergeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              user.role == UserRole.superAdmin
-                  ? AppStrings.profileRoleSuperAdmin
-                  : AppStrings.profileRoleAdmin,
-              style: AppTextStyles.titleMedium,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          MergeSemantics(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.role == UserRole.superAdmin
+                      ? AppStrings.profileRoleSuperAdmin
+                      : AppStrings.profileRoleAdmin,
+                  style: AppTextStyles.titleMedium,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                _linkedMember(),
+              ],
             ),
-            const SizedBox(height: AppSpacing.xs),
-            _linkedMember(),
-          ],
-        ),
+          ),
+          if (user.role.canChangeOwnPassword) const _ChangePasswordLink(),
+        ],
       ),
     );
   }
@@ -280,23 +286,35 @@ class _SecurityActions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (user.role.canChangeOwnPassword)
-          _ProfileAction(
-            icon: Icons.lock_reset_rounded,
-            label: AppStrings.profileChangePassword,
-            onTap: () => _changePassword(context),
-          ),
         if (user.role.canManageAdmins) ...[
-          const SizedBox(height: AppSpacing.sm),
           _ProfileAction(
             icon: Icons.admin_panel_settings_outlined,
             label: AppStrings.adminProfileManageAdmins,
             onTap: () => context.push(AppRoutes.adminAdmins),
           ),
+          const SizedBox(height: AppSpacing.lg),
         ],
-        const SizedBox(height: AppSpacing.lg),
         const LogoutButton(),
       ],
+    );
+  }
+}
+
+class _ChangePasswordLink extends StatelessWidget {
+  const _ChangePasswordLink();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: TextButton.icon(
+        onPressed: () => _changePassword(context),
+        icon: const Icon(Icons.lock_reset_rounded),
+        label: const Text(AppStrings.profileChangePassword),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        ),
+      ),
     );
   }
 

@@ -163,9 +163,9 @@ Tres bloques, de arriba abajo:
 
 | Bloque | Contenido |
 | :--- | :--- |
-| **Tu cuenta** | El rol ("Administrador" / "Administrador principal") y, si la cuenta está vinculada a un socio, su nombre. Si no, "Esta cuenta no está vinculada a un socio." No hay más datos: la API no expone la cuenta logueada ([backend_api.md](backend_api.md) §10) |
+| **Tu cuenta** | El rol ("Administrador" / "Administrador principal") y, si la cuenta está vinculada a un socio, su nombre. Si no, "Esta cuenta no está vinculada a un socio." Debajo, el link *Cambiar contraseña*, con el mismo peso visual que "¿Olvidaste tu contraseña?" en el login: es una acción de la cuenta que se usa poco, y como tarjeta competía con lo importante (revisión en el celular, 2026-10-31). No hay más datos: la API no expone la cuenta logueada ([backend_api.md](backend_api.md) §10) |
 | **Club** | Nombre del club y **cuota mensual de referencia** (`monthlyFeeAmount`), o "Sin cargar". El ADMIN y el SUPER_ADMIN la editan desde un lápiz que abre una hoja con el mismo campo de importe que Registrar pago; vacío la borra |
-| **Sesión y seguridad** | *Cambiar contraseña*, *Administradores* (solo `canManageAdmins`) y *Cerrar sesión* |
+| **Sesión y seguridad** | *Administradores* (solo `canManageAdmins`) y *Cerrar sesión* |
 
 **Cambiar contraseña** pide solo la nueva (de 8 caracteres a 72 bytes —las letras con tilde y la ñ cuentan como dos—, con mostrar/ocultar): decisión de producto, tiene que ser simple. Al guardarla, la API revoca todas las sesiones de la cuenta, así que la app lo avisa antes ("Al cambiarla se cierran tus sesiones abiertas…") y después muestra "Contraseña cambiada. Ingresá de nuevo con la contraseña nueva." y cierra la sesión. Funciona igual para el ADMIN y el SUPER_ADMIN.
 
