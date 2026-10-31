@@ -67,7 +67,7 @@ void main() {
     await pumpHome(tester, ScriptedSummaryDataSource([summary]));
 
     expect(
-      find.text(AppStrings.adminHomeActiveMembers.toUpperCase()),
+      find.text(AppStrings.adminHomeTotalMembers.toUpperCase()),
       findsOneWidget,
     );
     expect(

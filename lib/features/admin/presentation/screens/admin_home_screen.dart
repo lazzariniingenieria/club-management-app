@@ -138,25 +138,25 @@ class _SummaryCards extends StatelessWidget {
 
   const _SummaryCards({required this.summary});
 
-  void _openPayments(BuildContext context, MemberCollectionFilter filter) =>
-      context.go(AppRoutes.adminPaymentsWithFilter(filter));
+  void _openMembers(BuildContext context, MemberCollectionFilter filter) =>
+      context.go(AppRoutes.adminMembersWithFilter(filter));
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         SummaryCountCard(
-          label: AppStrings.adminHomeActiveMembers,
+          label: AppStrings.adminHomeTotalMembers,
           count: summary.activeMembers,
           variant: SummaryCardVariant.activeMembers,
-          onTap: () => _openPayments(context, MemberCollectionFilter.all),
+          onTap: () => _openMembers(context, MemberCollectionFilter.all),
         ),
         const SizedBox(height: AppSpacing.md),
         SummaryCountCard(
           label: AppStrings.adminHomeOverdueMembers,
           count: summary.overdueMembers,
           variant: SummaryCardVariant.overdueMembers,
-          onTap: () => _openPayments(context, MemberCollectionFilter.overdue),
+          onTap: () => _openMembers(context, MemberCollectionFilter.overdue),
         ),
       ],
     );

@@ -5,8 +5,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/widgets/app_pill.dart';
 import '../../domain/entities/member.dart';
-import 'member_status_badge.dart';
 
 class MemberListTile extends StatelessWidget {
   final Member member;
@@ -86,6 +86,8 @@ class _MemberIdentity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final standing = _standingBadgeOf(member);
+
     return MergeSemantics(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,12 +100,31 @@ class _MemberIdentity extends StatelessWidget {
               if (tag != null) tag!,
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          MemberStatusBadge(status: member.status),
+          if (standing != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            standing,
+          ],
         ],
       ),
     );
   }
+}
+
+AppPill? _standingBadgeOf(Member member) {
+  if (!member.isActive) {
+    return const AppPill(
+      label: AppStrings.memberStatusInactive,
+      tone: AppPillTone.neutral,
+    );
+  }
+  if (member.isOverdue) {
+    return const AppPill(
+      label: AppStrings.memberStatusOverdue,
+      tone: AppPillTone.danger,
+    );
+  }
+
+  return null;
 }
 
 class _EditAction extends StatelessWidget {

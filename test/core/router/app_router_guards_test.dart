@@ -50,7 +50,7 @@ void main() {
       await navigateTo(tester, AppRoutes.adminHome);
       expect(currentLocation(), AppRoutes.memberSurfacePending);
 
-      await navigateTo(tester, AppRoutes.adminPayments);
+      await navigateTo(tester, AppRoutes.adminMembers);
       expect(currentLocation(), AppRoutes.memberSurfacePending);
     });
   });
@@ -65,7 +65,7 @@ void main() {
 
       for (final tab in const [
         AppStrings.adminTabHome,
-        AppStrings.adminTabPayments,
+        AppStrings.adminTabMembers,
         AppStrings.adminTabProfile,
       ]) {
         expect(
@@ -108,10 +108,10 @@ void main() {
 
       await navigateTo(
         tester,
-        AppRoutes.adminPaymentsWithFilter(MemberCollectionFilter.overdue),
+        AppRoutes.adminMembersWithFilter(MemberCollectionFilter.overdue),
       );
 
-      expect(currentLocation(), AppRoutes.adminPayments);
+      expect(currentLocation(), AppRoutes.adminMembers);
     });
 
     testWidgets('is pushed out of the super-admin route', (tester) async {

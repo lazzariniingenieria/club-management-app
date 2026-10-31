@@ -235,18 +235,18 @@ void main() {
     );
   }
 
-  Future<void> openPaymentsTab(WidgetTester tester) async {
+  Future<void> openMembersTab(WidgetTester tester) async {
     await tester.tap(
       find.descendant(
         of: find.byType(NavigationBar),
-        matching: find.text(AppStrings.adminTabPayments),
+        matching: find.text(AppStrings.adminTabMembers),
       ),
     );
     await settleSession(tester);
   }
 
   Future<void> openLedgerOf(WidgetTester tester, String name) async {
-    await openPaymentsTab(tester);
+    await openMembersTab(tester);
     await tester.tap(find.text(name));
     await tester.pumpAndSettle();
   }
@@ -265,7 +265,7 @@ void main() {
   group('from the Pagos tab', () {
     testWidgets('tapping a member opens their ledger', (tester) async {
       await bootClub(tester);
-      await openPaymentsTab(tester);
+      await openMembersTab(tester);
 
       await tester.tap(find.text('Juan Zárate'));
       await tester.pumpAndSettle();
@@ -282,7 +282,7 @@ void main() {
       tester,
     ) async {
       await bootClub(tester);
-      await openPaymentsTab(tester);
+      await openMembersTab(tester);
       await tester.tap(find.text('Juan Zárate'));
       await tester.pumpAndSettle();
 
@@ -440,7 +440,7 @@ void main() {
       tester,
     ) async {
       await bootClub(tester);
-      await openPaymentsTab(tester);
+      await openMembersTab(tester);
 
       di.sl<AppRouter>().router.push(AppRoutes.adminPaymentRegistration(3));
       await tester.pumpAndSettle();
@@ -610,7 +610,15 @@ void main() {
       tester,
     ) async {
       await bootClub(tester);
-      await openLedgerOf(tester, 'Luis Gómez');
+      await openMembersTab(tester);
+      final inactiveChip =
+          find.textContaining(AppStrings.adminMembersFilterInactive);
+      await tester.ensureVisible(inactiveChip);
+      await tester.pumpAndSettle();
+      await tester.tap(inactiveChip);
+      await settleSession(tester);
+      await tester.tap(find.text('Luis Gómez'));
+      await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.ledgerInactive), findsOneWidget);
       expect(find.text(AppStrings.ledgerInactiveHint), findsOneWidget);

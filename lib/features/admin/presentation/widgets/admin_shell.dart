@@ -19,9 +19,9 @@ class AdminShell extends StatelessWidget {
       label: AppStrings.adminTabHome,
     ),
     NavigationDestination(
-      icon: Icon(Icons.payments_outlined),
-      selectedIcon: Icon(Icons.payments_rounded),
-      label: AppStrings.adminTabPayments,
+      icon: Icon(Icons.groups_outlined),
+      selectedIcon: Icon(Icons.groups_rounded),
+      label: AppStrings.adminTabMembers,
     ),
     NavigationDestination(
       icon: Icon(Icons.person_outline_rounded),

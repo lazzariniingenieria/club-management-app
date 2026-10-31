@@ -339,7 +339,7 @@ class _EmptyCandidates extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             OutlinedButton(
               onPressed: context.read<FamilyGroupPickerCubit>().clearSearch,
-              child: const Text(AppStrings.adminPaymentsClearSearch),
+              child: const Text(AppStrings.adminMembersClearSearch),
             ),
           ],
         ],

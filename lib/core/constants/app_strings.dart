@@ -51,14 +51,14 @@ class AppStrings {
   static const String roleBadgeSuperAdmin = 'SUPER ADMIN';
 
   static const String adminTabHome = 'Inicio';
-  static const String adminTabPayments = 'Pagos';
+  static const String adminTabMembers = 'Socios';
   static const String adminTabProfile = 'Perfil';
 
   static const String comingSoonBadge = 'Próximamente';
 
   static const String adminHomeTitle = 'Inicio';
   static const String adminHomeSummaryTitle = 'Resumen general';
-  static const String adminHomeActiveMembers = 'Socios activos';
+  static const String adminHomeTotalMembers = 'Total de socios';
   static const String adminHomeOverdueMembers = 'Socios en mora';
   static const String adminHomeSummaryErrorTitle =
       'No pudimos cargar el resumen del club';
@@ -66,24 +66,28 @@ class AppStrings {
   static const String adminHomeNewMemberAccess = 'Nuevo socio';
   static const String adminHomeRegisterPaymentAccess = 'Registrar pago';
 
-  static const String adminPaymentsTitle = 'Pagos';
-  static const String adminPaymentsSearchHint =
+  static const String adminMembersTitle = 'Socios';
+  static const String adminMembersSearchHint =
       'Buscar socio por nombre o DNI...';
-  static const String adminPaymentsFilterAll = 'Todos';
-  static const String adminPaymentsFilterOverdue = 'En mora';
-  static const String adminPaymentsErrorTitle =
+  static const String adminMembersFilterAll = 'Todos';
+  static const String adminMembersFilterOverdue = 'En mora';
+  static const String adminMembersFilterInactive = 'Inactivos';
+  static const String adminMembersErrorTitle =
       'No pudimos cargar el listado de socios';
-  static const String adminPaymentsEmptyRoster =
+  static const String adminMembersEmptyRoster =
       'Todavía no hay socios cargados en el club.';
-  static const String adminPaymentsEmptyOverdue =
+  static const String adminMembersEmptyOverdue =
       'Ningún socio está en mora. Todas las cuotas están al día.';
-  static const String adminPaymentsEmptySearch =
+  static const String adminMembersEmptyInactive =
+      'Ningún socio está dado de baja.';
+  static const String adminMembersEmptySearch =
       'Ningún socio coincide con la búsqueda.';
-  static const String adminPaymentsClearSearch = 'Limpiar búsqueda';
-  static const String adminPaymentsCreateMember = 'Crear socio';
+  static const String adminMembersClearSearch = 'Limpiar búsqueda';
+  static const String adminMembersSearchInactive = 'Ver en Inactivos';
+  static const String adminMembersCreateMember = 'Crear socio';
 
-  static const String memberStatusActive = 'Activo';
   static const String memberStatusInactive = 'Inactivo';
+  static const String memberStatusOverdue = 'En mora';
   static const String memberEditAction = 'Editar socio';
   static const String memberOpenLedgerHint = 'Ver cuotas';
 
@@ -204,7 +208,7 @@ class AppStrings {
   static const String ledgerMissingTitle = 'No encontramos a este socio';
   static const String ledgerMissingMessage =
       'Ya no figura en el padrón del club. No se registró ningún pago. Volvé al listado para ver los datos actualizados.';
-  static const String ledgerMissingAction = 'Volver a Pagos';
+  static const String ledgerMissingAction = 'Volver a Socios';
   static const String familyGroupMemberMissingMessage =
       'Ya no figura en el padrón del club. Volvé para ver los datos actualizados.';
   static const String ledgerNewTag = 'NUEVO';
