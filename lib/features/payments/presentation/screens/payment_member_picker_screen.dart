@@ -14,18 +14,19 @@ import '../../../../shared/widgets/app_pill.dart';
 import '../../../../shared/widgets/inline_error_card.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
+import '../../../members/domain/entities/homonyms.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../domain/entities/payment_receipt.dart';
-import '../cubit/admin_payments_cubit.dart';
-import '../cubit/admin_payments_state.dart';
+import '../cubit/member_roster_cubit.dart';
+import '../cubit/member_roster_state.dart';
 
 class PaymentMemberPickerScreen extends StatelessWidget {
   const PaymentMemberPickerScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<AdminPaymentsCubit>(
-      create: (_) => sl<AdminPaymentsCubit>()..load(),
+    return BlocProvider<MemberRosterCubit>(
+      create: (_) => sl<MemberRosterCubit>()..load(),
       child: const AdminScaffold(
         title: AppStrings.paymentPickerTitle,
         body: _PickerBody(),
@@ -39,18 +40,18 @@ class _PickerBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AdminPaymentsCubit, AdminPaymentsState>(
+    return BlocBuilder<MemberRosterCubit, MemberRosterState>(
       builder: (context, state) => switch (state) {
-        AdminPaymentsLoading() => const _PickerSkeleton(),
-        AdminPaymentsReady() => _PickerContent(roster: state),
-        AdminPaymentsFailure(previous: final roster?) =>
+        MemberRosterLoading() => const _PickerSkeleton(),
+        MemberRosterReady() => _PickerContent(roster: state),
+        MemberRosterFailure(previous: final roster?) =>
           _PickerContent(roster: roster),
-        AdminPaymentsFailure(:final message) => Padding(
+        MemberRosterFailure(:final message) => Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: InlineErrorCard(
-              title: AppStrings.adminPaymentsErrorTitle,
+              title: AppStrings.adminMembersErrorTitle,
               message: message,
-              onRetry: context.read<AdminPaymentsCubit>().load,
+              onRetry: context.read<MemberRosterCubit>().load,
             ),
           ),
       },
@@ -59,7 +60,7 @@ class _PickerBody extends StatelessWidget {
 }
 
 class _PickerContent extends StatelessWidget {
-  final AdminPaymentsReady roster;
+  final MemberRosterReady roster;
 
   const _PickerContent({required this.roster});
 
@@ -73,6 +74,8 @@ class _PickerContent extends StatelessWidget {
     final overdue = candidates.where((member) => member.isOverdue).toList()
       ..sort((a, b) => b.daysOverdue.compareTo(a.daysOverdue));
     final upToDate = candidates.where((member) => !member.isOverdue).toList();
+    final homonyms =
+        Homonyms.among(roster.members.where((member) => member.isActive));
 
     return CustomScrollView(
       slivers: [
@@ -89,12 +92,14 @@ class _PickerContent extends StatelessWidget {
                 _PickerSection(
                   title: AppStrings.paymentPickerOverdueSection(overdue.length),
                   members: overdue,
+                  homonyms: homonyms,
                 ),
               if (upToDate.isNotEmpty)
                 _PickerSection(
                   title:
                       AppStrings.paymentPickerUpToDateSection(upToDate.length),
                   members: upToDate,
+                  homonyms: homonyms,
                 ),
             ],
           ),
@@ -108,7 +113,7 @@ class _PickerContent extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Text(
         roster.hasSearchQuery
-            ? AppStrings.adminPaymentsEmptySearch
+            ? AppStrings.adminMembersEmptySearch
             : AppStrings.paymentPickerNoMembers,
         style: AppTextStyles.bodyLargeMuted,
         textAlign: TextAlign.center,
@@ -163,7 +168,7 @@ class _PickerSearchFieldState extends State<_PickerSearchField> {
     return TextField(
       controller: _controller,
       autofocus: true,
-      onChanged: context.read<AdminPaymentsCubit>().search,
+      onChanged: context.read<MemberRosterCubit>().search,
       textInputAction: TextInputAction.search,
       style: AppTextStyles.bodyLarge,
       decoration: const InputDecoration(
@@ -177,8 +182,13 @@ class _PickerSearchFieldState extends State<_PickerSearchField> {
 class _PickerSection extends StatelessWidget {
   final String title;
   final List<Member> members;
+  final Homonyms homonyms;
 
-  const _PickerSection({required this.title, required this.members});
+  const _PickerSection({
+    required this.title,
+    required this.members,
+    required this.homonyms,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -197,8 +207,10 @@ class _PickerSection extends StatelessWidget {
           ),
           SliverList.separated(
             itemCount: members.length,
-            itemBuilder: (_, index) =>
-                PaymentMemberPickerTile(member: members[index]),
+            itemBuilder: (_, index) => PaymentMemberPickerTile(
+              member: members[index],
+              showsDni: homonyms.includes(members[index]),
+            ),
             separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
           ),
         ],
@@ -209,8 +221,13 @@ class _PickerSection extends StatelessWidget {
 
 class PaymentMemberPickerTile extends StatelessWidget {
   final Member member;
+  final bool showsDni;
 
-  const PaymentMemberPickerTile({super.key, required this.member});
+  const PaymentMemberPickerTile({
+    super.key,
+    required this.member,
+    this.showsDni = false,
+  });
 
   Future<void> _pick(BuildContext context) async {
     final receipt = await context.push<PaymentReceipt>(
@@ -242,7 +259,7 @@ class PaymentMemberPickerTile extends StatelessWidget {
               horizontal: AppSpacing.lg,
               vertical: AppSpacing.sm,
             ),
-            child: _PickerTileContent(member: member),
+            child: _PickerTileContent(member: member, showsDni: showsDni),
           ),
         ),
       ),
@@ -252,8 +269,9 @@ class PaymentMemberPickerTile extends StatelessWidget {
 
 class _PickerTileContent extends StatelessWidget {
   final Member member;
+  final bool showsDni;
 
-  const _PickerTileContent({required this.member});
+  const _PickerTileContent({required this.member, required this.showsDni});
 
   @override
   Widget build(BuildContext context) {
@@ -265,10 +283,11 @@ class _PickerTileContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(member.fullName, style: AppTextStyles.labelLarge),
-                Text(
-                  AppStrings.memberDni(DisplayFormats.dni(member.dni)),
-                  style: AppTextStyles.bodyMedium,
-                ),
+                if (showsDni)
+                  Text(
+                    AppStrings.memberDni(DisplayFormats.dni(member.dni)),
+                    style: AppTextStyles.bodyMedium,
+                  ),
               ],
             ),
           ),

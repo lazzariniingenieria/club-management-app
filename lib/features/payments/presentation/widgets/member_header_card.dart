@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/formatters/display_formats.dart';
 import '../../../members/domain/entities/member.dart';
 
 class MemberHeaderCard extends StatelessWidget {
@@ -57,11 +55,6 @@ class _Identity extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(member.fullName, style: AppTextStyles.titleMedium),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            AppStrings.memberDni(DisplayFormats.dni(member.dni)),
-            style: AppTextStyles.bodyMedium,
-          ),
           if (details != null) ...[
             const SizedBox(height: AppSpacing.sm),
             details!,

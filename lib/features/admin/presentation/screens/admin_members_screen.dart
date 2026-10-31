@@ -12,67 +12,67 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/inline_error_card.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
-import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../../members/domain/entities/member_collection_filter.dart';
 import '../../../members/presentation/widgets/member_filter_chips.dart';
 import '../../../members/presentation/widgets/member_list_tile.dart';
 import '../../../members/presentation/widgets/member_search_field.dart';
-import '../cubit/admin_payments_cubit.dart';
-import '../cubit/admin_payments_state.dart';
+import '../../../payments/presentation/cubit/member_roster_cubit.dart';
+import '../../../payments/presentation/cubit/member_roster_state.dart';
+import '../widgets/admin_scaffold.dart';
 
-class AdminPaymentsScreen extends StatelessWidget {
+class AdminMembersScreen extends StatelessWidget {
   final MemberCollectionFilter filter;
 
-  const AdminPaymentsScreen({super.key, required this.filter});
+  const AdminMembersScreen({super.key, required this.filter});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<AdminPaymentsCubit>(
-      create: (_) => sl<AdminPaymentsCubit>()..load(),
+    return BlocProvider<MemberRosterCubit>(
+      create: (_) => sl<MemberRosterCubit>()..load(),
       child: AdminScaffold(
-        title: AppStrings.adminPaymentsTitle,
+        title: AppStrings.adminMembersTitle,
         showsRoleBadge: true,
         actions: [
           if (sl<AppFeatures>().feeReceipts) const _ReportAction(),
         ],
         floatingActionButton: const _CreateMemberButton(),
-        body: _AdminPaymentsBody(filter: filter),
+        body: _AdminMembersBody(filter: filter),
       ),
     );
   }
 }
 
-class _AdminPaymentsBody extends StatelessWidget {
+class _AdminMembersBody extends StatelessWidget {
   final MemberCollectionFilter filter;
 
-  const _AdminPaymentsBody({required this.filter});
+  const _AdminMembersBody({required this.filter});
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AdminPaymentsCubit, AdminPaymentsState>(
+    return BlocConsumer<MemberRosterCubit, MemberRosterState>(
       listenWhen: (previous, current) =>
-          current is AdminPaymentsFailure &&
+          current is MemberRosterFailure &&
           current.previous != null &&
           current.isNewerThan(previous),
       listener: (context, state) {
-        if (state is AdminPaymentsFailure) {
+        if (state is MemberRosterFailure) {
           showAppSnackBar(context, state.message, isError: true);
         }
       },
       builder: (context, state) => switch (state) {
-        AdminPaymentsLoading() => const _RosterSkeleton(),
-        AdminPaymentsReady() => _RosterContent(state: state, filter: filter),
-        AdminPaymentsFailure(previous: final roster?) =>
+        MemberRosterLoading() => const _RosterSkeleton(),
+        MemberRosterReady() => _RosterContent(state: state, filter: filter),
+        MemberRosterFailure(previous: final roster?) =>
           _RosterContent(state: roster, filter: filter),
-        AdminPaymentsFailure(:final message) => _RosterError(message: message),
+        MemberRosterFailure(:final message) => _RosterError(message: message),
       },
     );
   }
 }
 
 class _RosterContent extends StatelessWidget {
-  final AdminPaymentsReady state;
+  final MemberRosterReady state;
   final MemberCollectionFilter filter;
 
   const _RosterContent({required this.state, required this.filter});
@@ -95,13 +95,13 @@ class _RosterContent extends StatelessWidget {
 }
 
 class _RosterHeader extends StatelessWidget {
-  final AdminPaymentsReady state;
+  final MemberRosterReady state;
   final MemberCollectionFilter filter;
 
   const _RosterHeader({required this.state, required this.filter});
 
   void _openFilter(BuildContext context, MemberCollectionFilter next) =>
-      context.go(AppRoutes.adminPaymentsWithFilter(next));
+      context.go(AppRoutes.adminMembersWithFilter(next));
 
   Map<MemberCollectionFilter, int> get _counts => {
         for (final value in MemberCollectionFilter.values)
@@ -121,7 +121,7 @@ class _RosterHeader extends StatelessWidget {
           ),
           child: MemberSearchField(
             query: state.searchQuery,
-            onChanged: context.read<AdminPaymentsCubit>().search,
+            onChanged: context.read<MemberRosterCubit>().search,
           ),
         ),
         MemberFilterChips(
@@ -143,7 +143,7 @@ class _MemberList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: context.read<AdminPaymentsCubit>().load,
+      onRefresh: context.read<MemberRosterCubit>().load,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.lg,
@@ -172,7 +172,7 @@ class _MemberList extends StatelessWidget {
 }
 
 class _RosterEmpty extends StatelessWidget {
-  final AdminPaymentsReady state;
+  final MemberRosterReady state;
   final MemberCollectionFilter filter;
 
   const _RosterEmpty({required this.state, required this.filter});
@@ -180,7 +180,7 @@ class _RosterEmpty extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: context.read<AdminPaymentsCubit>().load,
+      onRefresh: context.read<MemberRosterCubit>().load,
       child: LayoutBuilder(
         builder: (context, constraints) => SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -195,10 +195,17 @@ class _RosterEmpty extends StatelessWidget {
 }
 
 class _EmptyMessage extends StatelessWidget {
-  final AdminPaymentsReady state;
+  final MemberRosterReady state;
   final MemberCollectionFilter filter;
 
   const _EmptyMessage({required this.state, required this.filter});
+
+  int get _inactiveMatches {
+    final searchesActiveMembers = filter != MemberCollectionFilter.inactive;
+    if (!state.hasSearchQuery || !searchesActiveMembers) return 0;
+
+    return state.visibleMembers(MemberCollectionFilter.inactive).length;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -220,6 +227,7 @@ class _EmptyMessage extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             if (state.hasSearchQuery) const _ClearSearchAction(),
+            if (_inactiveMatches > 0) _SearchInactiveAction(_inactiveMatches),
           ],
         ),
       ),
@@ -235,8 +243,26 @@ class _ClearSearchAction extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.sm),
       child: TextButton(
-        onPressed: context.read<AdminPaymentsCubit>().clearSearch,
-        child: const Text(AppStrings.adminPaymentsClearSearch),
+        onPressed: context.read<MemberRosterCubit>().clearSearch,
+        child: const Text(AppStrings.adminMembersClearSearch),
+      ),
+    );
+  }
+}
+
+class _SearchInactiveAction extends StatelessWidget {
+  final int count;
+
+  const _SearchInactiveAction(this.count);
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: () => context.go(
+        AppRoutes.adminMembersWithFilter(MemberCollectionFilter.inactive),
+      ),
+      child: Text(
+        AppStrings.withCount(AppStrings.adminMembersSearchInactive, count),
       ),
     );
   }
@@ -251,7 +277,7 @@ class _CreateMemberButton extends StatelessWidget {
       onPressed: () => context.push(AppRoutes.adminMemberCreation),
       backgroundColor: AppColors.accentBlue,
       foregroundColor: AppColors.textOnDark,
-      tooltip: AppStrings.adminPaymentsCreateMember,
+      tooltip: AppStrings.adminMembersCreateMember,
       child: const Icon(Icons.add_rounded),
     );
   }
@@ -267,9 +293,9 @@ class _RosterError extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: InlineErrorCard(
-        title: AppStrings.adminPaymentsErrorTitle,
+        title: AppStrings.adminMembersErrorTitle,
         message: message,
-        onRetry: context.read<AdminPaymentsCubit>().load,
+        onRetry: context.read<MemberRosterCubit>().load,
       ),
     );
   }
@@ -305,14 +331,15 @@ class _RosterSkeleton extends StatelessWidget {
 const double _floatingActionClearance = 88;
 
 String _emptyMessageFor(
-  AdminPaymentsReady state,
+  MemberRosterReady state,
   MemberCollectionFilter filter,
 ) {
-  if (state.hasSearchQuery) return AppStrings.adminPaymentsEmptySearch;
+  if (state.hasSearchQuery) return AppStrings.adminMembersEmptySearch;
 
   return switch (filter) {
-    MemberCollectionFilter.all => AppStrings.adminPaymentsEmptyRoster,
-    MemberCollectionFilter.overdue => AppStrings.adminPaymentsEmptyOverdue,
+    MemberCollectionFilter.all => AppStrings.adminMembersEmptyRoster,
+    MemberCollectionFilter.overdue => AppStrings.adminMembersEmptyOverdue,
+    MemberCollectionFilter.inactive => AppStrings.adminMembersEmptyInactive,
   };
 }
 

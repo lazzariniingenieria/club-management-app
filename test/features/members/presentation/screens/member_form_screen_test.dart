@@ -18,7 +18,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(NavigationBar),
-        matching: find.text(AppStrings.adminTabPayments),
+        matching: find.text(AppStrings.adminTabMembers),
       ),
     );
     await settleSession(tester);
@@ -153,8 +153,8 @@ void main() {
 
       expect(
         chip(
-          AppStrings.adminPaymentsFilterAll,
-          MemberFakeDataSource.totalMembers + 1,
+          AppStrings.adminMembersFilterAll,
+          MemberFakeDataSource.activeMembers + 1,
         ),
         findsOneWidget,
       );

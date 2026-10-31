@@ -6,7 +6,7 @@ abstract final class AppRoutes {
   static const String loginForgotPassword = '/login/forgot';
 
   static const String adminHome = '/admin';
-  static const String adminPayments = '/admin/payments';
+  static const String adminMembers = '/admin/members';
   static const String adminProfile = '/admin/profile';
   static const String adminCourts = '/admin/courts';
   static const String adminAdmins = '/admin/admins';
@@ -38,8 +38,8 @@ abstract final class AppRoutes {
 
   static const String filterQueryParameter = 'filter';
 
-  static String adminPaymentsWithFilter(MemberCollectionFilter filter) =>
-      '$adminPayments?$filterQueryParameter=${filter.queryValue}';
+  static String adminMembersWithFilter(MemberCollectionFilter filter) =>
+      '$adminMembers?$filterQueryParameter=${filter.queryValue}';
 
   static String adminMemberEdition(int memberId) =>
       '/admin/members/$memberId/edit';

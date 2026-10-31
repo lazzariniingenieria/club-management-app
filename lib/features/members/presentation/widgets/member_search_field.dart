@@ -41,7 +41,7 @@ class _MemberSearchFieldState extends State<MemberSearchField> {
       textInputAction: TextInputAction.search,
       style: Theme.of(context).textTheme.bodyLarge,
       decoration: const InputDecoration(
-        hintText: AppStrings.adminPaymentsSearchHint,
+        hintText: AppStrings.adminMembersSearchHint,
         prefixIcon: Icon(Icons.search_rounded, color: AppColors.textSecondary),
       ),
     );

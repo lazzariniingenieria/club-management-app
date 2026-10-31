@@ -13,12 +13,12 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/formatters/display_formats.dart';
 import '../../../../shared/widgets/app_notice.dart';
+import '../../../../shared/widgets/app_pill.dart';
 import '../../../../shared/widgets/app_secondary_button.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../family_groups/presentation/widgets/family_group_card.dart';
-import '../../../members/presentation/widgets/member_status_badge.dart';
 import '../../domain/entities/billing_month.dart';
 import '../../domain/entities/member_ledger.dart';
 import '../../domain/entities/payment.dart';
@@ -263,7 +263,12 @@ class _LedgerHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return MemberHeaderCard(
       member: ledger.member,
-      details: MemberStatusBadge(status: ledger.member.status),
+      details: ledger.member.isActive
+          ? null
+          : const AppPill(
+              label: AppStrings.memberStatusInactive,
+              tone: AppPillTone.neutral,
+            ),
       trailing: IconButton(
         onPressed: () => _edit(context),
         tooltip: AppStrings.memberEditAction,

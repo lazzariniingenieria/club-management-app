@@ -51,14 +51,14 @@ class AppStrings {
   static const String roleBadgeSuperAdmin = 'SUPER ADMIN';
 
   static const String adminTabHome = 'Inicio';
-  static const String adminTabPayments = 'Pagos';
+  static const String adminTabMembers = 'Socios';
   static const String adminTabProfile = 'Perfil';
 
   static const String comingSoonBadge = 'Próximamente';
 
   static const String adminHomeTitle = 'Inicio';
   static const String adminHomeSummaryTitle = 'Resumen general';
-  static const String adminHomeActiveMembers = 'Socios activos';
+  static const String adminHomeTotalMembers = 'Total de socios';
   static const String adminHomeOverdueMembers = 'Socios en mora';
   static const String adminHomeSummaryErrorTitle =
       'No pudimos cargar el resumen del club';
@@ -66,24 +66,28 @@ class AppStrings {
   static const String adminHomeNewMemberAccess = 'Nuevo socio';
   static const String adminHomeRegisterPaymentAccess = 'Registrar pago';
 
-  static const String adminPaymentsTitle = 'Pagos';
-  static const String adminPaymentsSearchHint =
+  static const String adminMembersTitle = 'Socios';
+  static const String adminMembersSearchHint =
       'Buscar socio por nombre o DNI...';
-  static const String adminPaymentsFilterAll = 'Todos';
-  static const String adminPaymentsFilterOverdue = 'En mora';
-  static const String adminPaymentsErrorTitle =
+  static const String adminMembersFilterAll = 'Todos';
+  static const String adminMembersFilterOverdue = 'En mora';
+  static const String adminMembersFilterInactive = 'Inactivos';
+  static const String adminMembersErrorTitle =
       'No pudimos cargar el listado de socios';
-  static const String adminPaymentsEmptyRoster =
+  static const String adminMembersEmptyRoster =
       'Todavía no hay socios cargados en el club.';
-  static const String adminPaymentsEmptyOverdue =
+  static const String adminMembersEmptyOverdue =
       'Ningún socio está en mora. Todas las cuotas están al día.';
-  static const String adminPaymentsEmptySearch =
+  static const String adminMembersEmptyInactive =
+      'Ningún socio está dado de baja.';
+  static const String adminMembersEmptySearch =
       'Ningún socio coincide con la búsqueda.';
-  static const String adminPaymentsClearSearch = 'Limpiar búsqueda';
-  static const String adminPaymentsCreateMember = 'Crear socio';
+  static const String adminMembersClearSearch = 'Limpiar búsqueda';
+  static const String adminMembersSearchInactive = 'Ver en Inactivos';
+  static const String adminMembersCreateMember = 'Crear socio';
 
-  static const String memberStatusActive = 'Activo';
   static const String memberStatusInactive = 'Inactivo';
+  static const String memberStatusOverdue = 'En mora';
   static const String memberEditAction = 'Editar socio';
   static const String memberOpenLedgerHint = 'Ver cuotas';
 
@@ -97,6 +101,7 @@ class AppStrings {
   static const String memberFormRequiredField = 'Este dato es obligatorio';
   static const String memberFormTooLong = 'Es demasiado largo';
   static const String memberFormDniOnlyDigits = 'El DNI solo lleva números';
+  static const String dniInvalidLength = 'El DNI tiene entre 6 y 8 números';
   static const String memberFormMalformedEmail =
       'Revisá el email: le falta el @ o el dominio';
   static const String memberFormDniTaken =
@@ -174,7 +179,7 @@ class AppStrings {
       'Todavía no hay socios activos en el club.';
 
   static String paymentPickerOverdueSection(int count) =>
-      'DEBEN CUOTA · $count';
+      'EN MORA · $count';
 
   static String paymentPickerUpToDateSection(int count) => 'AL DÍA · $count';
 
@@ -203,7 +208,7 @@ class AppStrings {
   static const String ledgerMissingTitle = 'No encontramos a este socio';
   static const String ledgerMissingMessage =
       'Ya no figura en el padrón del club. No se registró ningún pago. Volvé al listado para ver los datos actualizados.';
-  static const String ledgerMissingAction = 'Volver a Pagos';
+  static const String ledgerMissingAction = 'Volver a Socios';
   static const String familyGroupMemberMissingMessage =
       'Ya no figura en el padrón del club. Volvé para ver los datos actualizados.';
   static const String ledgerNewTag = 'NUEVO';
@@ -298,16 +303,13 @@ class AppStrings {
   static const String registerPaymentPayerLeftGroup =
       'La persona elegida ya no está en el grupo familiar del socio, así que no puede figurar como quien pagó. Actualizamos la lista: elegí de nuevo.';
   static const String confirmPaymentTitle = 'Confirmá el pago';
-  static const String confirmPaymentMember = 'Socio';
-  static const String confirmPaymentMonths = 'Meses';
   static const String confirmPaymentAmount = 'Importe por mes';
-  static const String confirmPaymentMethod = 'Medio';
   static const String confirmPaymentPayer = 'Pagó';
-  static const String confirmPaymentNoticeTitle = 'Revisá antes de confirmar.';
+  static const String confirmPaymentSkipped = 'No se cobra';
+  static const String confirmPaymentSkippedReason = 'Ya tiene pagos esos meses';
   static const String confirmPaymentNotice =
-      'Un pago registrado no se edita: si hay un error, hay que anularlo desde el historial del socio y cargarlo de nuevo.';
+      'Un pago registrado no se edita: si hay un error, se anula desde el historial del socio.';
   static const String confirmPaymentBackAction = 'Volver a editar';
-  static const String confirmPaymentMembers = 'Socios';
   static const String registerPaymentFamilyTitle = 'Grupo familiar';
   static const String registerPaymentFamilyToggle = 'Pagar por todo el grupo';
   static const String registerPaymentFamilyToggleHelp =
@@ -350,7 +352,8 @@ class AppStrings {
   static String registerPaymentMonthsAlreadyPaid(String months) =>
       '$months ya figura pago: otro administrador lo cargó mientras completabas el formulario. Lo quitamos de la selección y actualizamos el total. Revisá antes de confirmar.';
 
-  static String confirmPaymentTotal(String months) => 'Total · $months';
+  static String confirmPaymentSummary(String fees, String method) =>
+      '$fees · $method';
 
   static String confirmPaymentAction(String total) =>
       'Confirmar pago de $total';
@@ -371,12 +374,6 @@ class AppStrings {
 
   static String registerPaymentFamilySummary(String months, String members) =>
       '$months · $members';
-
-  static String confirmPaymentMemberMonths(String name, String months) =>
-      '$name: $months';
-
-  static String confirmPaymentMemberSkipped(String name) =>
-      '$name: ya tiene pagos esos meses';
 
   static String familyPaymentRegistered(String members, String total) =>
       'Pago registrado para $members del grupo · $total';

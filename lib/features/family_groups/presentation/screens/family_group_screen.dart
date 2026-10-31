@@ -102,7 +102,7 @@ void _leave(BuildContext context) {
   if (context.canPop()) {
     context.pop();
   } else {
-    context.go(AppRoutes.adminPayments);
+    context.go(AppRoutes.adminMembers);
   }
 }
 

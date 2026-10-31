@@ -8,18 +8,18 @@ import '../../../members/domain/entities/member.dart';
 import '../../../members/domain/usecases/load_members_use_case.dart';
 import '../../../members/domain/usecases/watch_roster_changes_use_case.dart';
 import '../../domain/usecases/watch_payment_changes_use_case.dart';
-import 'admin_payments_state.dart';
+import 'member_roster_state.dart';
 
-class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
+class MemberRosterCubit extends Cubit<MemberRosterState> {
   final LoadMembersUseCase _loadMembers;
   late final List<StreamSubscription<void>> _changeSubscriptions;
 
-  AdminPaymentsCubit({
+  MemberRosterCubit({
     required LoadMembersUseCase loadMembers,
     required WatchRosterChangesUseCase watchRosterChanges,
     required WatchPaymentChangesUseCase watchPaymentChanges,
   })  : _loadMembers = loadMembers,
-        super(const AdminPaymentsLoading()) {
+        super(const MemberRosterLoading()) {
     _changeSubscriptions = [
       watchRosterChanges().listen((_) => _reloadOnChange()),
       watchPaymentChanges().listen((_) => _reloadOnChange()),
@@ -43,14 +43,14 @@ class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
     if (_isLoading) return;
     _isLoading = true;
 
-    if (_lastLoadedRoster == null) emit(const AdminPaymentsLoading());
+    if (_lastLoadedRoster == null) emit(const MemberRosterLoading());
 
     final result = await _loadMembers();
 
     _isLoading = false;
     if (isClosed) return;
 
-    final AdminPaymentsState next = result.fold(_failureFrom, _readyFrom);
+    final MemberRosterState next = result.fold(_failureFrom, _readyFrom);
 
     emit(next);
     if (_changedWhileLoading) await _reloadOnChange();
@@ -72,32 +72,32 @@ class AdminPaymentsCubit extends Cubit<AdminPaymentsState> {
 
   void clearSearch() => search('');
 
-  AdminPaymentsReady? get _lastLoadedRoster {
+  MemberRosterReady? get _lastLoadedRoster {
     final current = state;
-    if (current is AdminPaymentsReady) return current;
-    if (current is AdminPaymentsFailure) return current.previous;
+    if (current is MemberRosterReady) return current;
+    if (current is MemberRosterFailure) return current.previous;
 
     return null;
   }
 
-  void _emitRoster(AdminPaymentsReady roster) {
+  void _emitRoster(MemberRosterReady roster) {
     final current = state;
 
-    emit(current is AdminPaymentsFailure ? current.withRoster(roster) : roster);
+    emit(current is MemberRosterFailure ? current.withRoster(roster) : roster);
   }
 
-  AdminPaymentsFailure _failureFrom(Failure failure) {
+  MemberRosterFailure _failureFrom(Failure failure) {
     _failedAttempts++;
 
-    return AdminPaymentsFailure(
+    return MemberRosterFailure(
       failure.userMessage,
       previous: _lastLoadedRoster,
       attempt: _failedAttempts,
     );
   }
 
-  AdminPaymentsReady _readyFrom(List<Member> members) {
-    return AdminPaymentsReady(
+  MemberRosterReady _readyFrom(List<Member> members) {
+    return MemberRosterReady(
       members: _sortedByName(members),
       searchQuery: _lastLoadedRoster?.searchQuery ?? '',
     );

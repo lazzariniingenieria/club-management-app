@@ -7,8 +7,8 @@ import 'package:club_management_app/features/members/domain/entities/member_coll
 import 'package:club_management_app/features/members/domain/usecases/load_members_use_case.dart';
 import 'package:club_management_app/features/members/domain/usecases/watch_roster_changes_use_case.dart';
 import 'package:club_management_app/features/payments/domain/usecases/watch_payment_changes_use_case.dart';
-import 'package:club_management_app/features/payments/presentation/cubit/admin_payments_cubit.dart';
-import 'package:club_management_app/features/payments/presentation/cubit/admin_payments_state.dart';
+import 'package:club_management_app/features/payments/presentation/cubit/member_roster_cubit.dart';
+import 'package:club_management_app/features/payments/presentation/cubit/member_roster_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mocktail/mocktail.dart';
@@ -27,7 +27,7 @@ void main() {
   late MockLoadMembersUseCase useCase;
   late StreamController<void> rosterChanges;
   late StreamController<void> paymentChanges;
-  late AdminPaymentsCubit cubit;
+  late MemberRosterCubit cubit;
 
   final overdueMember = buildMember(
     id: 1,
@@ -53,7 +53,7 @@ void main() {
     when(() => useCase()).thenAnswer((_) async => result);
   }
 
-  AdminPaymentsReady readyState() => cubit.state as AdminPaymentsReady;
+  MemberRosterReady readyState() => cubit.state as MemberRosterReady;
 
   setUp(() {
     useCase = MockLoadMembersUseCase();
@@ -63,7 +63,7 @@ void main() {
     paymentChanges = StreamController<void>.broadcast();
     final watchPaymentChanges = MockWatchPaymentChangesUseCase();
     when(() => watchPaymentChanges()).thenAnswer((_) => paymentChanges.stream);
-    cubit = AdminPaymentsCubit(
+    cubit = MemberRosterCubit(
       loadMembers: useCase,
       watchRosterChanges: watchRosterChanges,
       watchPaymentChanges: watchPaymentChanges,
@@ -77,7 +77,7 @@ void main() {
   });
 
   test('starts loading so the list never opens on an empty roster', () {
-    expect(cubit.state, const AdminPaymentsLoading());
+    expect(cubit.state, const MemberRosterLoading());
   });
 
   test('sorts the roster by last name ignoring accents', () async {
@@ -97,7 +97,7 @@ void main() {
     await cubit.load();
 
     expect(
-        cubit.state, const AdminPaymentsFailure(AppStrings.loginNetworkError));
+        cubit.state, const MemberRosterFailure(AppStrings.loginNetworkError));
   });
 
   group('counters', () {
@@ -106,8 +106,12 @@ void main() {
       await cubit.load();
     });
 
-    test('all counts active and inactive members alike', () {
-      expect(readyState().countFor(MemberCollectionFilter.all), 3);
+    test('all counts only the members still in the club', () {
+      expect(readyState().countFor(MemberCollectionFilter.all), 2);
+    });
+
+    test('inactive counts the members who were let go', () {
+      expect(readyState().countFor(MemberCollectionFilter.inactive), 1);
     });
 
     test('overdue counts only the members behind on the fee', () {
@@ -128,7 +132,7 @@ void main() {
         readyState().visibleMembers(MemberCollectionFilter.all).single.id,
         upToDateMember.id,
       );
-      expect(readyState().countFor(MemberCollectionFilter.all), 3);
+      expect(readyState().countFor(MemberCollectionFilter.all), 2);
     });
 
     test('combines with the active filter', () {
@@ -150,7 +154,7 @@ void main() {
 
       expect(readyState().hasSearchQuery, isFalse);
       expect(readyState().visibleMembers(MemberCollectionFilter.all),
-          hasLength(3));
+          hasLength(2));
     });
 
     test('survives a reload so a pull to refresh keeps the query', () async {
@@ -172,14 +176,14 @@ void main() {
     });
 
     test('carries the roster it already had', () {
-      final failure = cubit.state as AdminPaymentsFailure;
+      final failure = cubit.state as MemberRosterFailure;
 
       expect(failure.message, AppStrings.loginNetworkError);
       expect(failure.previous?.members, hasLength(3));
     });
 
     test('does not drop the search the admin typed', () {
-      final failure = cubit.state as AdminPaymentsFailure;
+      final failure = cubit.state as MemberRosterFailure;
 
       expect(failure.previous?.searchQuery, 'Zárate');
     });
@@ -195,31 +199,31 @@ void main() {
     test('keeps the search usable while the error is on screen', () {
       cubit.search('Álvarez');
 
-      final failure = cubit.state as AdminPaymentsFailure;
+      final failure = cubit.state as MemberRosterFailure;
 
       expect(failure.previous?.searchQuery, 'Álvarez');
     });
 
     test('reports a second failure instead of swallowing it', () async {
-      final states = <AdminPaymentsState>[];
+      final states = <MemberRosterState>[];
       cubit.stream.listen(states.add);
       stub(const Left(NetworkFailure('Unreachable')));
 
       await cubit.load();
       await Future<void>.delayed(Duration.zero);
 
-      expect(states.whereType<AdminPaymentsFailure>(), hasLength(1));
+      expect(states.whereType<MemberRosterFailure>(), hasLength(1));
     });
 
     test('never shows the skeleton again once there is data', () async {
-      final states = <AdminPaymentsState>[];
+      final states = <MemberRosterState>[];
       cubit.stream.listen(states.add);
       stub(const Left(NetworkFailure('Unreachable')));
 
       await cubit.load();
       await Future<void>.delayed(Duration.zero);
 
-      expect(states.whereType<AdminPaymentsLoading>(), isEmpty);
+      expect(states.whereType<MemberRosterLoading>(), isEmpty);
     });
   });
 
@@ -228,7 +232,7 @@ void main() {
 
     await cubit.load();
 
-    expect((cubit.state as AdminPaymentsFailure).previous, isNull);
+    expect((cubit.state as MemberRosterFailure).previous, isNull);
   });
 
   test('keeps a search the admin typed while the reload was in flight',
@@ -254,12 +258,12 @@ void main() {
     stub(Right(roster()));
     await cubit.load();
 
-    final states = <AdminPaymentsState>[];
+    final states = <MemberRosterState>[];
     cubit.stream.listen(states.add);
     await cubit.load();
     await Future<void>.delayed(Duration.zero);
 
-    expect(states.whereType<AdminPaymentsLoading>(), isEmpty);
+    expect(states.whereType<MemberRosterLoading>(), isEmpty);
   });
 
   group('a change to the roster made elsewhere', () {

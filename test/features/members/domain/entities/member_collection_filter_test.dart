@@ -34,7 +34,7 @@ void main() {
         MemberCollectionFilter.all,
       );
       expect(
-        MemberCollectionFilter.fromQueryValue('inactive'),
+        MemberCollectionFilter.fromQueryValue('active'),
         MemberCollectionFilter.all,
       );
     });
@@ -48,11 +48,22 @@ void main() {
   });
 
   group('matching', () {
-    test('all keeps active and inactive members alike', () {
+    test('all keeps only the members still in the club, as the home counts',
+        () {
       const filter = MemberCollectionFilter.all;
 
       expect(filter.matches(buildMember()), isTrue);
+      expect(
+        filter.matches(buildMember(status: MemberStatus.inactive)),
+        isFalse,
+      );
+    });
+
+    test('inactive keeps only the members who were let go', () {
+      const filter = MemberCollectionFilter.inactive;
+
       expect(filter.matches(buildMember(status: MemberStatus.inactive)), isTrue);
+      expect(filter.matches(buildMember()), isFalse);
     });
 
     test('overdue keeps only members behind on the fee', () {
@@ -60,6 +71,16 @@ void main() {
 
       expect(filter.matches(buildMember(daysOverdue: 12)), isTrue);
       expect(filter.matches(buildMember()), isFalse);
+    });
+
+    test('overdue leaves out an inactive member, whose fee no longer counts',
+        () {
+      expect(
+        MemberCollectionFilter.overdue.matches(
+          buildMember(status: MemberStatus.inactive, daysOverdue: 12),
+        ),
+        isFalse,
+      );
     });
   });
 }

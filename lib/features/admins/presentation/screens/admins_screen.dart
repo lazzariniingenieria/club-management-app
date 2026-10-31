@@ -10,14 +10,13 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/formatters/display_formats.dart';
+import '../../../../shared/widgets/app_pill.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/confirmation_dialog.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../../shared/widgets/status_message_view.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../members/domain/entities/member.dart';
-import '../../../members/presentation/widgets/member_status_badge.dart';
 import '../../domain/entities/admin.dart';
 import '../../domain/entities/admins_overview.dart';
 import '../cubit/admins_cubit.dart';
@@ -181,22 +180,19 @@ class _AdminIdentity extends StatelessWidget {
             style: AppTextStyles.labelLarge,
           ),
           Text(_details(), style: AppTextStyles.bodyMedium),
-          const SizedBox(height: AppSpacing.sm),
-          MemberStatusBadge(
-            status:
-                admin.isActive ? MemberStatus.active : MemberStatus.inactive,
-          ),
+          if (!admin.isActive) ...[
+            const SizedBox(height: AppSpacing.sm),
+            const AppPill(
+              label: AppStrings.memberStatusInactive,
+              tone: AppPillTone.neutral,
+            ),
+          ],
         ],
       ),
     );
   }
 
-  String _details() {
-    final email = admin.email ?? AppStrings.adminRowNoEmail;
-    if (member == null) return email;
-
-    return '${AppStrings.memberDni(DisplayFormats.dni(admin.dni))} · $email';
-  }
+  String _details() => admin.email ?? AppStrings.adminRowNoEmail;
 }
 
 class _ReactivateAction extends StatelessWidget {

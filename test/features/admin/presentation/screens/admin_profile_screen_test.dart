@@ -51,6 +51,21 @@ void main() {
     expect(find.text(AppStrings.feeSaved), findsOneWidget);
   });
 
+  testWidgets('changing the password is a quiet link inside the account', (
+    tester,
+  ) async {
+    await openProfile(tester, UserRole.admin);
+
+    expect(
+      find.widgetWithText(TextButton, AppStrings.profileChangePassword),
+      findsOneWidget,
+    );
+    expect(
+      find.widgetWithText(ListTile, AppStrings.profileChangePassword),
+      findsNothing,
+    );
+  });
+
   testWidgets('the super admin changes their own password', (tester) async {
     await openProfile(tester, UserRole.superAdmin);
 

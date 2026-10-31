@@ -108,7 +108,7 @@ void main() {
     verify(() => useCase(dni: '30111222', password: 's3cr3t123')).called(1);
   });
 
-  testWidgets('caps the DNI at the 20 characters the API allows',
+  testWidgets('groups the DNI with dots and caps it at 8 digits',
       (tester) async {
     await pumpForm(tester);
 
@@ -116,7 +116,35 @@ void main() {
     await tester.pump();
 
     final field = tester.widget<TextField>(find.byType(TextField).first);
-    expect(field.controller?.text.length, 20);
+    expect(field.controller?.text, '11.111.111');
+  });
+
+  testWidgets('submits the DNI without the dots it shows', (tester) async {
+    await pumpForm(tester);
+
+    await tester.enterText(dniField(), '5123456');
+    await tester.enterText(passwordField(), 's3cr3t123');
+    await tester.tap(find.text(AppStrings.loginSubmitButton));
+    await tester.pump();
+
+    expect(find.text('5.123.456'), findsOneWidget);
+    verify(() => useCase(dni: '5123456', password: 's3cr3t123')).called(1);
+  });
+
+  testWidgets('rejects a DNI shorter than 6 digits without calling the API',
+      (tester) async {
+    await pumpForm(tester);
+
+    await tester.enterText(dniField(), '12345');
+    await tester.enterText(passwordField(), 's3cr3t123');
+    await tester.tap(find.text(AppStrings.loginSubmitButton));
+    await tester.pump();
+
+    expect(find.text(AppStrings.dniInvalidLength), findsOneWidget);
+    verifyNever(() => useCase(
+          dni: any(named: 'dni'),
+          password: any(named: 'password'),
+        ));
   });
 
   testWidgets('accepts a short password, since login is not a signup',
