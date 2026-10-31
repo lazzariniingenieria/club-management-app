@@ -243,11 +243,16 @@ Socios ──[fila]──► Cuotas del socio ─────────┼─�
 - Cada fila dice qué se le cobra. **Un mes que un integrante ya tiene pago se le saltea**; si no le queda ninguno, la fila dice "Ya tiene pagos esos meses: no se le cobra". El total cuenta cuotas: importe × los meses que debe cada socio elegido.
 - Mientras se leen los historiales no se puede revisar. Si la lectura falla, la sección muestra el aviso con *Reintentar*.
 - *¿Quién pagó?* vale para todas las cuotas: si pagó el socio de la pantalla, figura como el socio en la suya y como familiar en las demás.
-- La confirmación lista a cada socio con sus meses (o que se le saltea) y el total en cuotas. Al terminar se vuelve a las cuotas del socio con "Pago registrado para 3 socios del grupo · $45.000".
+- La confirmación es la misma hoja que para un socio, con una fila por integrante (o que se le saltea). Al terminar se vuelve a las cuotas del socio con "Pago registrado para 3 socios del grupo · $45.000".
 - **Todo o nada**: la app manda un solo `POST /api/payments/batch` con una entrada por socio a cobrar ([backend_api.md](backend_api.md) §6). Si el servidor lo rechaza no se registra a nadie, así que no hay pagos a medias ni cobro fijo: el formulario sigue editable y el comprobante suma el importe del formulario por cada cuota registrada.
 - Antes de enviar se relee el historial de cada integrante y se cobra solo lo que falta: un mes que ya figura pago no se manda. Un integrante dado de baja mientras se cargaba el formulario queda fuera del cobro y el aviso de éxito de las cuotas lo nombra; si el que se dio de baja es el socio de la pantalla, no se cobra a nadie. El padrón recibe un solo aviso al terminar.
 
-**Confirmación** en una hoja inferior: socio, meses, importe por mes, total, medio y quién pagó, con el aviso *"Un pago registrado no se edita: si hay un error, hay que anularlo desde el historial del socio y cargarlo de nuevo."* y dos acciones, *Confirmar* y *Volver a editar*.
+**Confirmación** en una hoja inferior, **igual para un socio que para el grupo** (revisión en el celular, 2026-10-31; antes era una tabla de etiqueta y valor que alineaba a la derecha textos de varias líneas y armaba el caso del grupo distinto):
+
+1. Arriba y centrado, lo que se confirma: el **total** grande y debajo "2 cuotas · Efectivo".
+2. Una lista con **una fila por socio**: nombre y meses debajo; si son varios, el subtotal de cada uno a la derecha (con uno solo repetiría el total). Quien ya tiene pagos esos meses figura con "No se cobra · Ya tiene pagos esos meses".
+3. *Importe por mes* y *Pagó*.
+4. El aviso *"Un pago registrado no se edita: si hay un error, se anula desde el historial del socio."* y las dos acciones, *Confirmar pago de $X* y *Volver a editar*.
 
 **Después de confirmar** se vuelve a las cuotas del socio con un snackbar ("Pago registrado …") y los meses recién pagos marcados como *NUEVO* en el historial. Socios, sus contadores de mora y el Inicio se actualizan solos.
 

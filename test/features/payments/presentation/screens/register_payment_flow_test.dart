@@ -758,9 +758,15 @@ void main() {
         find.text(AppStrings.registerPaymentReviewWithTotal(r'$30.000')),
       );
       await tester.pumpAndSettle();
+      final skipped = find.ancestor(
+        of: find.text('Lucía Zárate'),
+        matching: find.byType(Row),
+      );
       expect(
-        find.textContaining(
-            AppStrings.confirmPaymentMemberSkipped('Lucía Zárate')),
+        find.descendant(
+          of: skipped,
+          matching: find.text(AppStrings.confirmPaymentSkipped),
+        ),
         findsOneWidget,
       );
       await tester.tap(find.text(AppStrings.confirmPaymentAction(r'$30.000')));

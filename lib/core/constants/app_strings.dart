@@ -303,16 +303,13 @@ class AppStrings {
   static const String registerPaymentPayerLeftGroup =
       'La persona elegida ya no está en el grupo familiar del socio, así que no puede figurar como quien pagó. Actualizamos la lista: elegí de nuevo.';
   static const String confirmPaymentTitle = 'Confirmá el pago';
-  static const String confirmPaymentMember = 'Socio';
-  static const String confirmPaymentMonths = 'Meses';
   static const String confirmPaymentAmount = 'Importe por mes';
-  static const String confirmPaymentMethod = 'Medio';
   static const String confirmPaymentPayer = 'Pagó';
-  static const String confirmPaymentNoticeTitle = 'Revisá antes de confirmar.';
+  static const String confirmPaymentSkipped = 'No se cobra';
+  static const String confirmPaymentSkippedReason = 'Ya tiene pagos esos meses';
   static const String confirmPaymentNotice =
-      'Un pago registrado no se edita: si hay un error, hay que anularlo desde el historial del socio y cargarlo de nuevo.';
+      'Un pago registrado no se edita: si hay un error, se anula desde el historial del socio.';
   static const String confirmPaymentBackAction = 'Volver a editar';
-  static const String confirmPaymentMembers = 'Socios';
   static const String registerPaymentFamilyTitle = 'Grupo familiar';
   static const String registerPaymentFamilyToggle = 'Pagar por todo el grupo';
   static const String registerPaymentFamilyToggleHelp =
@@ -355,7 +352,8 @@ class AppStrings {
   static String registerPaymentMonthsAlreadyPaid(String months) =>
       '$months ya figura pago: otro administrador lo cargó mientras completabas el formulario. Lo quitamos de la selección y actualizamos el total. Revisá antes de confirmar.';
 
-  static String confirmPaymentTotal(String months) => 'Total · $months';
+  static String confirmPaymentSummary(String fees, String method) =>
+      '$fees · $method';
 
   static String confirmPaymentAction(String total) =>
       'Confirmar pago de $total';
@@ -376,12 +374,6 @@ class AppStrings {
 
   static String registerPaymentFamilySummary(String months, String members) =>
       '$months · $members';
-
-  static String confirmPaymentMemberMonths(String name, String months) =>
-      '$name: $months';
-
-  static String confirmPaymentMemberSkipped(String name) =>
-      '$name: ya tiene pagos esos meses';
 
   static String familyPaymentRegistered(String members, String total) =>
       'Pago registrado para $members del grupo · $total';
