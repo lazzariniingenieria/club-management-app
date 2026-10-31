@@ -25,14 +25,10 @@ class AppStrings {
   static const String loginForgotPassword = '¿Olvidaste tu contraseña?';
   static const String loginFirstTimeUser = 'Es mi primera vez aquí';
   static const String forgotPasswordTitle = '¿Olvidaste tu contraseña?';
-  static const String forgotPasswordNoEmail =
-      'La app no puede enviarte una contraseña nueva por email.';
   static const String forgotPasswordAskAdmin =
-      'Si sos administrador, pedile al administrador principal del club que te asigne una contraseña nueva desde Administradores. Después podés cambiarla desde tu Perfil.';
+      'Si sos administrador, pedile al administrador principal una contraseña nueva.';
   static const String forgotPasswordMember =
-      'Si sos socio, todavía no se puede recuperar desde la app: consultá en la administración del club.';
-  static const String forgotPasswordMainAccount =
-      'Si sos el administrador principal, comunicate con quien mantiene el sistema del club.';
+      'Si sos socio, consultá en la administración del club.';
   static const String forgotPasswordBack = 'Volver al ingreso';
   static const String loginSessionExpiredTitle = 'Tu sesión venció';
   static const String loginSessionExpiredMessage =
@@ -102,7 +98,7 @@ class AppStrings {
   static const String memberStatusInactive = 'Inactivo';
   static const String memberStatusOverdue = 'En mora';
   static const String memberEditAction = 'Editar socio';
-  static const String memberOpenLedgerHint = 'Ver cuotas';
+  static const String memberOpenLedgerHint = 'Ver socio';
 
   static const String memberFormCreateTitle = 'Nuevo socio';
   static const String memberFormEditTitle = 'Editar socio';
@@ -196,18 +192,12 @@ class AppStrings {
 
   static String paymentPickerUpToDateSection(int count) => 'AL DÍA · $count';
 
-  static const String ledgerTitle = 'Cuotas';
+  static const String ledgerTitle = 'Socio';
   static const String ledgerUpToDate = 'Cuota al día';
   static const String ledgerInactive = 'Socio inactivo';
   static const String ledgerNeverPaid = 'Todavía no tiene pagos';
-  static const String ledgerInactiveNote =
-      'Mientras esté dado de baja, su cuota no cuenta para la mora ni para los contadores del Inicio.';
   static const String ledgerHistoryTitle = 'Historial de pagos';
-  static const String ledgerHistoryHint =
-      'Tocá un pago para ver el detalle o anularlo.';
   static const String ledgerEmptyTitle = 'Sin pagos registrados';
-  static const String ledgerEmptyMessage =
-      'Cuando registres su primer pago va a aparecer acá, del mes más reciente al más viejo.';
   static const String ledgerRegisterAction = 'Registrar pago';
   static const String ledgerRegisterFirstAction = 'Registrar primer pago';
   static const String ledgerInactiveHint =
@@ -228,14 +218,8 @@ class AppStrings {
 
   static String ledgerLastPaid(String month) => 'Último mes pago: $month';
 
-  static String ledgerOverdueSinceLastPaid(String month) =>
-      'Cuenta desde el 1° de $month, el mes que sigue al último pago.';
+  static String ledgerOverdueSince(String month) => 'Desde el 1° de $month';
 
-  static String ledgerOverdueSinceJoining(String month) =>
-      'Cuenta desde el 1° de $month, el mes en que se dio de alta.';
-
-  static String ledgerNewMemberNote(String joinedOn, String month) =>
-      'Es normal en un socio nuevo: la cuota corre desde el 1° del mes en que se dio de alta ($joinedOn). Registrá la cuota de $month para dejarlo al día.';
 
   static String ledgerRegisterMonthAction(String month) =>
       'Registrar cuota de $month';
@@ -271,7 +255,7 @@ class AppStrings {
   static String paymentDetailTitle(String month) => 'Pago de $month';
 
   static const String voidPaymentEffect =
-      'Ese mes vuelve a figurar impago y la mora se recalcula. La anulación queda registrada y no se puede revertir: si fue un error, vas a tener que cargar el pago de nuevo.';
+      'Ese mes vuelve a figurar impago y la mora se recalcula.';
   static const String voidPaymentReasonLabel = 'Motivo (opcional)';
   static const String voidPaymentReasonHint =
       'Ej.: se cargó en el socio equivocado';
@@ -292,12 +276,10 @@ class AppStrings {
   static const String registerPaymentMonthChosen = 'Elegido';
   static const String registerPaymentAmountLabel = 'Importe por mes';
   static const String registerPaymentAmountWithoutFee =
-      'El club todavía no tiene una cuota cargada: escribí el importe. Se registra por cada mes elegido.';
+      'El club no tiene cuota cargada: escribí el importe.';
   static const String registerPaymentTotalLabel = 'Total';
   static const String registerPaymentMethodTitle = 'Medio de pago';
   static const String registerPaymentPayerTitle = '¿Quién pagó?';
-  static const String registerPaymentPayerHelp =
-      'Puede ser el socio o alguien de su grupo familiar.';
   static const String registerPaymentPayerSelf = 'El socio';
   static const String registerPaymentPayerRelative = 'Grupo familiar';
   static const String registerPaymentNoMonths = 'Ningún mes elegido';
@@ -310,7 +292,7 @@ class AppStrings {
   static const String registerPaymentUnconfirmedTitle =
       'No sabemos si el pago se registró.';
   static const String registerPaymentUnconfirmedMessage =
-      'El servidor no respondió a tiempo y el pago puede estar registrándose todavía. Tus datos siguen cargados: al reintentar revisamos el historial antes de enviar, así el pago no se carga dos veces.';
+      'El servidor no respondió. Al reintentar revisamos el historial, así no se carga dos veces.';
   static const String registerPaymentInactiveTitle =
       'Este socio está dado de baja';
   static const String registerPaymentPayerLeftGroup =
@@ -325,8 +307,6 @@ class AppStrings {
   static const String confirmPaymentBackAction = 'Volver a editar';
   static const String registerPaymentFamilyTitle = 'Grupo familiar';
   static const String registerPaymentFamilyToggle = 'Pagar por todo el grupo';
-  static const String registerPaymentFamilyToggleHelp =
-      'Se registran los mismos meses y el mismo importe para cada integrante que elijas. Cada cuota queda en el historial de su socio.';
   static const String registerPaymentFamilyLoadFailed =
       'No pudimos revisar los pagos del grupo, y sin eso no sabemos qué meses le faltan a cada uno.';
   static const String registerPaymentFamilyNothingToCharge =
@@ -344,14 +324,8 @@ class AppStrings {
 
   static String monthCount(int count) => count == 1 ? '1 mes' : '$count meses';
 
-  static String registerPaymentSuggestionAfterLastPaid(String month) =>
-      'Sugerimos $month, el mes que sigue al último pago. Tocá otros meses para sumarlos o quitarlos.';
 
-  static String registerPaymentSuggestionFromJoining(String month) =>
-      'Sugerimos $month, el mes en que se dio de alta. Tocá otros meses para sumarlos o quitarlos.';
 
-  static String registerPaymentAmountWithFee(String fee) =>
-      'Viene con la cuota del club ($fee). Cambialo si este pago es distinto. Se registra por cada mes elegido.';
 
   static String registerPaymentAmountTimesMonths(
     String months,
@@ -437,11 +411,9 @@ class AppStrings {
 
   static const String familyGroupPickerBuildTitle = 'Armar grupo familiar';
   static const String familyGroupPickerAddTitle = 'Sumar al grupo';
-  static const String familyGroupPickerHint =
-      'Solo socios activos. Si alguno ya está en otro grupo, lo vas a ver indicado.';
   static const String familyGroupPickerOthers = 'OTROS SOCIOS';
   static const String familyGroupPickerEmptyHint =
-      'Revisá cómo se escribe o buscá por DNI. Un socio dado de baja hay que reactivarlo antes de sumarlo.';
+      'Los socios dados de baja no aparecen.';
   static const String familyGroupPickerNoCandidates =
       'No hay otros socios activos para sumar.';
   static const String familyGroupPickerErrorTitle =
@@ -467,11 +439,6 @@ class AppStrings {
   static const String familyGroupRowCurrentMembers = 'Integrantes hoy';
   static const String familyGroupRowJoining = 'Se suma';
   static const String familyGroupNameLabel = 'Nombre del grupo (opcional)';
-  static const String familyGroupNameHelp = 'Podés dejarlo vacío.';
-  static const String familyGroupIndividualFeePair =
-      'Cada uno sigue pagando su propia cuota. Lo que cambia: cualquiera de los dos puede pagar la del otro.';
-  static const String familyGroupIndividualFeeGroup =
-      'Cada uno sigue pagando su propia cuota. Lo que cambia: cualquiera del grupo puede pagar la de otro.';
   static const String familyGroupBuildConfirm = 'Armar grupo';
   static const String familyGroupJoinConfirm = 'Sumar al grupo';
   static const String familyGroupOfflineTitle = 'Sin conexión.';
@@ -499,10 +466,6 @@ class AppStrings {
 
   static const String familyGroupScreenTitle = 'Grupo familiar';
   static const String familyGroupEditNameAction = 'Editar nombre del grupo';
-  static const String familyGroupNote =
-      'Cada integrante paga su propia cuota. Al registrar un pago, cualquiera del grupo puede figurar como quien pagó.';
-  static const String familyGroupSingleMemberNote =
-      'Este grupo tiene un solo integrante. Sumá a un familiar para que puedan pagarse la cuota entre ellos.';
   static const String familyGroupEmptyTitle = 'Este grupo no tiene integrantes';
   static const String familyGroupEmptyHint = 'Sumá a los socios de la familia.';
   static const String familyGroupAddAction = 'Sumar integrante';
@@ -511,7 +474,7 @@ class AppStrings {
   static const String familyGroupDeleteAction = 'Eliminar grupo';
   static const String familyGroupDeleteConfirm = 'Eliminar';
   static const String familyGroupDeleteMessage =
-      'Los integrantes siguen siendo socios, sus pagos no cambian y cada uno paga su propia cuota. Solo dejan de figurar juntos.';
+      'Los integrantes siguen siendo socios y sus pagos no cambian.';
   static const String familyGroupDeleted = 'Grupo eliminado';
 
   static String familyGroupDeleteTitle(String group) =>
@@ -545,7 +508,7 @@ class AppStrings {
 
   static const String familyGroupMoveConfirm = 'Pasar de grupo';
   static const String familyGroupRemoveMessage =
-      'Sigue siendo socio y sus pagos no cambian. Vas a poder volver a sumarlo cuando quieras.';
+      'Sigue siendo socio y sus pagos no cambian.';
   static const String familyGroupRemoveConfirm = 'Quitar';
 
   static String familyGroupMoveTitle(String member, String group) =>
@@ -565,14 +528,12 @@ class AppStrings {
   static const String reportFromLabel = 'Desde';
   static const String reportToLabel = 'Hasta';
   static const String reportScopeNote =
-      'Arma las tabletas para imprimir y recortar: una por grupo familiar y mes cubierto (o por socio, si no tiene grupo), con lo cobrado en el período por fecha de cobro. No incluye pagos anulados.';
+      'Arma las tabletas con los pagos realizados en el mes seleccionado.';
   static const String reportInvalidRange =
       'El mes «Desde» tiene que ser anterior o igual a «Hasta».';
   static const String reportGenerate = 'Generar PDF';
   static const String reportGenerating = 'Generando el PDF…';
   static const String reportReadyTitle = 'Tabletas listas';
-  static const String reportReadyHint =
-      'Cada tableta sale dos veces, lado a lado, con líneas de corte.';
   static const String reportShare = 'Compartir PDF';
   static const String reportPreview = 'Ver o imprimir';
   static const String reportEmpty =
@@ -610,7 +571,7 @@ class AppStrings {
   static const String adminFormEmail = 'Email (opcional)';
   static const String adminFormPassword = 'Contraseña inicial';
   static const String adminFormPasswordHelp =
-      'Entre 8 y 72 caracteres; las letras con tilde y la ñ cuentan como dos. Pasásela a la persona por un canal seguro.';
+      'Al menos 8 caracteres. Pasásela por un canal seguro.';
   static const String adminFormMember = 'Socio vinculado (opcional)';
   static const String adminFormNoMember = 'Sin vincular';
   static const String adminFormMemberPickerTitle = 'Elegí el socio vinculado';
@@ -618,8 +579,6 @@ class AppStrings {
 
   static String adminFormMemberEmpty(String query) =>
       'No encontramos socios activos con «$query»';
-  static const String adminFormMemberHelp =
-      'Si además es socio del club, vinculalo para que figure con su nombre.';
   static const String adminFormCreate = 'Crear administrador';
   static const String adminFormSave = 'Guardar cambios';
   static const String adminFormCreated = 'Administrador creado';
@@ -633,7 +592,7 @@ class AppStrings {
   static const String adminDeactivate = 'Dar de baja';
   static const String adminReactivate = 'Reactivar administrador';
   static const String adminDeactivateMessage =
-      'No va a poder volver a ingresar, y si ahora tiene la app abierta, la sesión se le cierra en el momento. Vas a poder reactivarlo cuando quieras.';
+      'No va a poder ingresar y, si tiene la app abierta, se le cierra la sesión.';
   static const String adminUnsavedChangesLost =
       'Los cambios sin guardar del formulario se descartan.';
   static const String adminReactivateMessage =
@@ -657,8 +616,6 @@ class AppStrings {
   static const String profileClubSection = 'Club';
   static const String profileMonthlyFeeLabel = 'Cuota mensual de referencia';
   static const String profileMonthlyFeeUnset = 'Sin cargar';
-  static const String profileMonthlyFeeHelp =
-      'Es el importe que aparece precargado al registrar un pago. Cambiarla no modifica pagos ya registrados.';
   static const String profileEditMonthlyFee = 'Editar cuota mensual';
   static const String profileClubOffline =
       'Sin conexión: no pudimos cargar los datos del club.';
@@ -672,7 +629,7 @@ class AppStrings {
   static const String passwordSheetTitle = 'Cambiar contraseña';
   static const String passwordNewLabel = 'Contraseña nueva';
   static const String passwordHelp =
-      'Entre 8 y 72 caracteres; las letras con tilde y la ñ cuentan como dos.';
+      'Al menos 8 caracteres.';
   static const String passwordBlank =
       'La contraseña no puede ser solo espacios.';
   static const String passwordTooShort =
@@ -689,8 +646,6 @@ class AppStrings {
 
   static const String feeSheetTitle = 'Cuota mensual de referencia';
   static const String feeSheetLabel = 'Cuota mensual';
-  static const String feeSheetHelp =
-      'Dejalo vacío si el club no tiene una cuota fija: el importe va a arrancar vacío al registrar un pago.';
   static const String feeSaved = 'Cuota de referencia actualizada';
   static const String saveAction = 'Guardar';
   static const String saveFailedOffline =

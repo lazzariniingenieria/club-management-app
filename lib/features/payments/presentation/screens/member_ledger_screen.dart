@@ -11,7 +11,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/widgets/app_notice.dart';
 import '../../../../shared/widgets/app_pill.dart';
 import '../../../../shared/widgets/app_secondary_button.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
@@ -161,35 +160,16 @@ class _LedgerSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final newMemberNote = _newMemberNote(ledger);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _LedgerHeader(ledger: ledger),
         const SizedBox(height: AppSpacing.md),
         FeeStandingCard(ledger: ledger),
-        if (newMemberNote != null) ...[
-          const SizedBox(height: AppSpacing.md),
-          AppNotice(message: newMemberNote),
-        ],
         const SizedBox(height: AppSpacing.md),
         _LedgerFamilyGroup(ledger: ledger),
         const SizedBox(height: AppSpacing.xl),
       ],
-    );
-  }
-
-  static String? _newMemberNote(MemberLedger ledger) {
-    final joinedAt = ledger.member.joinedAt;
-    if (!ledger.hasNeverPaid || joinedAt == null) return null;
-    if (BillingMonth.of(joinedAt) != BillingMonth.of(DateTime.now())) {
-      return null;
-    }
-
-    return AppStrings.ledgerNewMemberNote(
-      PaymentFormats.day(joinedAt),
-      PaymentFormats.monthName(BillingMonth.of(joinedAt)),
     );
   }
 }
@@ -341,10 +321,6 @@ class _HistoryHeading extends StatelessWidget {
           AppStrings.ledgerHistoryTitle.toUpperCase(),
           style: AppTextStyles.sectionLabel,
         ),
-        if (ledger.livePayments.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xs),
-          Text(AppStrings.ledgerHistoryHint, style: AppTextStyles.bodySmall),
-        ],
         const SizedBox(height: AppSpacing.md),
       ],
     );
@@ -371,12 +347,6 @@ class _EmptyHistory extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(AppStrings.ledgerEmptyTitle, style: AppTextStyles.labelLarge),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            AppStrings.ledgerEmptyMessage,
-            style: AppTextStyles.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
         ],
       ),
     );

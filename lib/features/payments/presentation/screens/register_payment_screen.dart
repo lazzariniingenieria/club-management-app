@@ -296,19 +296,9 @@ class _MonthsSection extends StatelessWidget {
               PaymentFormats.monthsSummary(repeated.months),
             ),
             tone: AppNoticeTone.danger,
-          )
-        else
-          Text(_suggestionOf(form), style: AppTextStyles.bodyMedium),
+          ),
       ],
     );
-  }
-
-  static String _suggestionOf(PaymentForm form) {
-    final month = PaymentFormats.monthName(form.suggestedMonth);
-
-    return form.startsFromLastPaid
-        ? AppStrings.registerPaymentSuggestionAfterLastPaid(month)
-        : AppStrings.registerPaymentSuggestionFromJoining(month);
   }
 }
 
@@ -319,8 +309,6 @@ class _AmountSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fee = form.ledger.monthlyFeeCents;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -329,15 +317,13 @@ class _AmountSection extends StatelessWidget {
           initialCents: form.amountCents,
           onChanged: context.read<RegisterPaymentCubit>().changeAmount,
         ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          fee == null
-              ? AppStrings.registerPaymentAmountWithoutFee
-              : AppStrings.registerPaymentAmountWithFee(
-                  DisplayFormats.pesos(fee),
-                ),
-          style: AppTextStyles.bodyMedium,
-        ),
+        if (form.ledger.monthlyFeeCents == null) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            AppStrings.registerPaymentAmountWithoutFee,
+            style: AppTextStyles.bodyMedium,
+          ),
+        ],
         const SizedBox(height: AppSpacing.md),
         PaymentTotalSummary(form: form),
       ],
@@ -401,11 +387,6 @@ class _PayerSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _SectionTitle(AppStrings.registerPaymentPayerTitle),
-        Text(
-          AppStrings.registerPaymentPayerHelp,
-          style: AppTextStyles.bodyMedium,
-        ),
-        const SizedBox(height: AppSpacing.sm),
         if (notice is PayerLeftGroupNotice) ...[
           const AppNotice(
             message: AppStrings.registerPaymentPayerLeftGroup,

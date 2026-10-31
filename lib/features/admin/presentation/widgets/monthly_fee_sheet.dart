@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/formatters/peso_amount.dart';
 import '../../../../shared/widgets/amount_field.dart';
 import '../../../../shared/widgets/app_button.dart';
@@ -75,8 +74,6 @@ class _MonthlyFeeSheetState extends State<MonthlyFeeSheet> {
           label: AppStrings.feeSheetLabel,
           onChanged: (text) => setState(() => _text = text),
         ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(AppStrings.feeSheetHelp, style: AppTextStyles.bodyMedium),
         const SizedBox(height: AppSpacing.lg),
         AppButton(
           text: _failure == null ? AppStrings.saveAction : AppStrings.retryAction,

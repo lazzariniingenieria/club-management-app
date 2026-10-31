@@ -121,8 +121,6 @@ class _FamilyGroupConfirmationSheetState
           _GroupNameField(controller: _name, enabled: !state.isSaving),
         ],
         const SizedBox(height: AppSpacing.lg),
-        AppNotice(message: _note()),
-        const SizedBox(height: AppSpacing.lg),
         ..._actions(state),
       ],
     );
@@ -137,10 +135,6 @@ class _FamilyGroupConfirmationSheetState
       FamilyGroupFormats.displayName(target.group),
     );
   }
-
-  String _note() => _joinTarget == null
-      ? AppStrings.familyGroupIndividualFeePair
-      : AppStrings.familyGroupIndividualFeeGroup;
 
   List<SummaryRow> _rows(FamilyGroupBuilderState state) {
     final target = _joinTarget;
@@ -205,7 +199,6 @@ class _GroupNameField extends StatelessWidget {
       textCapitalization: TextCapitalization.words,
       decoration: const InputDecoration(
         labelText: AppStrings.familyGroupNameLabel,
-        helperText: AppStrings.familyGroupNameHelp,
       ),
     );
   }

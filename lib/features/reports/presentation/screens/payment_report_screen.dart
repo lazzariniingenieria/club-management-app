@@ -263,7 +263,6 @@ class _ReadyReport extends StatelessWidget {
             PaymentReportFormats.periodLabel(period),
             style: AppTextStyles.bodyMedium,
           ),
-          Text(AppStrings.reportReadyHint, style: AppTextStyles.bodyMedium),
           const SizedBox(height: AppSpacing.lg),
           ElevatedButton.icon(
             onPressed: () => _run(context, cubit.share),
