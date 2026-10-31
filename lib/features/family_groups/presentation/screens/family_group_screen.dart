@@ -12,6 +12,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_notice.dart';
 import '../../../../shared/widgets/app_pill.dart';
+import '../../../../shared/widgets/app_secondary_button.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/confirmation_dialog.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
@@ -19,6 +20,8 @@ import '../../../../shared/widgets/status_message_view.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../../members/presentation/widgets/member_list_tile.dart';
+import '../../../payments/domain/entities/payment_receipt.dart';
+import '../../../payments/presentation/formatting/payment_formats.dart';
 import '../../domain/entities/family_group_detail.dart';
 import '../cubit/family_group_cubit.dart';
 import '../cubit/family_group_state.dart';
@@ -143,7 +146,7 @@ class _GroupContent extends StatelessWidget {
             ),
           ),
         ),
-        _AddMemberFooter(onAdd: onAdd),
+        _GroupFooter(detail: detail, onAdd: onAdd),
       ],
     );
   }
@@ -380,23 +383,55 @@ class _DeleteGroupActionState extends State<_DeleteGroupAction> {
   }
 }
 
-class _AddMemberFooter extends StatelessWidget {
+class _GroupFooter extends StatelessWidget {
+  final FamilyGroupDetail detail;
   final VoidCallback onAdd;
 
-  const _AddMemberFooter({required this.onAdd});
+  const _GroupFooter({required this.detail, required this.onAdd});
+
+  Future<void> _payForGroup(BuildContext context, Member anchor) async {
+    final cubit = context.read<FamilyGroupCubit>();
+    final receipt = await context.push<PaymentReceipt>(
+      AppRoutes.adminFamilyPaymentRegistration(anchor.id),
+    );
+    if (receipt == null || !context.mounted) return;
+
+    showAppSnackBar(context, PaymentFormats.receiptAnnouncement(receipt));
+    await cubit.reload();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final anchor = detail.paymentAnchor;
+
     return Material(
       color: AppColors.surface,
       child: SafeArea(
         top: false,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: ElevatedButton.icon(
-            onPressed: onAdd,
-            icon: const Icon(Icons.person_add_alt_outlined),
-            label: const Text(AppStrings.familyGroupAddAction),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (anchor != null) ...[
+                ElevatedButton.icon(
+                  onPressed: () => _payForGroup(context, anchor),
+                  icon: const Icon(Icons.payments_outlined),
+                  label: const Text(AppStrings.familyGroupPayAction),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                AppSecondaryButton(
+                  label: AppStrings.familyGroupAddAction,
+                  onPressed: onAdd,
+                ),
+              ] else
+                ElevatedButton.icon(
+                  onPressed: onAdd,
+                  icon: const Icon(Icons.person_add_alt_outlined),
+                  label: const Text(AppStrings.familyGroupAddAction),
+                ),
+            ],
           ),
         ),
       ),

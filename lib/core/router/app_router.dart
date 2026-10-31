@@ -18,6 +18,7 @@ import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/dev/presentation/screens/component_gallery_screen.dart';
 import '../../features/family_groups/presentation/screens/family_group_picker_screen.dart';
 import '../../features/family_groups/presentation/screens/family_group_screen.dart';
+import '../../features/family_groups/presentation/screens/family_group_start_screen.dart';
 import '../../features/member/presentation/screens/member_surface_pending_screen.dart';
 import '../../features/members/domain/entities/member.dart';
 import '../../features/members/domain/entities/member_collection_filter.dart';
@@ -113,10 +114,14 @@ class AppRouter {
 
   static Widget _buildPaymentsScreen(
       BuildContext context, GoRouterState state) {
+    final query = state.uri.queryParameters;
+
     return AdminMembersScreen(
       filter: MemberCollectionFilter.fromQueryValue(
-        state.uri.queryParameters[AppRoutes.filterQueryParameter],
+        query[AppRoutes.filterQueryParameter],
       ),
+      showsFamilyGroups:
+          query[AppRoutes.viewQueryParameter] == AppRoutes.familyGroupsView,
     );
   }
 
@@ -163,8 +168,12 @@ class AppRouter {
     GoRoute(
       path: AppRoutes.adminPaymentRegistrationPattern,
       redirect: _requireMemberId,
-      builder: (context, state) =>
-          RegisterPaymentScreen(memberId: _memberIdOf(state)!),
+      builder: (context, state) => RegisterPaymentScreen(
+        memberId: _memberIdOf(state)!,
+        startsForFamily: state.uri
+                .queryParameters[AppRoutes.forFamilyQueryParameter] ==
+            'true',
+      ),
     ),
     GoRoute(
       path: AppRoutes.adminFamilyGroupCreationPattern,
@@ -172,6 +181,10 @@ class AppRouter {
       builder: (context, state) => FamilyGroupPickerScreen(
         mode: BuildGroupForMember(_memberIdOf(state)!),
       ),
+    ),
+    GoRoute(
+      path: AppRoutes.adminFamilyGroupStart,
+      builder: (context, state) => const FamilyGroupStartScreen(),
     ),
     GoRoute(
       path: AppRoutes.adminFamilyGroupPattern,

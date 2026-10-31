@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../members/domain/entities/member.dart';
 import 'family_group.dart';
+import 'family_group_detail.dart';
 
 class FamilyGroupCandidates extends Equatable {
   final List<Member> roster;
@@ -32,6 +33,10 @@ class FamilyGroupCandidates extends Equatable {
   List<Member> membersOf(int familyGroupId) => roster
       .where((member) => member.familyGroupId == familyGroupId)
       .toList();
+
+  List<FamilyGroupDetail> get details => [
+        for (final group in groups) FamilyGroupDetail.fromRoster(group, roster),
+      ]..sort(FamilyGroupDetail.byFirstMember);
 
   @override
   List<Object?> get props => [roster, groups];

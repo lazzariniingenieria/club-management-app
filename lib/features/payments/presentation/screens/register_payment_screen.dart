@@ -29,13 +29,19 @@ import '../widgets/payment_unavailable_view.dart';
 
 class RegisterPaymentScreen extends StatelessWidget {
   final int memberId;
+  final bool startsForFamily;
 
-  const RegisterPaymentScreen({super.key, required this.memberId});
+  const RegisterPaymentScreen({
+    super.key,
+    required this.memberId,
+    this.startsForFamily = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<RegisterPaymentCubit>(
-      create: (_) => sl<RegisterPaymentCubit>()..open(memberId),
+      create: (_) => sl<RegisterPaymentCubit>()
+        ..open(memberId, forFamily: startsForFamily),
       child: AdminScaffold(
         title: AppStrings.registerPaymentTitle,
         body: _RegisterPaymentBody(memberId: memberId),

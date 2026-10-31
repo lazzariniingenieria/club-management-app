@@ -7,6 +7,7 @@ import '../../features/admin/data/datasources/admin_summary_remote_data_source.d
 import '../../features/admin/data/repositories/admin_summary_repository_impl.dart';
 import '../../features/admin/domain/repositories/admin_summary_repository.dart';
 import '../../features/admin/domain/usecases/load_admin_summary_use_case.dart';
+import '../../features/admin/presentation/cubit/admin_family_groups_cubit.dart';
 import '../../features/admin/presentation/cubit/admin_home_cubit.dart';
 import '../../features/admin/presentation/cubit/admin_profile_cubit.dart';
 import '../../features/admins/data/datasources/admin_fake_data_source.dart';
@@ -377,6 +378,14 @@ void _registerPresentation() {
     () => MemberRosterCubit(
       loadMembers: sl(),
       watchRosterChanges: sl(),
+      watchPaymentChanges: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => AdminFamilyGroupsCubit(
+      loadGroups: sl(),
+      watchRosterChanges: sl(),
+      watchGroupChanges: sl(),
       watchPaymentChanges: sl(),
     ),
   );

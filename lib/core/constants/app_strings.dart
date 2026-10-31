@@ -84,6 +84,19 @@ class AppStrings {
       'Ningún socio coincide con la búsqueda.';
   static const String adminMembersClearSearch = 'Limpiar búsqueda';
   static const String adminMembersSearchInactive = 'Ver en Inactivos';
+  static const String adminMembersTabMembers = 'Socios';
+  static const String adminMembersTabFamilyGroups = 'Grupos familiares';
+  static const String familyGroupsSearchHint = 'Buscar grupo o integrante...';
+  static const String familyGroupsErrorTitle =
+      'No pudimos cargar los grupos familiares';
+  static const String familyGroupsEmpty = 'Todavía no hay grupos familiares.';
+  static const String familyGroupsBuildAction = 'Armar grupo';
+  static const String familyGroupStartQuestion = '¿Para qué socio es el grupo?';
+  static const String familyGroupStartNoCandidates =
+      'Todos los socios activos ya están en un grupo.';
+  static const String familyGroupsEmptySearch =
+      'Ningún grupo coincide con la búsqueda.';
+  static const String familyGroupsNoMembers = 'Sin integrantes';
   static const String adminMembersCreateMember = 'Crear socio';
 
   static const String memberStatusInactive = 'Inactivo';
@@ -493,6 +506,7 @@ class AppStrings {
   static const String familyGroupEmptyTitle = 'Este grupo no tiene integrantes';
   static const String familyGroupEmptyHint = 'Sumá a los socios de la familia.';
   static const String familyGroupAddAction = 'Sumar integrante';
+  static const String familyGroupPayAction = 'Registrar pago del grupo';
   static const String familyGroupRemoveTooltip = 'Quitar del grupo';
   static const String familyGroupDeleteAction = 'Eliminar grupo';
   static const String familyGroupDeleteConfirm = 'Eliminar';

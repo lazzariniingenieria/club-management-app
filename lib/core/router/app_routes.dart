@@ -24,6 +24,7 @@ abstract final class AppRoutes {
   static const String adminPaymentReport = '/admin/payments/report';
   static const String adminFamilyGroupCreationPattern =
       '/admin/members/:memberId/family-group/new';
+  static const String adminFamilyGroupStart = '/admin/family-groups/new';
   static const String adminFamilyGroupPattern =
       '/admin/family-groups/:familyGroupId';
   static const String adminFamilyGroupMemberPickerPattern =
@@ -37,6 +38,12 @@ abstract final class AppRoutes {
   static const String devGallery = '/dev/gallery';
 
   static const String filterQueryParameter = 'filter';
+  static const String viewQueryParameter = 'view';
+  static const String familyGroupsView = 'groups';
+  static const String forFamilyQueryParameter = 'family';
+
+  static const String adminFamilyGroups =
+      '$adminMembers?$viewQueryParameter=$familyGroupsView';
 
   static String adminMembersWithFilter(MemberCollectionFilter filter) =>
       '$adminMembers?$filterQueryParameter=${filter.queryValue}';
@@ -49,6 +56,9 @@ abstract final class AppRoutes {
 
   static String adminPaymentRegistration(int memberId) =>
       '${adminMemberLedger(memberId)}/new';
+
+  static String adminFamilyPaymentRegistration(int memberId) =>
+      '${adminPaymentRegistration(memberId)}?$forFamilyQueryParameter=true';
 
   static String adminAdminEdition(int adminId) =>
       '/admin/admins/$adminId/edit';

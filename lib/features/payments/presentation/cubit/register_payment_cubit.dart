@@ -41,13 +41,23 @@ class RegisterPaymentCubit extends Cubit<RegisterPaymentState> {
   PaymentDraft? _unconfirmedDraft;
   _UnconfirmedFamilyPayment? _unconfirmedFamily;
 
-  Future<void> open(int memberId) async {
+  Future<void> open(int memberId, {bool forFamily = false}) async {
     emit(const RegisterPaymentLoading());
 
     final result = await _loadLedger(memberId);
     if (isClosed) return;
 
     emit(result.fold(_unavailableFrom, _editingFor));
+    if (forFamily && _hasRelativesToCharge) {
+      await payForFamily(enabled: true);
+    }
+  }
+
+  bool get _hasRelativesToCharge {
+    final current = state;
+
+    return current is RegisterPaymentEditing &&
+        current.form.activeRelatives.isNotEmpty;
   }
 
   void toggleMonth(BillingMonth month) =>

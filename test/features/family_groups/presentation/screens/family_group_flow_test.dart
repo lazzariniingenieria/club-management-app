@@ -248,7 +248,57 @@ void main() {
     });
   });
 
+  group('paying for the group', () {
+    String currentLocation() => di
+        .sl<AppRouter>()
+        .router
+        .routerDelegate
+        .currentConfiguration
+        .last
+        .matchedLocation;
+
+    testWidgets('opens the payment of the member who owes the most, '
+        'already set to pay for the whole group', (tester) async {
+      await boot(tester);
+      await openRoute(tester, AppRoutes.adminFamilyGroup(1));
+
+      await tester.tap(find.text(AppStrings.familyGroupPayAction));
+      await tester.pumpAndSettle();
+
+      expect(currentLocation(), AppRoutes.adminPaymentRegistration(1));
+      await tester.scrollUntilVisible(
+        find.byType(SwitchListTile),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      final toggle = tester.widget<SwitchListTile>(find.byType(SwitchListTile));
+      expect(toggle.value, isTrue);
+    });
+
+    testWidgets('a group with a single active member offers no group payment',
+        (tester) async {
+      await boot(tester);
+      await tester.runAsync(() => members.setMemberActive(2, isActive: false));
+      await tester.runAsync(() => members.setMemberActive(3, isActive: false));
+      await openRoute(tester, AppRoutes.adminFamilyGroup(1));
+
+      expect(find.text(AppStrings.familyGroupPayAction), findsNothing);
+      expect(find.text(AppStrings.familyGroupAddAction), findsOneWidget);
+    });
+  });
+
   group('deleting a group', () {
+    Future<void> revealDeleteAction(WidgetTester tester) async {
+      final action = find.text(AppStrings.familyGroupDeleteAction);
+      await tester.scrollUntilVisible(
+        action,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(action);
+      await tester.pumpAndSettle();
+    }
+
     testWidgets('asks to confirm and leaves its members without a group', (
       tester,
     ) async {
@@ -261,8 +311,7 @@ void main() {
           .toList();
       expect(inGroup, isNotEmpty);
 
-      await tester.ensureVisible(find.text(AppStrings.familyGroupDeleteAction));
-      await tester.pumpAndSettle();
+      await revealDeleteAction(tester);
       await tester.tap(find.text(AppStrings.familyGroupDeleteAction));
       await tester.pumpAndSettle();
       expect(
@@ -296,8 +345,7 @@ void main() {
         familyGroupSource: groups,
       );
       await openRoute(tester, AppRoutes.adminFamilyGroup(1));
-      await tester.ensureVisible(find.text(AppStrings.familyGroupDeleteAction));
-      await tester.pumpAndSettle();
+      await revealDeleteAction(tester);
 
       await tester.tap(find.text(AppStrings.familyGroupDeleteAction));
       await tester.pumpAndSettle();
@@ -322,8 +370,7 @@ void main() {
       await boot(tester);
       await openRoute(tester, AppRoutes.adminFamilyGroup(1));
 
-      await tester.ensureVisible(find.text(AppStrings.familyGroupDeleteAction));
-      await tester.pumpAndSettle();
+      await revealDeleteAction(tester);
       await tester.tap(find.text(AppStrings.familyGroupDeleteAction));
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.cancelAction));
