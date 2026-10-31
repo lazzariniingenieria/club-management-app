@@ -89,8 +89,11 @@ class AppStrings {
   static const String familyGroupsSearchHint = 'Buscar grupo o integrante...';
   static const String familyGroupsErrorTitle =
       'No pudimos cargar los grupos familiares';
-  static const String familyGroupsEmpty =
-      'Todavía no hay grupos familiares. Se arman desde las cuotas de un socio.';
+  static const String familyGroupsEmpty = 'Todavía no hay grupos familiares.';
+  static const String familyGroupsBuildAction = 'Armar grupo';
+  static const String familyGroupStartQuestion = '¿Para qué socio es el grupo?';
+  static const String familyGroupStartNoCandidates =
+      'Todos los socios activos ya están en un grupo.';
   static const String familyGroupsEmptySearch =
       'Ningún grupo coincide con la búsqueda.';
   static const String familyGroupsNoMembers = 'Sin integrantes';

@@ -24,6 +24,7 @@ abstract final class AppRoutes {
   static const String adminPaymentReport = '/admin/payments/report';
   static const String adminFamilyGroupCreationPattern =
       '/admin/members/:memberId/family-group/new';
+  static const String adminFamilyGroupStart = '/admin/family-groups/new';
   static const String adminFamilyGroupPattern =
       '/admin/family-groups/:familyGroupId';
   static const String adminFamilyGroupMemberPickerPattern =

@@ -85,7 +85,7 @@ class _GroupList extends StatelessWidget {
         AppSpacing.lg,
         0,
         AppSpacing.lg,
-        AppSpacing.xl,
+        _floatingActionClearance,
       ),
       physics: const AlwaysScrollableScrollPhysics(),
       itemCount: groups.length,
@@ -98,6 +98,8 @@ class _GroupList extends StatelessWidget {
     );
   }
 }
+
+const double _floatingActionClearance = 88;
 
 class _GroupsEmpty extends StatelessWidget {
   final bool hasSearchQuery;

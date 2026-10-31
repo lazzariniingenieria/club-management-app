@@ -73,7 +73,7 @@ void main() {
     expect(find.byType(FamilyGroupListTile), findsNWidgets(2));
     expect(find.text('Familia Álvarez'), findsOneWidget);
     expect(find.text(AppStrings.familyGroupFallbackName), findsOneWidget);
-    expect(find.byType(FloatingActionButton), findsNothing);
+    expect(find.byTooltip(AppStrings.familyGroupsBuildAction), findsOneWidget);
   });
 
   testWidgets('a group behind on the fee is flagged en mora', (tester) async {
@@ -133,5 +133,56 @@ void main() {
 
     expect(find.byType(FamilyGroupsTab), findsNothing);
     expect(find.byType(MemberListTile), findsWidgets);
+  });
+
+  group('armar grupo', () {
+    testWidgets('asks first for a member who has no group yet', (
+      tester,
+    ) async {
+      await openGroupsTab(tester);
+
+      await tester.tap(find.byTooltip(AppStrings.familyGroupsBuildAction));
+      await tester.pumpAndSettle();
+
+      expect(currentLocation(), AppRoutes.adminFamilyGroupStart);
+      expect(find.text(AppStrings.familyGroupStartQuestion), findsOneWidget);
+      final roster = (await tester.runAsync(
+        MemberFakeDataSource(latency: Duration.zero).fetchMembers,
+      ))!;
+      final grouped = roster.where((member) => member.familyGroupId != null);
+      for (final member in grouped) {
+        expect(find.text(member.fullName), findsNothing);
+      }
+    });
+
+    testWidgets('builds the group and comes back to the list with a notice', (
+      tester,
+    ) async {
+      await openGroupsTab(tester);
+      await tester.tap(find.byTooltip(AppStrings.familyGroupsBuildAction));
+      await tester.pumpAndSettle();
+      final first = find.descendant(
+        of: find.byType(CustomScrollView),
+        matching: find.byType(InkWell),
+      );
+
+      await tester.tap(first.first);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find
+            .descendant(
+              of: find.byType(CustomScrollView),
+              matching: find.byType(InkWell),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppStrings.familyGroupBuildConfirm));
+      await tester.pumpAndSettle();
+
+      expect(currentUri(), AppRoutes.adminFamilyGroups);
+      expect(find.byType(FamilyGroupListTile), findsNWidgets(3));
+      expect(find.textContaining('Grupo familiar armado'), findsOneWidget);
+    });
   });
 }

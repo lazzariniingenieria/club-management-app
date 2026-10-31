@@ -54,8 +54,9 @@ class AdminMembersScreen extends StatelessWidget {
           filter: filter,
           showsFamilyGroups: showsFamilyGroups,
         ),
-        floatingActionButton:
-            showsFamilyGroups ? null : const _CreateMemberButton(),
+        floatingActionButton: showsFamilyGroups
+            ? const _BuildGroupButton()
+            : const _CreateMemberButton(),
         body: showsFamilyGroups
             ? const FamilyGroupsTab()
             : _AdminMembersBody(filter: filter),
@@ -362,6 +363,26 @@ class _CreateMemberButton extends StatelessWidget {
       foregroundColor: AppColors.textOnDark,
       tooltip: AppStrings.adminMembersCreateMember,
       child: const Icon(Icons.add_rounded),
+    );
+  }
+}
+
+class _BuildGroupButton extends StatelessWidget {
+  const _BuildGroupButton();
+
+  Future<void> _build(BuildContext context) async {
+    final message = await context.push<String>(AppRoutes.adminFamilyGroupStart);
+    if (message != null && context.mounted) showAppSnackBar(context, message);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton(
+      onPressed: () => _build(context),
+      backgroundColor: AppColors.accentBlue,
+      foregroundColor: AppColors.textOnDark,
+      tooltip: AppStrings.familyGroupsBuildAction,
+      child: const Icon(Icons.group_add_rounded),
     );
   }
 }
