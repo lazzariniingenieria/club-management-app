@@ -179,7 +179,7 @@ class AppStrings {
       'Todavía no hay socios activos en el club.';
 
   static String paymentPickerOverdueSection(int count) =>
-      'DEBEN CUOTA · $count';
+      'EN MORA · $count';
 
   static String paymentPickerUpToDateSection(int count) => 'AL DÍA · $count';
 
