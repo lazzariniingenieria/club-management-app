@@ -8,6 +8,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/formatters/display_formats.dart';
+import '../../../../shared/widgets/amount_field.dart';
+import '../../../../shared/widgets/app_notice.dart';
+import '../../../../shared/widgets/app_pill.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../cubit/payment_form.dart';
@@ -15,13 +19,11 @@ import '../cubit/register_payment_cubit.dart';
 import '../cubit/register_payment_state.dart';
 import '../formatting/payment_formats.dart';
 import '../widgets/billing_month_grid.dart';
+import '../widgets/family_payment_section.dart';
 import '../widgets/member_header_card.dart';
 import '../widgets/payer_selector.dart';
-import '../widgets/payment_amount_field.dart';
 import '../widgets/payment_confirmation_sheet.dart';
 import '../widgets/payment_method_selector.dart';
-import '../widgets/payment_notice.dart';
-import '../widgets/payment_pill.dart';
 import '../widgets/payment_total_summary.dart';
 import '../widgets/payment_unavailable_view.dart';
 
@@ -108,6 +110,10 @@ class _RegisterPaymentForm extends StatelessWidget {
               _AmountSection(form: form),
               const SizedBox(height: AppSpacing.xl),
               _MethodSection(form: form),
+              if (form.activeRelatives.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.xl),
+                _FamilySection(form: form),
+              ],
               if (form.ledger.familyMembers.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.xl),
                 _PayerSection(form: form, notice: state.notice),
@@ -136,13 +142,13 @@ class _StandingLine extends StatelessWidget {
       runSpacing: AppSpacing.xs,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        PaymentPill(
+        AppPill(
           label: member.isOverdue
               ? AppStrings.daysOverdueBadge(member.daysOverdue)
               : AppStrings.memberUpToDateBadge,
           tone: member.isOverdue
-              ? PaymentPillTone.danger
-              : PaymentPillTone.success,
+              ? AppPillTone.danger
+              : AppPillTone.success,
         ),
         Text(
           lastPaid == null
@@ -176,14 +182,38 @@ class _TopNotice extends StatelessWidget {
           message: AppStrings.registerPaymentUnconfirmedMessage,
           form: form,
         ),
-      SubmitFailedNotice(:final message) => PaymentNotice(
+      SubmitFailedNotice(:final message) => AppNotice(
           message: message,
-          tone: PaymentNoticeTone.danger,
+          tone: AppNoticeTone.danger,
+        ),
+      FamilyGroupChangedNotice(:final leftNames, :final payerLeft) => AppNotice(
+          message: _groupChangedMessage(leftNames, payerLeft),
+          tone: AppNoticeTone.danger,
+        ),
+      FamilyMonthsCollectedNotice() => const AppNotice(
+          message: AppStrings.familyPaymentMonthsCollected,
+          tone: AppNoticeTone.danger,
+        ),
+      FamilyAlreadyPaidNotice() => const AppNotice(
+          message: AppStrings.familyPaymentAlreadyPaid,
+          tone: AppNoticeTone.danger,
         ),
       MonthsAlreadyPaidNotice() ||
       PayerLeftGroupNotice() =>
         const SizedBox.shrink(),
     };
+  }
+
+  static String _groupChangedMessage(List<String> leftNames, bool payerLeft) {
+    return [
+      if (leftNames.isNotEmpty)
+        AppStrings.familyPaymentRelativesLeft(
+          DisplayFormats.listed(leftNames),
+          leftNames.length,
+        ),
+      if (payerLeft) AppStrings.familyPaymentPayerLeft,
+      AppStrings.familyPaymentReviewAndRetry,
+    ].join(' ');
   }
 }
 
@@ -200,13 +230,12 @@ class _RetryNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PaymentNotice(
+    return AppNotice(
       title: title,
       message: message,
-      tone: PaymentNoticeTone.danger,
+      tone: AppNoticeTone.danger,
       action: OutlinedButton(
-        onPressed:
-            form.canReview ? () => _reviewAndSubmit(context, form) : null,
+        onPressed: form.canReview ? () => _reviewAndSubmit(context, form) : null,
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.dangerText,
           side: const BorderSide(color: AppColors.dangerText),
@@ -256,11 +285,11 @@ class _MonthsSection extends StatelessWidget {
           onShowYear: cubit.showYear,
         ),
         if (repeated is MonthsAlreadyPaidNotice)
-          PaymentNotice(
+          AppNotice(
             message: AppStrings.registerPaymentMonthsAlreadyPaid(
               PaymentFormats.monthsSummary(repeated.months),
             ),
-            tone: PaymentNoticeTone.danger,
+            tone: AppNoticeTone.danger,
           )
         else
           Text(_suggestionOf(form), style: AppTextStyles.bodyMedium),
@@ -289,7 +318,8 @@ class _AmountSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        PaymentAmountField(
+        AmountField(
+          label: AppStrings.registerPaymentAmountLabel,
           initialCents: form.amountCents,
           onChanged: context.read<RegisterPaymentCubit>().changeAmount,
         ),
@@ -298,7 +328,7 @@ class _AmountSection extends StatelessWidget {
           fee == null
               ? AppStrings.registerPaymentAmountWithoutFee
               : AppStrings.registerPaymentAmountWithFee(
-                  PaymentFormats.pesos(fee),
+                  DisplayFormats.pesos(fee),
                 ),
           style: AppTextStyles.bodyMedium,
         ),
@@ -329,6 +359,30 @@ class _MethodSection extends StatelessWidget {
   }
 }
 
+class _FamilySection extends StatelessWidget {
+  final PaymentForm form;
+
+  const _FamilySection({required this.form});
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<RegisterPaymentCubit>();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _SectionTitle(AppStrings.registerPaymentFamilyTitle),
+        FamilyPaymentSection(
+          form: form,
+          onToggle: (enabled) => cubit.payForFamily(enabled: enabled),
+          onToggleRelative: cubit.toggleRelative,
+          onRetry: cubit.reloadFamilyStatus,
+        ),
+      ],
+    );
+  }
+}
+
 class _PayerSection extends StatelessWidget {
   final PaymentForm form;
   final RegisterPaymentNotice? notice;
@@ -347,9 +401,9 @@ class _PayerSection extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         if (notice is PayerLeftGroupNotice) ...[
-          const PaymentNotice(
+          const AppNotice(
             message: AppStrings.registerPaymentPayerLeftGroup,
-            tone: PaymentNoticeTone.danger,
+            tone: AppNoticeTone.danger,
           ),
           const SizedBox(height: AppSpacing.sm),
         ],
@@ -385,9 +439,7 @@ class _ReviewBar extends StatelessWidget {
               Semantics(
                 liveRegion: true,
                 child: Text(
-                  form.canReview
-                      ? PaymentFormats.monthsSummary(form.selectedMonths)
-                      : AppStrings.registerPaymentIncomplete,
+                  _summaryOf(form),
                   style: AppTextStyles.bodyMedium,
                 ),
               ),
@@ -405,9 +457,26 @@ class _ReviewBar extends StatelessWidget {
     );
   }
 
+  static String _summaryOf(PaymentForm form) {
+    final months = PaymentFormats.monthsSummary(form.selectedMonths);
+    if (form.canReview) {
+      return form.paysForFamily
+          ? AppStrings.registerPaymentFamilySummary(
+              months,
+              AppStrings.memberCount(form.payingMembers.length),
+            )
+          : months;
+    }
+    final nothingLeft = (form.family?.isReady ?? false) && form.feeCount == 0;
+
+    return nothingLeft
+        ? AppStrings.registerPaymentFamilyNothingLeft
+        : AppStrings.registerPaymentIncomplete;
+  }
+
   String get _label => form.canReview
       ? AppStrings.registerPaymentReviewWithTotal(
-          PaymentFormats.pesos(form.totalCents),
+          DisplayFormats.pesos(form.totalCents),
         )
       : AppStrings.registerPaymentReviewAction;
 }

@@ -17,6 +17,8 @@ abstract class PaymentRemoteDataSource {
 
   Future<void> recordPayment(PaymentDraft draft);
 
+  Future<void> recordPayments(List<PaymentDraft> drafts);
+
   Future<void> voidPayment(int paymentId, {String? reason});
 }
 
@@ -44,11 +46,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
   final ApiWriter _writer;
 
   static const String _logContext = 'PaymentRemoteDataSource';
-  static const String _monthlyFeeKey = 'monthlyFeeAmount';
 
   @override
   Future<MemberLedgerModel> fetchLedger(int memberId) async {
-    final monthlyFee = _readMonthlyFeeCents();
     final responses = await _listReader.readLists(
       paths: [
         ApiConstants.members,
@@ -64,7 +64,6 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         members: responses[0],
         delinquency: responses[1],
         payments: responses[2],
-        monthlyFeeCents: await monthlyFee,
       ),
     );
   }
@@ -99,31 +98,19 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
   }
 
   @override
+  Future<void> recordPayments(List<PaymentDraft> drafts) {
+    return _writer.post(
+      ApiConstants.paymentBatch,
+      PaymentModel.bodyForBatch(drafts),
+    );
+  }
+
+  @override
   Future<void> voidPayment(int paymentId, {String? reason}) {
     return _writer.patch(
       ApiConstants.paymentVoiding(paymentId),
       body: reason == null ? null : {PaymentModel.reasonKey: reason},
     );
-  }
-
-  Future<int?> _readMonthlyFeeCents() async {
-    try {
-      return await _objectReader.readObject(
-        path: ApiConstants.currentClub,
-        build: (club) {
-          final amount = club[_monthlyFeeKey] as num?;
-
-          return amount == null ? null : PaymentModel.centsFrom(amount);
-        },
-      );
-    } catch (error) {
-      _logger.warning(
-        'Monthly fee unavailable, the amount starts empty: $error',
-        context: _logContext,
-      );
-
-      return null;
-    }
   }
 
   Future<T> _parsed<T>(Future<T> Function() build) =>

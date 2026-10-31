@@ -82,6 +82,27 @@ class PayerLeftGroupNotice extends RegisterPaymentNotice {
   const PayerLeftGroupNotice();
 }
 
+class FamilyGroupChangedNotice extends RegisterPaymentNotice {
+  final List<String> leftNames;
+  final bool payerLeft;
+
+  const FamilyGroupChangedNotice({
+    this.leftNames = const [],
+    this.payerLeft = false,
+  });
+
+  @override
+  List<Object?> get props => [leftNames, payerLeft];
+}
+
+class FamilyMonthsCollectedNotice extends RegisterPaymentNotice {
+  const FamilyMonthsCollectedNotice();
+}
+
+class FamilyAlreadyPaidNotice extends RegisterPaymentNotice {
+  const FamilyAlreadyPaidNotice();
+}
+
 class SubmitFailedNotice extends RegisterPaymentNotice {
   final String message;
 

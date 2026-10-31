@@ -96,6 +96,55 @@ void main() {
     );
   });
 
+  group('paying for several members at once', () {
+    final other = MemberFakeDataSource.roster.firstWhere(
+      (member) =>
+          member.isActive &&
+          member.id != overdueMember.id &&
+          member.familyGroupId == null,
+    );
+
+    PaymentDraft draftFor(int memberId, BillingMonth month) => PaymentDraft(
+          memberId: memberId,
+          months: [month],
+          amountCents: PaymentFakeDataSource.defaultMonthlyFeeCents,
+          method: PaymentMethod.cash,
+        );
+
+    test('registers every member', () async {
+      final first = await payments.fetchLedger(overdueMember.id);
+      final second = await payments.fetchLedger(other.id);
+
+      await payments.recordPayments([
+        draftFor(overdueMember.id, first.suggestedMonth(today)),
+        draftFor(other.id, second.suggestedMonth(today)),
+      ]);
+
+      final reread = await payments.fetchLedger(overdueMember.id);
+      expect(reread.paidMonths, contains(first.suggestedMonth(today)));
+      final rereadOther = await payments.fetchLedger(other.id);
+      expect(rereadOther.paidMonths, contains(second.suggestedMonth(today)));
+    });
+
+    test('registers nobody when one of them has the month paid already',
+        () async {
+      final first = await payments.fetchLedger(overdueMember.id);
+      final second = await payments.fetchLedger(other.id);
+      final nextMonth = first.suggestedMonth(today);
+
+      await expectLater(
+        payments.recordPayments([
+          draftFor(overdueMember.id, nextMonth),
+          draftFor(other.id, second.lastPaidMonth!),
+        ]),
+        throwsA(isA<ConflictException>()),
+      );
+
+      final reread = await payments.fetchLedger(overdueMember.id);
+      expect(reread.paidMonths, isNot(contains(nextMonth)));
+    });
+  });
+
   test('a voided month can be paid again', () async {
     final ledger = await payments.fetchLedger(overdueMember.id);
     final last = ledger.livePayments.first;

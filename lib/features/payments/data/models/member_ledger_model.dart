@@ -19,7 +19,6 @@ class MemberLedgerModel extends MemberLedger {
     required List<dynamic> members,
     required List<dynamic> delinquency,
     required List<dynamic> payments,
-    int? monthlyFeeCents,
   }) {
     final roster = MemberModel.listFromResponses(
       members: members,
@@ -30,7 +29,6 @@ class MemberLedgerModel extends MemberLedger {
       memberId: memberId,
       roster: roster,
       payments: PaymentModel.listFromJson(payments),
-      monthlyFeeCents: monthlyFeeCents,
     );
   }
 
@@ -38,7 +36,6 @@ class MemberLedgerModel extends MemberLedger {
     required int memberId,
     required List<Member> roster,
     required List<Payment> payments,
-    int? monthlyFeeCents,
   }) {
     final member = _find(memberId, roster);
 
@@ -47,7 +44,6 @@ class MemberLedgerModel extends MemberLedger {
       familyMembers: roster.where(member.sharesFamilyGroupWith).toList(),
       payments: newestFirst(payments),
       memberNames: {for (final each in roster) each.id: each.fullName},
-      monthlyFeeCents: monthlyFeeCents,
     );
   }
 

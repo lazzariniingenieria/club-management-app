@@ -19,7 +19,6 @@ class PaymentFakeDataSource implements PaymentRemoteDataSource {
     required MemberRemoteDataSource members,
     this.onDelinquencyChanged,
     this.latency = const Duration(milliseconds: 600),
-    this.monthlyFeeCents = defaultMonthlyFeeCents,
     DateTime Function() clock = DateTime.now,
   })  : _members = members,
         _clock = clock;
@@ -27,7 +26,6 @@ class PaymentFakeDataSource implements PaymentRemoteDataSource {
   final MemberRemoteDataSource _members;
   final DelinquencyListener? onDelinquencyChanged;
   final Duration latency;
-  final int? monthlyFeeCents;
   final DateTime Function() _clock;
 
   static const int defaultMonthlyFeeCents = 1500000;
@@ -46,7 +44,6 @@ class PaymentFakeDataSource implements PaymentRemoteDataSource {
       memberId: memberId,
       roster: roster,
       payments: _paymentsOf(memberId),
-      monthlyFeeCents: monthlyFeeCents,
     );
   }
 
@@ -70,6 +67,21 @@ class PaymentFakeDataSource implements PaymentRemoteDataSource {
       _payments.add(_paymentFor(draft, month));
     }
     _announceDelinquency(member);
+  }
+
+  @override
+  Future<void> recordPayments(List<PaymentDraft> drafts) async {
+    final roster = await _seededRoster();
+    for (final draft in drafts) {
+      _rejectInvalid(draft, _memberIn(roster, draft.memberId), roster);
+    }
+
+    for (final draft in drafts) {
+      for (final month in draft.months) {
+        _payments.add(_paymentFor(draft, month));
+      }
+      _announceDelinquency(_memberIn(roster, draft.memberId));
+    }
   }
 
   @override
@@ -223,7 +235,7 @@ class PaymentFakeDataSource implements PaymentRemoteDataSource {
       id: ++_lastId,
       memberId: member.id,
       paidByMemberId: month.month.isEven ? relative?.id : null,
-      amountCents: monthlyFeeCents ?? defaultMonthlyFeeCents,
+      amountCents: defaultMonthlyFeeCents,
       month: month,
       method: PaymentMethod.values[month.month % PaymentMethod.values.length],
       paidAt: month.firstDay.add(const Duration(days: 4)).toUtc(),

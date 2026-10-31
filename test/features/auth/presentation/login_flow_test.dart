@@ -115,8 +115,10 @@ void main() {
     );
 
     di.sl<AppRouter>().router.go(AppRoutes.adminProfile);
-    await settleSession(tester);
+    await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text(AppStrings.logoutAction));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(AppStrings.logoutAction));
     await settleSession(tester);
     await tester.tap(find.widgetWithText(TextButton, AppStrings.logoutAction));

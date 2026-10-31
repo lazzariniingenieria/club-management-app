@@ -20,4 +20,16 @@ void main() {
       expect(UserRole.member.usesAdminSurface, isFalse);
     });
   });
+
+  test('both admin roles edit the club fee, a member does not', () {
+    expect(UserRole.superAdmin.canEditClubFee, isTrue);
+    expect(UserRole.admin.canEditClubFee, isTrue);
+    expect(UserRole.member.canEditClubFee, isFalse);
+  });
+
+  test('both admin roles change their own password, a member does not', () {
+    expect(UserRole.admin.canChangeOwnPassword, isTrue);
+    expect(UserRole.superAdmin.canChangeOwnPassword, isTrue);
+    expect(UserRole.member.canChangeOwnPassword, isFalse);
+  });
 }

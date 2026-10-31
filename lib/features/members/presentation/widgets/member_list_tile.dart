@@ -11,14 +11,18 @@ import 'member_status_badge.dart';
 class MemberListTile extends StatelessWidget {
   final Member member;
   final VoidCallback onOpen;
-  final VoidCallback onEdit;
+  final VoidCallback? onEdit;
+  final VoidCallback? onRemove;
+  final Widget? tag;
 
   const MemberListTile({
     super.key,
     required this.member,
     required this.onOpen,
-    required this.onEdit,
-  });
+    this.onEdit,
+    this.onRemove,
+    this.tag,
+  }) : assert(onEdit != null || onRemove != null);
 
   @override
   Widget build(BuildContext context) {
@@ -31,10 +35,14 @@ class MemberListTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(child: _OpenLedgerArea(member: member, onOpen: onOpen)),
+          Expanded(
+            child: _OpenLedgerArea(member: member, onOpen: onOpen, tag: tag),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.sm),
-            child: _EditAction(onPressed: onEdit),
+            child: onRemove != null
+                ? _RemoveAction(member: member, onPressed: onRemove!)
+                : _EditAction(onPressed: onEdit!),
           ),
         ],
       ),
@@ -45,8 +53,9 @@ class MemberListTile extends StatelessWidget {
 class _OpenLedgerArea extends StatelessWidget {
   final Member member;
   final VoidCallback onOpen;
+  final Widget? tag;
 
-  const _OpenLedgerArea({required this.member, required this.onOpen});
+  const _OpenLedgerArea({required this.member, required this.onOpen, this.tag});
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +71,7 @@ class _OpenLedgerArea extends StatelessWidget {
             AppSpacing.sm,
             AppSpacing.md,
           ),
-          child: _MemberIdentity(member: member),
+          child: _MemberIdentity(member: member, tag: tag),
         ),
       ),
     );
@@ -71,8 +80,9 @@ class _OpenLedgerArea extends StatelessWidget {
 
 class _MemberIdentity extends StatelessWidget {
   final Member member;
+  final Widget? tag;
 
-  const _MemberIdentity({required this.member});
+  const _MemberIdentity({required this.member, this.tag});
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +90,14 @@ class _MemberIdentity extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(member.fullName, style: AppTextStyles.labelLarge),
+          Wrap(
+            spacing: AppSpacing.sm,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(member.fullName, style: AppTextStyles.labelLarge),
+              if (tag != null) tag!,
+            ],
+          ),
           const SizedBox(height: AppSpacing.sm),
           MemberStatusBadge(status: member.status),
         ],
@@ -100,6 +117,30 @@ class _EditAction extends StatelessWidget {
       onPressed: onPressed,
       tooltip: AppStrings.memberEditAction,
       icon: const Icon(Icons.edit_outlined, color: AppColors.textSecondary),
+    );
+  }
+}
+
+class _RemoveAction extends StatelessWidget {
+  final Member member;
+  final VoidCallback onPressed;
+
+  const _RemoveAction({required this.member, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: AppStrings.familyGroupRemoveSemantics(member.fullName),
+      button: true,
+      excludeSemantics: true,
+      child: IconButton(
+        onPressed: onPressed,
+        tooltip: AppStrings.familyGroupRemoveTooltip,
+        icon: const Icon(
+          Icons.person_remove_outlined,
+          color: AppColors.textSecondary,
+        ),
+      ),
     );
   }
 }

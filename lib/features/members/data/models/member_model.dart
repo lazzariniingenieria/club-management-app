@@ -53,6 +53,9 @@ class MemberModel extends Member {
     };
   }
 
+  static Map<String, dynamic> bodyForFamilyGroup(int familyGroupId) =>
+      {_familyGroupIdKey: familyGroupId};
+
   static String? _orNull(String value) => value.isEmpty ? null : value;
 
   static MemberModel _fromRow(

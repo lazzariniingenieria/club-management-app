@@ -3,9 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/router/app_routes.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
+import '../../../../shared/widgets/status_message_view.dart';
 
 enum PaymentUnavailableKind { offline, server, missing, inactive }
 
@@ -15,77 +13,35 @@ class PaymentUnavailableView extends StatelessWidget {
 
   const PaymentUnavailableView({super.key, required this.kind, this.onRetry});
 
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: (constraints.maxHeight - AppSpacing.xl * 2)
-                .clamp(0, double.infinity),
-          ),
-          child: Center(
-            child: _UnavailableMessage(kind: kind, onRetry: onRetry),
-          ),
-        ),
-      ),
-    );
+  bool get _canRetry =>
+      onRetry != null &&
+      kind != PaymentUnavailableKind.missing &&
+      kind != PaymentUnavailableKind.inactive;
+
+  String get _actionLabel {
+    if (kind == PaymentUnavailableKind.inactive) return AppStrings.backAction;
+
+    return _canRetry ? AppStrings.retryAction : AppStrings.ledgerMissingAction;
   }
-}
 
-class _UnavailableMessage extends StatelessWidget {
-  final PaymentUnavailableKind kind;
-  final VoidCallback? onRetry;
+  void _act(BuildContext context) {
+    if (kind == PaymentUnavailableKind.inactive) return _leave(context);
+    if (_canRetry) return onRetry!();
 
-  const _UnavailableMessage({required this.kind, required this.onRetry});
+    context.go(AppRoutes.adminPayments);
+  }
 
   @override
   Widget build(BuildContext context) {
     final copy = _UnavailableCopy.of(kind);
 
-    return Semantics(
-      liveRegion: true,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(copy.icon, size: 40, color: copy.iconColor),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            copy.title,
-            style: AppTextStyles.titleMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            copy.message,
-            style: AppTextStyles.bodyLargeMuted,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          _action(context),
-        ],
-      ),
-    );
-  }
-
-  Widget _action(BuildContext context) {
-    if (kind == PaymentUnavailableKind.inactive) {
-      return ElevatedButton(
-        onPressed: () => _leave(context),
-        child: const Text(AppStrings.backAction),
-      );
-    }
-    if (kind == PaymentUnavailableKind.missing || onRetry == null) {
-      return ElevatedButton(
-        onPressed: () => context.go(AppRoutes.adminPayments),
-        child: const Text(AppStrings.ledgerMissingAction),
-      );
-    }
-
-    return ElevatedButton(
-      onPressed: onRetry,
-      child: const Text(AppStrings.retryAction),
+    return StatusMessageView(
+      icon: copy.icon,
+      title: copy.title,
+      message: copy.message,
+      isError: copy.isError,
+      actionLabel: _actionLabel,
+      onAction: () => _act(context),
     );
   }
 }
@@ -102,9 +58,9 @@ class _UnavailableCopy {
   final String title;
   final String message;
   final IconData icon;
-  final Color iconColor;
+  final bool isError;
 
-  const _UnavailableCopy(this.title, this.message, this.icon, this.iconColor);
+  const _UnavailableCopy(this.title, this.message, this.icon, this.isError);
 
   static _UnavailableCopy of(PaymentUnavailableKind kind) {
     return switch (kind) {
@@ -112,25 +68,25 @@ class _UnavailableCopy {
           AppStrings.ledgerOfflineTitle,
           AppStrings.ledgerOfflineMessage,
           Icons.wifi_off_rounded,
-          AppColors.dangerText,
+          true,
         ),
       PaymentUnavailableKind.server => const _UnavailableCopy(
           AppStrings.ledgerServerErrorTitle,
           AppStrings.ledgerServerErrorMessage,
           Icons.dns_outlined,
-          AppColors.dangerText,
+          true,
         ),
       PaymentUnavailableKind.inactive => const _UnavailableCopy(
           AppStrings.registerPaymentInactiveTitle,
           AppStrings.ledgerInactiveHint,
           Icons.block_rounded,
-          AppColors.textSecondary,
+          false,
         ),
       PaymentUnavailableKind.missing => const _UnavailableCopy(
           AppStrings.ledgerMissingTitle,
           AppStrings.ledgerMissingMessage,
           Icons.person_search_outlined,
-          AppColors.textSecondary,
+          false,
         ),
     };
   }
