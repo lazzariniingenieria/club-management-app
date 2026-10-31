@@ -20,6 +20,14 @@ class CountingGroupSource extends FamilyGroupFakeDataSource {
   int attempts = 0;
   bool failsOnce = false;
   Completer<void>? holdCreation;
+  Completer<void>? holdDeletion;
+
+  @override
+  Future<void> deleteGroup(int familyGroupId) async {
+    await holdDeletion?.future;
+
+    return super.deleteGroup(familyGroupId);
+  }
 
   @override
   Future<FamilyGroupModel> createGroup({
@@ -275,6 +283,44 @@ void main() {
         everyElement(isNull),
       );
       expect(find.text(AppStrings.familyGroupDeleted), findsOneWidget);
+      expect(find.text(AppStrings.familyGroupScreenTitle), findsNothing);
+    });
+
+    testWidgets(
+        'a second tap while the deletion is in flight opens no second dialog '
+        'and still leaves the screen', (tester) async {
+      members = MemberFakeDataSource(latency: Duration.zero);
+      final groups = CountingGroupSource(members: members)
+        ..holdDeletion = Completer<void>();
+      await bootApp(
+        tester,
+        signedInAs: UserRole.admin,
+        memberSource: members,
+        familyGroupSource: groups,
+      );
+      await openRoute(tester, AppRoutes.adminFamilyGroup(1));
+      await tester.scrollUntilVisible(
+        find.text(AppStrings.familyGroupDeleteAction),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      await tester.tap(find.text(AppStrings.familyGroupDeleteAction));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppStrings.familyGroupDeleteConfirm));
+      await tester.pump(const Duration(milliseconds: 400));
+
+      await tester.tap(
+        find.text(AppStrings.familyGroupDeleteAction),
+        warnIfMissed: false,
+      );
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text(AppStrings.familyGroupDeleteConfirm), findsNothing);
+
+      groups.holdDeletion!.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.familyGroupDeleteConfirm), findsNothing);
       expect(find.text(AppStrings.familyGroupScreenTitle), findsNothing);
     });
 

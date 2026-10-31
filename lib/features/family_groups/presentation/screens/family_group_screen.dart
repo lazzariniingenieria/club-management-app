@@ -316,30 +316,44 @@ class _EmptyGroup extends StatelessWidget {
   }
 }
 
-class _DeleteGroupAction extends StatelessWidget {
+class _DeleteGroupAction extends StatefulWidget {
   final FamilyGroupDetail detail;
 
   const _DeleteGroupAction({required this.detail});
 
-  Future<void> _delete(BuildContext context) async {
+  @override
+  State<_DeleteGroupAction> createState() => _DeleteGroupActionState();
+}
+
+enum _DeleteStep { idle, confirming, deleting }
+
+class _DeleteGroupActionState extends State<_DeleteGroupAction> {
+  _DeleteStep _step = _DeleteStep.idle;
+
+  Future<void> _delete() async {
     final cubit = context.read<FamilyGroupCubit>();
+    setState(() => _step = _DeleteStep.confirming);
+
     final confirmed = await ConfirmationDialog.show(
       context,
       ConfirmationDialog(
         title: AppStrings.familyGroupDeleteTitle(
-          FamilyGroupFormats.displayName(detail.group),
+          FamilyGroupFormats.displayName(widget.detail.group),
         ),
         message: AppStrings.familyGroupDeleteMessage,
         confirmLabel: AppStrings.familyGroupDeleteConfirm,
         isDestructive: true,
       ),
     );
-    if (!confirmed) return;
+    if (!mounted) return;
+    if (!confirmed) return setState(() => _step = _DeleteStep.idle);
 
+    setState(() => _step = _DeleteStep.deleting);
     final failure = await cubit.delete();
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     if (failure != null) {
+      setState(() => _step = _DeleteStep.idle);
       return showAppSnackBar(context, failure.userMessage, isError: true);
     }
     showAppSnackBar(context, AppStrings.familyGroupDeleted);
@@ -351,8 +365,14 @@ class _DeleteGroupAction extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: TextButton.icon(
-        onPressed: () => _delete(context),
-        icon: const Icon(Icons.delete_outline_rounded),
+        onPressed: _step == _DeleteStep.idle ? _delete : null,
+        icon: _step == _DeleteStep.deleting
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.delete_outline_rounded),
         label: const Text(AppStrings.familyGroupDeleteAction),
         style: TextButton.styleFrom(foregroundColor: AppColors.dangerText),
       ),
