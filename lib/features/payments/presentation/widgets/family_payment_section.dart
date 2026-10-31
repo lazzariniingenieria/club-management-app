@@ -48,10 +48,6 @@ class FamilyPaymentSection extends StatelessWidget {
               AppStrings.registerPaymentFamilyToggle,
               style: AppTextStyles.bodyLarge,
             ),
-            subtitle: Text(
-              AppStrings.registerPaymentFamilyToggleHelp,
-              style: AppTextStyles.bodySmall,
-            ),
           ),
           if (family != null) ...[
             const Divider(height: 1, color: AppColors.border),

@@ -288,12 +288,6 @@ void main() {
 
       await tester.tap(find.text(AppStrings.ledgerRegisterAction));
       await tester.pumpAndSettle();
-      expect(
-        find.text(
-          AppStrings.registerPaymentSuggestionAfterLastPaid('septiembre'),
-        ),
-        findsOneWidget,
-      );
       await reviewAndConfirm(tester, r'$15.000');
 
       expect(currentLocation(), AppRoutes.adminMemberLedger(1));

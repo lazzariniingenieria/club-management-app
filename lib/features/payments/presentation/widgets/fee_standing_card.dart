@@ -97,7 +97,6 @@ class _Standing {
       return _Standing(
         title: AppStrings.ledgerInactive,
         lastPaid: lastPaid,
-        note: AppStrings.ledgerInactiveNote,
         background: AppColors.disabledSurface,
         accent: AppColors.textPrimary,
         icon: Icons.block_rounded,
@@ -133,7 +132,7 @@ class _Standing {
   static String? _overdueNoteOf(MemberLedger ledger) {
     final lastPaid = ledger.lastPaidMonth;
     if (lastPaid != null) {
-      return AppStrings.ledgerOverdueSinceLastPaid(
+      return AppStrings.ledgerOverdueSince(
         PaymentFormats.monthWithYear(lastPaid.next),
       );
     }
@@ -141,7 +140,7 @@ class _Standing {
     final joinedAt = ledger.member.joinedAt;
     if (joinedAt == null) return null;
 
-    return AppStrings.ledgerOverdueSinceJoining(
+    return AppStrings.ledgerOverdueSince(
       PaymentFormats.monthWithYear(BillingMonth.of(joinedAt)),
     );
   }
