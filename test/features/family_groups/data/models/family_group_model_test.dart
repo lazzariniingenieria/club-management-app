@@ -31,4 +31,30 @@ void main() {
       'name': 'Familia Torres',
     });
   });
+
+  group('the body that creates a group with its members', () {
+    test('sends the name and the ids of every member', () {
+      expect(
+        FamilyGroupModel.bodyForCreation('Familia Torres', const [4, 5]),
+        {
+          'name': 'Familia Torres',
+          'memberIds': [4, 5],
+        },
+      );
+    });
+
+    test('sends a null name when the group has none', () {
+      expect(FamilyGroupModel.bodyForCreation(null, const [4, 5]), {
+        'name': null,
+        'memberIds': [4, 5],
+      });
+    });
+
+    test('sends an empty list when there are no members yet', () {
+      expect(FamilyGroupModel.bodyForCreation('Familia Torres', const []), {
+        'name': 'Familia Torres',
+        'memberIds': <int>[],
+      });
+    });
+  });
 }
