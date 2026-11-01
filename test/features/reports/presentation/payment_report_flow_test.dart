@@ -171,4 +171,38 @@ void main() {
       expect(location, AppRoutes.adminReports);
     });
   });
+
+  testWidgets('the generate button stays clear of the system navigation bar', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    tester.view.padding = const FakeViewPadding(bottom: 144);
+    addTearDown(tester.view.reset);
+    await bootApp(tester, signedInAs: UserRole.admin);
+    di.sl<AppRouter>().router.push(AppRoutes.adminFeeReceipts);
+    await tester.pumpAndSettle();
+
+    final button = tester.getRect(find.text(AppStrings.reportGenerate));
+    final screenHeight = tester.view.physicalSize.height / 3;
+    expect(button.bottom, lessThanOrEqualTo(screenHeight - 48));
+  });
+
+  testWidgets('a finished PDF opens its actions in a sheet', (tester) async {
+    await bootApp(tester, signedInAs: UserRole.admin);
+    di.sl<AppRouter>().router.push(AppRoutes.adminFeeReceipts);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(AppStrings.reportGenerate));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text(AppStrings.reportShare),
+      ),
+      findsOneWidget,
+    );
+  });
 }

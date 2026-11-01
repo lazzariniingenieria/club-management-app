@@ -522,9 +522,7 @@ class AppStrings {
   static String familyGroupRemoveTitle(String member) =>
       '¿Quitar a $member del grupo?';
 
-  static const String reportTitle = 'Reporte de cuotas cobradas';
-  static const String reportPeriodQuestion =
-      'Tocá un mes, o dos para elegir un período';
+  static const String reportTitle = 'Cuotas cobradas';
   static const String reportMonthChosen = 'Elegido';
   static const String reportScopeNote =
       'Arma las tabletas con los pagos realizados en el mes seleccionado.';

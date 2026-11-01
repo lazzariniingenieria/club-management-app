@@ -46,9 +46,9 @@ class MonthCellLook {
           border: AppColors.textSecondary,
         );
 
-  const MonthCellLook.selected(String caption)
+  const MonthCellLook.selected(String caption, {bool isEnabled = true})
       : this._(
-          isEnabled: true,
+          isEnabled: isEnabled,
           isSelected: true,
           background: AppColors.brandNavy,
           foreground: AppColors.textOnDark,

@@ -362,6 +362,10 @@ void main() {
       final search = tester.widget<TextField>(find.byType(TextField));
       expect(search.controller?.text, isEmpty);
       expect(find.text('Juan Zárate'), findsOneWidget);
+      final editable = tester.state<EditableTextState>(
+        find.byType(EditableText),
+      );
+      expect(editable.widget.focusNode.hasFocus, isFalse);
     });
 
     testWidgets('the notice opens the member who just paid', (tester) async {

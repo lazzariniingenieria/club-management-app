@@ -123,26 +123,20 @@ class _AccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _ProfileCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          MergeSemantics(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user.role == UserRole.superAdmin
-                      ? AppStrings.profileRoleSuperAdmin
-                      : AppStrings.profileRoleAdmin,
-                  style: AppTextStyles.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                _linkedMember(),
-              ],
+      child: MergeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              user.role == UserRole.superAdmin
+                  ? AppStrings.profileRoleSuperAdmin
+                  : AppStrings.profileRoleAdmin,
+              style: AppTextStyles.titleMedium,
             ),
-          ),
-          if (user.role.canChangeOwnPassword) const _ChangePasswordLink(),
-        ],
+            const SizedBox(height: AppSpacing.xs),
+            _linkedMember(),
+          ],
+        ),
       ),
     );
   }
@@ -224,6 +218,7 @@ class _MonthlyFeeRow extends StatelessWidget {
                   AppStrings.profileMonthlyFeeLabel,
                   style: AppTextStyles.bodyMedium,
                 ),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   fee == null
                       ? AppStrings.profileMonthlyFeeUnset
@@ -288,6 +283,7 @@ class _SecurityActions extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
         ],
         const LogoutButton(),
+        if (user.role.canChangeOwnPassword) const _ChangePasswordLink(),
       ],
     );
   }
@@ -302,9 +298,6 @@ class _ChangePasswordLink extends StatelessWidget {
       padding: const EdgeInsets.only(top: AppSpacing.sm),
       child: TextButton(
         onPressed: () => _changePassword(context),
-        style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-        ),
         child: const Text(AppStrings.profileChangePassword),
       ),
     );

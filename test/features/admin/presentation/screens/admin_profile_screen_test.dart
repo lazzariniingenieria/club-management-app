@@ -6,6 +6,7 @@ import 'package:club_management_app/features/admins/data/datasources/admin_fake_
 import 'package:club_management_app/features/admins/data/datasources/admin_remote_data_source.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
 import 'package:club_management_app/shared/widgets/app_secondary_button.dart';
+import 'package:club_management_app/shared/widgets/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -20,6 +21,13 @@ void main() {
     await bootApp(tester, signedInAs: role, adminSource: adminSource);
     di.sl<AppRouter>().router.go(AppRoutes.adminProfile);
     await tester.pumpAndSettle();
+  }
+
+  Future<void> tapChangePassword(WidgetTester tester) async {
+    final link = find.text(AppStrings.profileChangePassword);
+    await tester.ensureVisible(link);
+    await tester.pumpAndSettle();
+    await tester.tap(link);
   }
 
   testWidgets('an admin edits the club fee but does not manage admins', (
@@ -51,25 +59,24 @@ void main() {
     expect(find.text(AppStrings.feeSaved), findsOneWidget);
   });
 
-  testWidgets('changing the password is a quiet link inside the account', (
+  testWidgets('changing the password sits under Cerrar sesión, as wide', (
     tester,
   ) async {
     await openProfile(tester, UserRole.admin);
+    final link = find.widgetWithText(TextButton, AppStrings.profileChangePassword);
+    await tester.ensureVisible(link);
+    await tester.pumpAndSettle();
 
-    expect(
-      find.widgetWithText(TextButton, AppStrings.profileChangePassword),
-      findsOneWidget,
-    );
-    expect(
-      find.widgetWithText(ListTile, AppStrings.profileChangePassword),
-      findsNothing,
-    );
+    final logout = tester.getRect(find.byType(LogoutButton));
+    final password = tester.getRect(link);
+    expect(password.top, greaterThanOrEqualTo(logout.bottom));
+    expect(password.width, logout.width);
   });
 
   testWidgets('the super admin changes their own password', (tester) async {
     await openProfile(tester, UserRole.superAdmin);
 
-    await tester.tap(find.text(AppStrings.profileChangePassword));
+    await tapChangePassword(tester);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'nueva-clave-1');
     await tester.tap(
@@ -88,7 +95,7 @@ void main() {
       adminSource: AdminFakeDataSource(latency: const Duration(seconds: 1)),
     );
 
-    await tester.tap(find.text(AppStrings.profileChangePassword));
+    await tapChangePassword(tester);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'nueva-clave-1');
     await tester.tap(
@@ -116,7 +123,7 @@ void main() {
   ) async {
     await openProfile(tester, UserRole.admin);
 
-    await tester.tap(find.text(AppStrings.profileChangePassword));
+    await tapChangePassword(tester);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '1234');
     await tester.tap(find.widgetWithText(ElevatedButton, AppStrings.passwordChangeAction));
@@ -130,7 +137,7 @@ void main() {
     (tester) async {
       await openProfile(tester, UserRole.admin);
 
-      await tester.tap(find.text(AppStrings.profileChangePassword));
+      await tapChangePassword(tester);
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'ñ' * 40);
       await tester.tap(
