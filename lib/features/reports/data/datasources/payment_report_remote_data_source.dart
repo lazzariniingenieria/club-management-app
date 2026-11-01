@@ -55,10 +55,7 @@ class PaymentReportRemoteDataSourceImpl
 
     return FeeReceiptsDocument(
       bytes: Uint8List.fromList(bytes),
-      fileName: FeeReceiptsRequest.fileNameFrom(
-            response.headers.value('content-disposition'),
-          ) ??
-          FeeReceiptsRequest.defaultFileName(period),
+      fileName: FeeReceiptsRequest.fileNameFor(period),
     );
   }
 }

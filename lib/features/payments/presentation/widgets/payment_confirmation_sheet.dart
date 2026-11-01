@@ -6,7 +6,6 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/formatters/display_formats.dart';
-import '../../../../shared/widgets/app_notice.dart';
 import '../../../../shared/widgets/app_secondary_button.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../domain/entities/billing_month.dart';
@@ -53,9 +52,7 @@ class PaymentConfirmationSheet extends StatelessWidget {
             _ChargeList(form: form, members: _charged),
             const SizedBox(height: AppSpacing.lg),
             _PaymentDetails(form: form),
-            const SizedBox(height: AppSpacing.lg),
-            const AppNotice(message: AppStrings.confirmPaymentNotice),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.xl),
             _ConfirmButton(
               label: AppStrings.confirmPaymentAction(_total),
               onPressed: () => Navigator.of(context).pop(true),

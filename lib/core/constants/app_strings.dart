@@ -184,6 +184,10 @@ class AppStrings {
   static const String paymentPickerQuestion =
       '¿A qué socio le registrás el pago?';
   static const String paymentPickerSearchHint = 'Buscar por nombre o DNI';
+  static const String paymentViewMember = 'Ver socio';
+
+  static String paymentRegisteredFor(String announcement, String member) =>
+      '$announcement · $member';
   static const String paymentPickerNoMembers =
       'Todavía no hay socios activos en el club.';
 
@@ -302,8 +306,6 @@ class AppStrings {
   static const String confirmPaymentPayer = 'Pagó';
   static const String confirmPaymentSkipped = 'No se cobra';
   static const String confirmPaymentSkippedReason = 'Ya tiene pagos esos meses';
-  static const String confirmPaymentNotice =
-      'Un pago registrado no se edita: si hay un error, se anula desde el historial del socio.';
   static const String confirmPaymentBackAction = 'Volver a editar';
   static const String registerPaymentFamilyTitle = 'Grupo familiar';
   static const String registerPaymentFamilyToggle = 'Pagar por todo el grupo';
