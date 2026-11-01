@@ -392,6 +392,8 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Filtro de `GET /api/payments` por fecha de carga (`paidAt`) | Nada hoy: el reporte de E10 filtra por fecha de cobro en el backend. La búsqueda sigue filtrando por mes cubierto |
 | Mora de un socio y padrón de su grupo familiar sin bajar todo el club (filtro por `memberId` en `GET /api/payments/delinquency`, por `familyGroupId` en `GET /api/members`) | Cuotas del socio a escala — hoy cada apertura del ledger trae el padrón entero y la mora de todo el club para mostrar a un socio. La verificación previa al registrar ya no lo necesita: usa `GET /api/members/{id}` y el historial del socio |
 | Edición de un pago | Corregir un pago es anularlo y registrarlo de nuevo |
+| Fecha de baja de un socio (`deactivatedAt` o un historial de estado): `PATCH /deactivate` solo cambia `status`, y `updatedAt` se mueve con cualquier edición | "Socios dados de baja por mes" en Reportes y métricas: hoy no se muestra |
+| Un resumen agregado de cobros por mes | Nada hoy: Reportes y métricas suma en el cliente sobre `GET /api/payments` completo, que crece con cada cuota |
 | Días de gracia configurables | El umbral de "en mora" |
 | Mostrar a un ADMIN quién cargó o anuló un pago: `recordedByUserId` y `voidedByUserId` no se pueden traducir a una persona (`GET /api/admins` es solo para SUPER_ADMIN y un admin no tiene nombre) | "Quién lo cargó" en el detalle del pago |
 | Datos de contacto del club en `GET /api/clubs/me` | El canal de contacto de Recuperar contraseña (E11) |

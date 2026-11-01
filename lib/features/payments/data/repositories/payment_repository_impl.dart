@@ -6,6 +6,7 @@ import '../../../../core/errors/failure_mapper.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../domain/entities/member_ledger.dart';
+import '../../domain/entities/payment.dart';
 import '../../domain/entities/payment_draft.dart';
 import '../../domain/entities/payment_precheck.dart';
 import '../../domain/repositories/payment_repository.dart';
@@ -37,6 +38,14 @@ class PaymentRepositoryImpl implements PaymentRepository {
     return _guard(
       'loadPrecheck',
       () async => Right(await remoteDataSource.fetchPrecheck(memberId)),
+    );
+  }
+
+  @override
+  Future<Either<Failure, List<Payment>>> loadPayments() {
+    return _guard(
+      'loadPayments',
+      () async => Right(await remoteDataSource.fetchPayments()),
     );
   }
 

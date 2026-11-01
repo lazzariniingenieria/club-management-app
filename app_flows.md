@@ -93,7 +93,8 @@ Rutas push, fuera de los tabs:
 | Grupo familiar | `/admin/family-groups/:familyGroupId` | admin | E6.5 |
 | Armar grupo familiar (elegir familiar) | `/admin/members/:memberId/family-group/new` | admin | E6.5 |
 | Sumar integrante | `/admin/family-groups/:familyGroupId/add` | admin | E6.5 |
-| Reporte de pagos | `/admin/payments/report` | admin | E10 |
+| Reportes y métricas | `/admin/reports` | admin | Revisión 2026-10-31 |
+| Reporte de cuotas cobradas (PDF) | `/admin/reports/receipts` | admin | E10 |
 | Gestión de canchas | `/admin/courts` | admin | E9 |
 | Gestión de administradores | `/admin/admins` (+ `/new`, `/:adminId/edit`) | **superAdmin** | E8 |
 
@@ -111,6 +112,7 @@ Rutas push, fuera de los tabs:
 | :--- | :--- | :--- | :--- |
 | `ActiveMembersCard` | "TOTAL DE SOCIOS" + contador de activos | Card navy sólida, texto blanco | → tab **Socios** con el chip **Todos** |
 | `OverdueMembersCard` | "SOCIOS EN MORA" + contador | Card azul claro, contador en rojo | → tab **Socios** con el chip **En mora** |
+| `ReportsAccessCard` | "REPORTES Y MÉTRICAS" + chevron | Card blanca con borde, ícono de barras | → Reportes y métricas (§4.7). Va fuera del bloque de contadores, así sigue a mano aunque el resumen no cargue |
 | `UpcomingSlotsCard` **(E9, sin construir)** | "PRÓXIMOS TURNOS" + cancha / horario | Card azul claro, horario en azul a la derecha | → agenda |
 
 **Accesos Rápidos** — dos cards lado a lado, cada una una **acción**, no un destino que ya está en otro lado: *Nuevo socio* (navy) → alta de socio (`/admin/members/new`), *Registrar pago* (verde) → elegir socio → registro de pago (§4.2). Hasta E6 estuvo dibujada en gris.
@@ -414,14 +416,26 @@ Si el bloqueo pisa reservas existentes, la confirmación **debe listar las reser
 
 ### 4.6 Reporte de pagos
 
-`Generar reporte → período (un mes o un rango de fechas) → PDF`
+`Inicio → Reportes y métricas → Generar PDF de cuotas cobradas → meses en la grilla → PDF`
 
 **El PDF lo genera el backend** (`GET /api/payments/receipts`, [backend_api.md](backend_api.md) §6): son las **tabletas** que hoy el admin arma a mano en Excel para imprimir y recortar, una por grupo familiar y mes cubierto (o por socio si no tiene grupo), con cada socio que pagó ese mes, su importe y el total; cada tableta sale dos veces lado a lado, con líneas de corte. La app elige el período, baja el PDF y lo comparte o imprime.
 
-- **Entrada**: ícono de PDF con `tooltip` "Reporte de cuotas cobradas" en la barra superior de Socios (`/admin/payments/report`). Ícono solo, como permite §1 para el admin, para no quitarle lugar al título.
-- **Período por fecha de cobro**: *Un mes* o *Varios meses* (desde / hasta) entre los últimos 24 meses. La app lo traduce a días (`paidFrom` = día 1 del primer mes, `paidTo` = último día del último mes). Se eligen meses y no días sueltos porque así rinde el club, y porque el selector de fechas de Flutter sale en inglés mientras la app no tenga la localización en español. Un rango invertido se explica en el campo y deshabilita *Generar PDF*.
-- **Estados**: generando (botón con progreso y "Generando el PDF…"; el modo y los meses quedan bloqueados hasta que responda, y una respuesta de un período que ya no está elegido se descarta), listo ("Tabletas listas", el período, *Compartir PDF* y *Ver o imprimir*), **sin cobros** (el `204`: "No hubo cobros en ese período, así que no hay tabletas para imprimir"), error sin conexión o del servidor, y **el servidor tardó demasiado** (el PDF tiene 60 s de espera, no los 15 s generales; si igual no alcanza, "Probá con menos meses o de nuevo en un rato" en lugar de "sin conexión"). Si el dispositivo no puede abrir o compartir el PDF, un snackbar lo dice.
+- **Entrada**: el botón *Generar PDF de cuotas cobradas* de Reportes y métricas (§4.7), en `/admin/reports/receipts`. Hasta la revisión del 2026-10-31 era un ícono en la barra de Socios, difícil de encontrar; ahí ya no está.
+- **Período por fecha de cobro**, en **la misma grilla de meses de Registrar pago**: arranca con el mes actual elegido, tocar un mes elige ese mes, tocar un segundo mes marca el rango entre los dos (en cualquier orden) y el siguiente toque vuelve a empezar. Debajo, siempre, qué se va a generar ("Octubre 2026", "Agosto a octubre de 2026"). Los meses que todavía no empezaron no se pueden elegir, y la grilla va hasta tres años atrás. Reemplaza al selector *Un mes / Varios meses* con desplegables, que obligaba a decidir el modo antes de elegir. La app lo traduce a días (`paidFrom` = día 1 del primer mes, `paidTo` = último día del último mes). Se eligen meses y no días sueltos porque así rinde el club, y porque el selector de fechas de Flutter sale en inglés mientras la app no tenga la localización en español.
+- **Estados**: generando (botón con progreso y "Generando el PDF…"; la grilla queda bloqueada hasta que responda, y una respuesta de un período que ya no está elegido se descarta), listo ("Tabletas listas", el período, *Compartir PDF* y *Ver o imprimir*), **sin cobros** (el `204`: "No hubo cobros en ese período, así que no hay tabletas para imprimir"), error sin conexión o del servidor, y **el servidor tardó demasiado** (el PDF tiene 60 s de espera, no los 15 s generales; si igual no alcanza, "Probá con menos meses o de nuevo en un rato" en lugar de "sin conexión"). Si el dispositivo no puede abrir o compartir el PDF, un snackbar lo dice. Al terminar, la pantalla baja sola hasta el resultado: en un teléfono queda debajo de la grilla.
 - El archivo se llama por sus meses, no por las fechas ISO que usa el backend en el `Content-Disposition`: `cuotas-cobradas-octubre-2026.pdf`, `cuotas-cobradas-agosto-a-octubre-2026.pdf` o `cuotas-cobradas-noviembre-2025-a-febrero-2026.pdf`. Es lo que dice el PDF por dentro ("MES DE OCTUBRE 2026"), que no imprime fechas con números.
+
+### 4.7 Reportes y métricas
+
+`/admin/reports`, desde la tarjeta **Reportes y métricas** del Resumen general del Inicio, debajo de los contadores (revisión en el celular, 2026-10-31). No es tab: se mira una vez por mes, no varias veces por día.
+
+- **Mes** con flechas, arrancando en el actual; no pasa del mes en curso.
+- **Cuatro indicadores**: *Cobrado* y *Cuotas cobradas* del mes, por fecha de cobro como el PDF, cada uno con su cambio contra el mes anterior (flecha y texto, nunca color solo; sin comparación si el mes anterior no tuvo cobros); *Socios nuevos* del mes, por fecha de alta; y *En mora hoy*, que no depende del mes elegido y lo dice en la etiqueta.
+- **Cobrado por mes**: barras de los seis meses que terminan en el elegido, de una sola serie. La del mes elegido va en navy con su importe arriba; las demás en azul, sin números. Tocar una barra elige ese mes. Cada barra se anuncia con mes e importe.
+- **Generar PDF de cuotas cobradas** abre §4.6. Detrás de `FEE_RECEIPTS_ENABLED`, igual que antes: sin el endpoint en producción, la pantalla muestra solo las métricas.
+- **Lo que no se muestra**: socios dados de baja por mes. La API no guarda la fecha de baja ([backend_api.md](backend_api.md) §10), y `updatedAt` cambia con cualquier edición. Decisión del autor: una métrica que no se puede calcular bien no se muestra.
+- **Datos**: se calculan en la app con `GET /api/payments` (todos los pagos vigentes, sin paginar) y el padrón con la mora. Alcanza para el tamaño del club; cuando los pagos acumulados pesen, la salida es un endpoint de resumen en el backend.
+- Estados de §5: skeleton, error con *Reintentar* (sin conexión o del servidor) y "pull to refresh". Se recalcula sola cuando cambia un pago o el padrón.
 
 ---
 
@@ -467,7 +481,8 @@ GoRouter
 
 
 Una ruta con un `:familyGroupId` que no es un número vuelve a Socios, igual que con `:memberId`.
-│   ├── /admin/payments/report                        ← se suma en E10
+│   ├── /admin/reports                               ← reportes y métricas
+│   │   └── receipts                                 ← PDF de cuotas cobradas (E10)
 │   ├── /admin/courts
 │   └── /admin/admins   (+ /new, /:adminId/edit)      ← solo superAdmin
 └── StatefulShellRoute (socio)      → E12+

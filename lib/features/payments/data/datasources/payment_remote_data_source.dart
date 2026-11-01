@@ -15,6 +15,8 @@ abstract class PaymentRemoteDataSource {
 
   Future<PaymentPrecheckModel> fetchPrecheck(int memberId);
 
+  Future<List<PaymentModel>> fetchPayments();
+
   Future<void> recordPayment(PaymentDraft draft);
 
   Future<void> recordPayments(List<PaymentDraft> drafts);
@@ -87,6 +89,16 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         payments: responses[1] as List<dynamic>,
       ),
     );
+  }
+
+  @override
+  Future<List<PaymentModel>> fetchPayments() async {
+    final rows = await _listReader.readLists(
+      paths: [ApiConstants.payments],
+      build: (responses) => responses.single,
+    );
+
+    return _parsed(() async => PaymentModel.listFromJson(rows));
   }
 
   @override

@@ -523,16 +523,11 @@ class AppStrings {
       '¿Quitar a $member del grupo?';
 
   static const String reportTitle = 'Reporte de cuotas cobradas';
-  static const String reportPeriodQuestion = '¿De qué período?';
-  static const String reportModeSingle = 'Un mes';
-  static const String reportModeRange = 'Varios meses';
-  static const String reportMonthLabel = 'Mes';
-  static const String reportFromLabel = 'Desde';
-  static const String reportToLabel = 'Hasta';
+  static const String reportPeriodQuestion =
+      'Tocá un mes, o dos para elegir un período';
+  static const String reportMonthChosen = 'Elegido';
   static const String reportScopeNote =
       'Arma las tabletas con los pagos realizados en el mes seleccionado.';
-  static const String reportInvalidRange =
-      'El mes «Desde» tiene que ser anterior o igual a «Hasta».';
   static const String reportGenerate = 'Generar PDF';
   static const String reportGenerating = 'Generando el PDF…';
   static const String reportReadyTitle = 'Tabletas listas';
@@ -552,7 +547,28 @@ class AppStrings {
   static const String reportExportFailed =
       'No pudimos abrir el PDF en este dispositivo. Probá de nuevo.';
 
-  static String reportPeriodRange(String from, String to) => 'De $from a $to';
+  static String reportPeriodRange(String from, String to) => '$from a $to';
+
+  static const String metricsTitle = 'Reportes y métricas';
+  static const String metricsErrorTitle = 'No pudimos cargar las métricas';
+  static const String metricsPreviousMonth = 'Mes anterior';
+  static const String metricsNextMonth = 'Mes siguiente';
+  static const String metricsCollected = 'Cobrado';
+  static const String metricsFees = 'Cuotas cobradas';
+  static const String metricsNewMembers = 'Socios nuevos';
+  static const String metricsOverdueToday = 'En mora hoy';
+  static const String metricsChartTitle = 'Cobrado por mes';
+  static const String metricsGeneratePdf = 'Generar PDF de cuotas cobradas';
+
+  static String metricsPercentChange(int percent) => '$percent %';
+
+  static String metricsVersus(String change, String month) =>
+      '$change vs. $month';
+
+  static String metricsSameAs(String month) => 'Igual que $month';
+
+  static String metricsBarSemantics(String month, String amount) =>
+      'Cobrado en $month: $amount';
 
   static const String adminCourtsTitle = 'Canchas';
   static const String adminCourtsPending =
