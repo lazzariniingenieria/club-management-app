@@ -338,26 +338,45 @@ void main() {
       expect(find.text('Juan Zárate'), findsNothing);
     });
 
-    testWidgets('ends on the ledger of the member that just paid', (
+    testWidgets('comes back to the picker, ready for the next payment', (
       tester,
     ) async {
       await openPicker(tester);
+      await tester.enterText(find.byType(TextField), 'ana');
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Ana Álvarez'));
       await tester.pumpAndSettle();
       await reviewAndConfirm(tester, r'$15.000');
 
-      expect(currentLocation(), AppRoutes.adminMemberLedger(2));
+      expect(currentLocation(), AppRoutes.adminPaymentMemberPicker);
       expect(
         find.text(
-          AppStrings.paymentRegistered('noviembre de 2026', r'$15.000'),
+          AppStrings.paymentRegisteredFor(
+            AppStrings.paymentRegistered('noviembre de 2026', r'$15.000'),
+            'Ana Álvarez',
+          ),
         ),
         findsOneWidget,
       );
+      final search = tester.widget<TextField>(find.byType(TextField));
+      expect(search.controller?.text, isEmpty);
+      expect(find.text('Juan Zárate'), findsOneWidget);
+    });
 
+    testWidgets('the notice opens the member who just paid', (tester) async {
+      await openPicker(tester);
+      await tester.tap(find.text('Ana Álvarez'));
+      await tester.pumpAndSettle();
+      await reviewAndConfirm(tester, r'$15.000');
+
+      await tester.tap(find.text(AppStrings.paymentViewMember));
+      await tester.pumpAndSettle();
+
+      expect(currentLocation(), AppRoutes.adminMemberLedger(2));
       di.sl<AppRouter>().router.pop();
       await settleSession(tester);
-      expect(currentLocation(), AppRoutes.adminHome);
+      expect(currentLocation(), AppRoutes.adminPaymentMemberPicker);
     });
   });
 

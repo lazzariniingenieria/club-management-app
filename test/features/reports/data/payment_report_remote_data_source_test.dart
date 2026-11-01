@@ -82,7 +82,8 @@ void main() {
     expect(request.receiveTimeout, ApiConstants.reportReceiveTimeout);
   });
 
-  test('returns the PDF with the file name the backend chose', () async {
+  test('names the PDF after its months, not the ISO dates the backend uses',
+      () async {
     final source = buildDataSource(
       (_, __) => pdfResponse(
         [37, 80, 68, 70],
@@ -94,7 +95,7 @@ void main() {
     final document = await source.fetchFeeReceipts(october);
 
     expect(document!.bytes, Uint8List.fromList([37, 80, 68, 70]));
-    expect(document.fileName, 'cuotas-cobradas-2026-10-01-al-2026-10-31.pdf');
+    expect(document.fileName, 'cuotas-cobradas-octubre-2026.pdf');
   });
 
   test('a 204 means there were no collections, not an error', () async {

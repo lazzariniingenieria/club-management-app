@@ -42,7 +42,7 @@ void main() {
   const november = BillingMonth(2026, 11);
   final octoberPdf = FeeReceiptsDocument(
     bytes: Uint8List.fromList([1, 2, 3]),
-    fileName: 'cuotas-cobradas-2026-10-01-al-2026-10-31.pdf',
+    fileName: 'cuotas-cobradas-octubre-2026.pdf',
   );
 
   setUpAll(() {

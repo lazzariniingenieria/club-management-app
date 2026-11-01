@@ -300,13 +300,12 @@ class _ChangePasswordLink extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.sm),
-      child: TextButton.icon(
+      child: TextButton(
         onPressed: () => _changePassword(context),
-        icon: const Icon(Icons.lock_reset_rounded),
-        label: const Text(AppStrings.profileChangePassword),
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
         ),
+        child: const Text(AppStrings.profileChangePassword),
       ),
     );
   }
