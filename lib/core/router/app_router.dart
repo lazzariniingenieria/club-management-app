@@ -28,6 +28,7 @@ import '../../features/admin/presentation/screens/admin_members_screen.dart';
 import '../../features/payments/presentation/screens/member_ledger_screen.dart';
 import '../../features/payments/presentation/screens/payment_member_picker_screen.dart';
 import '../../features/payments/presentation/screens/register_payment_screen.dart';
+import '../../features/reports/presentation/screens/club_metrics_screen.dart';
 import '../../features/reports/presentation/screens/payment_report_screen.dart';
 import '../config/app_features.dart';
 import '../constants/app_strings.dart';
@@ -62,7 +63,7 @@ class AppRouter {
         builder: (context, state) => const MemberSurfacePendingScreen(),
       ),
       ..._adminPushRoutes,
-      _paymentReportRoute,
+      _reportRoutes,
       _adminShellRoute,
       if (kDebugMode)
         GoRoute(
@@ -132,11 +133,17 @@ class AppRouter {
     );
   }
 
-  GoRoute get _paymentReportRoute => GoRoute(
-        path: AppRoutes.adminPaymentReport,
-        redirect: (context, state) =>
-            features.feeReceipts ? null : AppRoutes.adminMembers,
-        builder: (context, state) => const PaymentReportScreen(),
+  GoRoute get _reportRoutes => GoRoute(
+        path: AppRoutes.adminReports,
+        builder: (context, state) => const ClubMetricsScreen(),
+        routes: [
+          GoRoute(
+            path: 'receipts',
+            redirect: (context, state) =>
+                features.feeReceipts ? null : AppRoutes.adminReports,
+            builder: (context, state) => const PaymentReportScreen(),
+          ),
+        ],
       );
 
   static final List<GoRoute> _adminPushRoutes = [

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/config/app_features.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/router/app_routes.dart';
@@ -47,9 +46,6 @@ class AdminMembersScreen extends StatelessWidget {
       child: AdminScaffold(
         title: AppStrings.adminMembersTitle,
         showsRoleBadge: true,
-        actions: [
-          if (sl<AppFeatures>().feeReceipts) const _ReportAction(),
-        ],
         bottom: _MembersTabBar(
           filter: filter,
           showsFamilyGroups: showsFamilyGroups,
@@ -445,17 +441,4 @@ String _emptyMessageFor(
     MemberCollectionFilter.overdue => AppStrings.adminMembersEmptyOverdue,
     MemberCollectionFilter.inactive => AppStrings.adminMembersEmptyInactive,
   };
-}
-
-class _ReportAction extends StatelessWidget {
-  const _ReportAction();
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: () => context.push(AppRoutes.adminPaymentReport),
-      tooltip: AppStrings.reportTitle,
-      icon: const Icon(Icons.picture_as_pdf_outlined),
-    );
-  }
 }

@@ -7,12 +7,12 @@ import 'package:club_management_app/core/di/injection_container.dart' as di;
 import 'package:club_management_app/core/router/app_router.dart';
 import 'package:club_management_app/core/router/app_routes.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
-import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
+import 'package:club_management_app/features/admin/presentation/widgets/reports_access_card.dart';
+import 'package:club_management_app/features/payments/presentation/widgets/month_grid.dart';
 import 'package:club_management_app/features/reports/data/datasources/payment_report_fake_data_source.dart';
 import 'package:club_management_app/features/reports/data/datasources/payment_report_remote_data_source.dart';
 import 'package:club_management_app/features/reports/domain/entities/fee_receipts_document.dart';
 import 'package:club_management_app/features/reports/domain/entities/payment_report_period.dart';
-import 'package:club_management_app/features/reports/presentation/cubit/payment_report_state.dart';
 import 'package:club_management_app/features/reports/presentation/export/report_file_exporter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,7 +37,7 @@ class SlowReportSource implements PaymentReportRemoteDataSource {
 }
 
 void main() {
-  testWidgets('Pagos opens the report, which downloads and shares the PDF', (
+  testWidgets('the home opens the metrics, whose PDF downloads and shares', (
     tester,
   ) async {
     await bootApp(tester, signedInAs: UserRole.admin);
@@ -45,11 +45,19 @@ void main() {
     di.sl.unregister<ReportFileExporter>();
     di.sl.registerLazySingleton<ReportFileExporter>(() => exporter);
 
-    di.sl<AppRouter>().router.go(AppRoutes.adminMembers);
+    await tester.tap(find.byType(ReportsAccessCard));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip(AppStrings.reportTitle));
+    await tester.scrollUntilVisible(
+      find.text(AppStrings.metricsGeneratePdf),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(find.text(AppStrings.metricsGeneratePdf));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppStrings.metricsGeneratePdf));
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text(AppStrings.reportGenerate));
     await tester.tap(find.text(AppStrings.reportGenerate));
     await tester.pumpAndSettle();
 
@@ -59,11 +67,20 @@ void main() {
     await tester.tap(find.text(AppStrings.reportShare));
     await tester.pumpAndSettle();
 
-    expect(exporter.shared, hasLength(1));
-    expect(exporter.shared.single, startsWith('cuotas-cobradas-'));
+    expect(exporter.shared, ['cuotas-cobradas-octubre-2026.pdf']);
   });
 
-  testWidgets('the period cannot change while the PDF is generated', (
+  testWidgets('the members tab no longer carries the PDF action', (
+    tester,
+  ) async {
+    await bootApp(tester, signedInAs: UserRole.admin);
+    di.sl<AppRouter>().router.go(AppRoutes.adminMembers);
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip(AppStrings.reportTitle), findsNothing);
+  });
+
+  testWidgets('the month grid is locked while the PDF is generated', (
     tester,
   ) async {
     await bootApp(
@@ -73,20 +90,23 @@ void main() {
         latency: const Duration(seconds: 1),
       ),
     );
-    di.sl<AppRouter>().router.push(AppRoutes.adminPaymentReport);
+    di.sl<AppRouter>().router.push(AppRoutes.adminFeeReceipts);
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text(AppStrings.reportGenerate));
     await tester.tap(find.text(AppStrings.reportGenerate));
     await tester.pump();
 
-    final modes = tester.widget<SegmentedButton<ReportRangeMode>>(
-      find.byType(SegmentedButton<ReportRangeMode>),
+    final cells = tester.widgetList<InkWell>(
+      find.descendant(
+        of: find.descendant(
+          of: find.byType(MonthGrid),
+          matching: find.byType(IntrinsicHeight),
+        ),
+        matching: find.byType(InkWell),
+      ),
     );
-    final month = tester.widget<DropdownButton<BillingMonth>>(
-      find.byType(DropdownButton<BillingMonth>),
-    );
-    expect(modes.onSelectionChanged, isNull);
-    expect(month.onChanged, isNull);
+    expect(cells.every((cell) => cell.onTap == null), isTrue);
 
     await tester.pumpAndSettle();
     expect(find.text(AppStrings.reportReadyTitle), findsOneWidget);
@@ -100,7 +120,7 @@ void main() {
       signedInAs: UserRole.admin,
       reportSource: SlowReportSource(),
     );
-    di.sl<AppRouter>().router.push(AppRoutes.adminPaymentReport);
+    di.sl<AppRouter>().router.push(AppRoutes.adminFeeReceipts);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(AppStrings.reportGenerate));
@@ -119,25 +139,26 @@ void main() {
   group('while the backend has no receipts endpoint', () {
     const withoutReceipts = AppFeatures(feeReceipts: false);
 
-    testWidgets('Pagos does not offer the report', (tester) async {
+    testWidgets('the metrics do not offer the PDF', (tester) async {
       await bootApp(
         tester,
         signedInAs: UserRole.admin,
         features: withoutReceipts,
       );
-      di.sl<AppRouter>().router.go(AppRoutes.adminMembers);
+      di.sl<AppRouter>().router.push(AppRoutes.adminReports);
       await tester.pumpAndSettle();
 
-      expect(find.byTooltip(AppStrings.reportTitle), findsNothing);
+      expect(find.text(AppStrings.metricsCollected), findsOneWidget);
+      expect(find.text(AppStrings.metricsGeneratePdf), findsNothing);
     });
 
-    testWidgets('a link to the report lands on Pagos', (tester) async {
+    testWidgets('a link to the PDF lands on the metrics', (tester) async {
       await bootApp(
         tester,
         signedInAs: UserRole.admin,
         features: withoutReceipts,
       );
-      di.sl<AppRouter>().router.go(AppRoutes.adminPaymentReport);
+      di.sl<AppRouter>().router.go(AppRoutes.adminFeeReceipts);
       await tester.pumpAndSettle();
 
       final location = di
@@ -147,7 +168,7 @@ void main() {
           .currentConfiguration
           .last
           .matchedLocation;
-      expect(location, AppRoutes.adminMembers);
+      expect(location, AppRoutes.adminReports);
     });
   });
 }
