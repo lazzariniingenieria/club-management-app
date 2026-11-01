@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_button.dart';
@@ -34,77 +33,124 @@ class PaymentReportScreen extends StatelessWidget {
   }
 }
 
-class _ReportBody extends StatefulWidget {
+class _ReportBody extends StatelessWidget {
   const _ReportBody();
 
-  @override
-  State<_ReportBody> createState() => _ReportBodyState();
-}
-
-class _ReportBodyState extends State<_ReportBody> {
-  static const Duration _scrollDuration = Duration(milliseconds: 300);
-
-  final ScrollController _scroll = ScrollController();
-
-  @override
-  void dispose() {
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  static bool _finishedGenerating(
+  static bool _producedDocument(
     PaymentReportState previous,
     PaymentReportState current,
   ) =>
-      previous.isGenerating && !current.isGenerating;
+      previous.isGenerating && current.document != null;
 
-  void _revealOutcome() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scroll.hasClients) return;
+  void _showReady(BuildContext context, PaymentReportState state) {
+    final cubit = context.read<PaymentReportCubit>();
+    final period = state.period;
+    if (period == null) return;
 
-      _scroll.animateTo(
-        _scroll.position.maxScrollExtent,
-        duration: _scrollDuration,
-        curve: Curves.easeOut,
-      );
-    });
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => BlocProvider.value(
+        value: cubit,
+        child: _ReadySheet(period: period),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<PaymentReportCubit, PaymentReportState>(
-      listenWhen: _finishedGenerating,
-      listener: (_, __) => _revealOutcome(),
-      builder: (context, state) => ListView(
-        controller: _scroll,
-        padding: const EdgeInsets.all(AppSpacing.lg),
+      listenWhen: _producedDocument,
+      listener: _showReady,
+      builder: (context, state) => Column(
         children: [
-          Text(AppStrings.reportPeriodQuestion, style: AppTextStyles.labelLarge),
-          const SizedBox(height: AppSpacing.md),
-          _PeriodGrid(state: state),
-          _PeriodSummary(period: state.period),
-          const SizedBox(height: AppSpacing.md),
-          const AppNotice(message: AppStrings.reportScopeNote),
-          const SizedBox(height: AppSpacing.lg),
-          AppButton(
-            text: AppStrings.reportGenerate,
-            isLoading: state.status == ReportStatus.generating,
-            onPressed: state.canGenerate
-                ? context.read<PaymentReportCubit>().generate
-                : null,
-          ),
-          if (state.status == ReportStatus.generating) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              AppStrings.reportGenerating,
-              style: AppTextStyles.bodyMedium,
-              textAlign: TextAlign.center,
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              children: [
+                _PeriodGrid(state: state),
+                const SizedBox(height: AppSpacing.sm),
+                const AppNotice(message: AppStrings.reportScopeNote),
+              ],
             ),
-          ],
-          const SizedBox(height: AppSpacing.xl),
-          _ReportOutcome(state: state),
+          ),
+          _ReportFooter(state: state),
         ],
       ),
+    );
+  }
+}
+
+class _ReportFooter extends StatelessWidget {
+  final PaymentReportState state;
+
+  const _ReportFooter({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final period = state.period;
+
+    return Material(
+      color: AppColors.surface,
+      elevation: 8,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _FooterNotice(state: state),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  period == null
+                      ? AppStrings.registerPaymentNoMonths
+                      : PaymentReportFormats.periodLabel(period),
+                  style: AppTextStyles.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppButton(
+                text: AppStrings.reportGenerate,
+                isLoading: state.isGenerating,
+                onPressed: state.canGenerate
+                    ? context.read<PaymentReportCubit>().generate
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FooterNotice extends StatelessWidget {
+  final PaymentReportState state;
+
+  const _FooterNotice({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final notice = switch (state.status) {
+      ReportStatus.generating => Text(
+          AppStrings.reportGenerating,
+          style: AppTextStyles.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
+      ReportStatus.failed => _FailureNotice(state: state),
+      ReportStatus.ready when state.hadNoCollections =>
+        const AppNotice(message: AppStrings.reportEmpty),
+      _ => null,
+    };
+    if (notice == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: notice,
     );
   }
 }
@@ -115,12 +161,16 @@ class _PeriodGrid extends StatelessWidget {
   const _PeriodGrid({required this.state});
 
   MonthCellLook _lookOf(BillingMonth month) {
-    if (!state.isOffered(month)) return const MonthCellLook.unavailable();
     if (state.includes(month)) {
-      return const MonthCellLook.selected(AppStrings.reportMonthChosen);
+      return MonthCellLook.selected(
+        AppStrings.reportMonthChosen,
+        isEnabled: state.canToggle(month),
+      );
     }
 
-    return const MonthCellLook.available();
+    return state.canToggle(month)
+        ? const MonthCellLook.available()
+        : const MonthCellLook.unavailable();
   }
 
   @override
@@ -138,41 +188,6 @@ class _PeriodGrid extends StatelessWidget {
       onTap: state.isGenerating ? null : cubit.tapMonth,
       onShowYear: cubit.showYear,
     );
-  }
-}
-
-class _PeriodSummary extends StatelessWidget {
-  final PaymentReportPeriod period;
-
-  const _PeriodSummary({required this.period});
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      liveRegion: true,
-      child: Text(
-        PaymentReportFormats.periodLabel(period),
-        style: AppTextStyles.titleMedium,
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-}
-
-class _ReportOutcome extends StatelessWidget {
-  final PaymentReportState state;
-
-  const _ReportOutcome({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    return switch (state.status) {
-      ReportStatus.failed => _FailureNotice(state: state),
-      ReportStatus.ready when state.hadNoCollections =>
-        const AppNotice(message: AppStrings.reportEmpty),
-      ReportStatus.ready => _ReadyReport(period: state.period),
-      _ => const SizedBox.shrink(),
-    };
   }
 }
 
@@ -204,10 +219,10 @@ class _FailureNotice extends StatelessWidget {
   }
 }
 
-class _ReadyReport extends StatelessWidget {
+class _ReadySheet extends StatelessWidget {
   final PaymentReportPeriod period;
 
-  const _ReadyReport({required this.period});
+  const _ReadySheet({required this.period});
 
   Future<void> _run(BuildContext context, Future<bool> Function() action) async {
     final succeeded = await action();
@@ -220,40 +235,45 @@ class _ReadyReport extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.read<PaymentReportCubit>();
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Semantics(
-            liveRegion: true,
-            child: Text(
-              AppStrings.reportReadyTitle,
-              style: AppTextStyles.titleMedium,
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          0,
+          AppSpacing.xl,
+          AppSpacing.xl,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Semantics(
+              header: true,
+              child: Text(
+                AppStrings.reportReadyTitle,
+                style: AppTextStyles.titleLarge,
+                textAlign: TextAlign.center,
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            PaymentReportFormats.periodLabel(period),
-            style: AppTextStyles.bodyMedium,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ElevatedButton.icon(
-            onPressed: () => _run(context, cubit.share),
-            icon: const Icon(Icons.share_outlined),
-            label: const Text(AppStrings.reportShare),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          AppSecondaryButton(
-            label: AppStrings.reportPreview,
-            onPressed: () => _run(context, cubit.preview),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              PaymentReportFormats.periodLabel(period),
+              style: AppTextStyles.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton.icon(
+              onPressed: () => _run(context, cubit.share),
+              icon: const Icon(Icons.share_outlined),
+              label: const Text(AppStrings.reportShare),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            AppSecondaryButton(
+              label: AppStrings.reportPreview,
+              onPressed: () => _run(context, cubit.preview),
+            ),
+          ],
+        ),
       ),
     );
   }

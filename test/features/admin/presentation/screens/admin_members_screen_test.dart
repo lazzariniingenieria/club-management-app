@@ -279,10 +279,12 @@ void main() {
 
       await bootMembers(tester);
 
-      final chipRow = find.ancestor(
-        of: find.byType(ChoiceChip).first,
-        matching: find.byType(Scrollable),
-      );
+      final chipRow = find
+          .ancestor(
+            of: find.byType(ChoiceChip).first,
+            matching: find.byType(Scrollable),
+          )
+          .first;
       final position = tester.widget<Scrollable>(chipRow).controller!.position;
       expect(position.maxScrollExtent, greaterThan(0));
 

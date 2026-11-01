@@ -158,21 +158,16 @@ class _PickerSearchField extends StatefulWidget {
 class _PickerSearchFieldState extends State<_PickerSearchField> {
   late final TextEditingController _controller =
       TextEditingController(text: widget.query);
-  final FocusNode _focus = FocusNode();
 
   @override
   void didUpdateWidget(_PickerSearchField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.query == _controller.text) return;
-
-    _controller.text = widget.query;
-    if (widget.query.isEmpty) _focus.requestFocus();
+    if (widget.query != _controller.text) _controller.text = widget.query;
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _focus.dispose();
     super.dispose();
   }
 
@@ -180,7 +175,6 @@ class _PickerSearchFieldState extends State<_PickerSearchField> {
   Widget build(BuildContext context) {
     return TextField(
       controller: _controller,
-      focusNode: _focus,
       autofocus: true,
       onChanged: context.read<MemberRosterCubit>().search,
       textInputAction: TextInputAction.search,
@@ -246,6 +240,7 @@ class PaymentMemberPickerTile extends StatelessWidget {
   Future<void> _pick(BuildContext context) async {
     final roster = context.read<MemberRosterCubit>();
     final router = GoRouter.of(context);
+    FocusManager.instance.primaryFocus?.unfocus();
     final receipt = await context.push<PaymentReceipt>(
       AppRoutes.adminPaymentRegistration(member.id),
     );

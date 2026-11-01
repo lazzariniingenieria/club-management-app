@@ -70,4 +70,30 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('the chart always shows the last six months, whatever is picked',
+      (tester) async {
+    await openMetrics(tester);
+    var oldest = currentMonth;
+    for (var step = 0; step < 5; step++) {
+      oldest = oldest.previous;
+    }
+    Finder barOf(BillingMonth month) => find.descendant(
+          of: find.byType(CollectionChart),
+          matching: find.text(PaymentFormats.monthAbbreviation(month.month)),
+        );
+
+    await tester.ensureVisible(find.byType(CollectionChart));
+    await tester.tap(barOf(oldest));
+    await tester.pumpAndSettle();
+
+    expect(barOf(currentMonth), findsOneWidget);
+    expect(barOf(oldest.previous), findsNothing);
+
+    await tester.tap(barOf(currentMonth));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, 800));
+    await tester.pumpAndSettle();
+    expect(find.text(PaymentFormats.monthTitle(currentMonth)), findsOneWidget);
+  });
 }

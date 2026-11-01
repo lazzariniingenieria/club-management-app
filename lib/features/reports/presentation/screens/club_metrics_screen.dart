@@ -57,32 +57,39 @@ class _MetricsContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.read<ClubMetricsCubit>();
 
-    return RefreshIndicator(
-      onRefresh: cubit.load,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        children: [
-          _MonthSwitcher(state: state),
-          const SizedBox(height: AppSpacing.lg),
-          _MetricTiles(state: state),
-          const SizedBox(height: AppSpacing.xl),
-          Semantics(
-            header: true,
-            child: Text(
-              AppStrings.metricsChartTitle.toUpperCase(),
-              style: AppTextStyles.sectionLabel,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          CollectionChart(
-            collections: state.recentCollections,
-            selected: state.month,
-            onSelect: cubit.showMonth,
-          ),
-          if (sl<AppFeatures>().feeReceipts) const _GeneratePdfButton(),
-        ],
+    return SafeArea(
+      top: false,
+      child: RefreshIndicator(
+        onRefresh: cubit.load,
+        child: _metricsList(cubit),
       ),
+    );
+  }
+
+  Widget _metricsList(ClubMetricsCubit cubit) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      children: [
+        _MonthSwitcher(state: state),
+        const SizedBox(height: AppSpacing.lg),
+        _MetricTiles(state: state),
+        const SizedBox(height: AppSpacing.xl),
+        Semantics(
+          header: true,
+          child: Text(
+            AppStrings.metricsChartTitle.toUpperCase(),
+            style: AppTextStyles.sectionLabel,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        CollectionChart(
+          collections: state.recentCollections,
+          selected: state.month,
+          onSelect: cubit.showMonth,
+        ),
+        if (sl<AppFeatures>().feeReceipts) const _GeneratePdfButton(),
+      ],
     );
   }
 }
