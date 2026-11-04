@@ -3,6 +3,7 @@ import 'package:club_management_app/core/di/injection_container.dart' as di;
 import 'package:club_management_app/core/storage/secure_storage_service.dart';
 import 'package:club_management_app/features/admin/data/datasources/admin_summary_fake_data_source.dart';
 import 'package:club_management_app/features/admin/data/datasources/admin_summary_remote_data_source.dart';
+import 'package:club_management_app/features/admin/presentation/cubit/admin_family_groups_cubit.dart';
 import 'package:club_management_app/features/admins/data/datasources/admin_fake_data_source.dart';
 import 'package:club_management_app/features/admins/data/datasources/admin_remote_data_source.dart';
 import 'package:club_management_app/features/club/data/datasources/club_fake_data_source.dart';
@@ -16,6 +17,7 @@ import 'package:club_management_app/features/members/data/datasources/member_fak
 import 'package:club_management_app/features/members/data/datasources/member_remote_data_source.dart';
 import 'package:club_management_app/features/payments/data/datasources/payment_fake_data_source.dart';
 import 'package:club_management_app/features/payments/data/datasources/payment_remote_data_source.dart';
+import 'package:club_management_app/features/payments/presentation/cubit/member_roster_cubit.dart';
 import 'package:club_management_app/features/reports/data/datasources/payment_report_fake_data_source.dart';
 import 'package:club_management_app/features/reports/data/datasources/payment_report_remote_data_source.dart';
 import 'package:club_management_app/main.dart';
@@ -88,6 +90,27 @@ Future<InMemorySecureStorage> bootApp(
   di.sl.unregister<PaymentReportRemoteDataSource>();
   di.sl.registerLazySingleton<PaymentReportRemoteDataSource>(
     () => reportSource ?? PaymentReportFakeDataSource(latency: Duration.zero),
+  );
+
+  di.sl.unregister<MemberRosterCubit>();
+  di.sl.registerFactory(
+    () => MemberRosterCubit(
+      loadMembers: di.sl(),
+      watchRosterChanges: di.sl(),
+      watchPaymentChanges: di.sl(),
+      reloadDelay: Duration.zero,
+    ),
+  );
+
+  di.sl.unregister<AdminFamilyGroupsCubit>();
+  di.sl.registerFactory(
+    () => AdminFamilyGroupsCubit(
+      loadGroups: di.sl(),
+      watchRosterChanges: di.sl(),
+      watchGroupChanges: di.sl(),
+      watchPaymentChanges: di.sl(),
+      reloadDelay: Duration.zero,
+    ),
   );
 
   if (features != null) {

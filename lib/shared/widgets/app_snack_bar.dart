@@ -16,11 +16,11 @@ void showAppSnackBar(
 }
 
 void showAppActionSnackBar(
-  BuildContext context,
+  ScaffoldMessengerState messenger,
   String message,
   SnackBarAction action,
 ) {
-  ScaffoldMessenger.of(context)
+  messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(content: Text(message), action: action, persist: false),

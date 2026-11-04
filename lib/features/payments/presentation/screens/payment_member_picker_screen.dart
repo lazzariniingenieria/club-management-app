@@ -14,6 +14,7 @@ import '../../../../shared/widgets/app_pill.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/inline_error_card.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
+import '../../../../shared/widgets/visibility_reporter.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../members/domain/entities/homonyms.dart';
 import '../../../members/domain/entities/member.dart';
@@ -29,10 +30,26 @@ class PaymentMemberPickerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider<MemberRosterCubit>(
       create: (_) => sl<MemberRosterCubit>()..load(),
-      child: const AdminScaffold(
-        title: AppStrings.paymentPickerTitle,
-        body: _PickerBody(),
+      child: const _ReloadOnlyWhenVisible(
+        child: AdminScaffold(
+          title: AppStrings.paymentPickerTitle,
+          body: _PickerBody(),
+        ),
       ),
+    );
+  }
+}
+
+class _ReloadOnlyWhenVisible extends StatelessWidget {
+  final Widget child;
+
+  const _ReloadOnlyWhenVisible({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return VisibilityReporter(
+      onChanged: context.read<MemberRosterCubit>().visibilityChanged,
+      child: child,
     );
   }
 }
@@ -240,14 +257,15 @@ class PaymentMemberPickerTile extends StatelessWidget {
   Future<void> _pick(BuildContext context) async {
     final roster = context.read<MemberRosterCubit>();
     final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     FocusManager.instance.primaryFocus?.unfocus();
     final receipt = await context.push<PaymentReceipt>(
       AppRoutes.adminPaymentRegistration(member.id),
     );
-    if (receipt == null || !context.mounted) return;
+    if (receipt == null) return;
 
     showAppActionSnackBar(
-      context,
+      messenger,
       AppStrings.paymentRegisteredFor(
         PaymentFormats.receiptAnnouncement(receipt),
         member.fullName,
@@ -260,7 +278,7 @@ class PaymentMemberPickerTile extends StatelessWidget {
         ),
       ),
     );
-    roster.clearSearch();
+    if (!roster.isClosed) roster.clearSearch();
   }
 
   @override

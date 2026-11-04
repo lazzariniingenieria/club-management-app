@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure_messages.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../shared/async/change_reloader.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../../members/domain/usecases/load_members_use_case.dart';
 import '../../../members/domain/usecases/watch_roster_changes_use_case.dart';
@@ -13,16 +14,22 @@ import 'member_roster_state.dart';
 class MemberRosterCubit extends Cubit<MemberRosterState> {
   final LoadMembersUseCase _loadMembers;
   late final List<StreamSubscription<void>> _changeSubscriptions;
+  late final ChangeReloader _changeReloader;
 
   MemberRosterCubit({
     required LoadMembersUseCase loadMembers,
     required WatchRosterChangesUseCase watchRosterChanges,
     required WatchPaymentChangesUseCase watchPaymentChanges,
+    Duration reloadDelay = ChangeReloader.defaultDelay,
   })  : _loadMembers = loadMembers,
         super(const MemberRosterLoading()) {
+    _changeReloader = ChangeReloader(
+      reload: _reloadOnChange,
+      delay: reloadDelay,
+    );
     _changeSubscriptions = [
-      watchRosterChanges().listen((_) => _reloadOnChange()),
-      watchPaymentChanges().listen((_) => _reloadOnChange()),
+      watchRosterChanges().listen((_) => _changeReloader.changed()),
+      watchPaymentChanges().listen((_) => _changeReloader.changed()),
     ];
   }
 
@@ -30,8 +37,12 @@ class MemberRosterCubit extends Cubit<MemberRosterState> {
   bool _changedWhileLoading = false;
   int _failedAttempts = 0;
 
+  void visibilityChanged(bool isVisible) =>
+      _changeReloader.visibilityChanged(isVisible: isVisible);
+
   @override
   Future<void> close() async {
+    _changeReloader.dispose();
     await Future.wait(
       _changeSubscriptions.map((subscription) => subscription.cancel()),
     );
