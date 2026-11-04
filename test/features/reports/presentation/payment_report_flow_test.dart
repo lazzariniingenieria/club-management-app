@@ -67,7 +67,9 @@ void main() {
     await tester.tap(find.text(AppStrings.reportShare));
     await tester.pumpAndSettle();
 
-    expect(exporter.shared, ['cuotas-cobradas-octubre-2026.pdf']);
+    final today = DateTime.now();
+    final month = AppStrings.monthNames[today.month - 1].toLowerCase();
+    expect(exporter.shared, ['cuotas-cobradas-$month-${today.year}.pdf']);
   });
 
   testWidgets('the members tab no longer carries the PDF action', (
