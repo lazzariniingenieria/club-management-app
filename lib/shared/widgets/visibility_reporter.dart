@@ -20,7 +20,7 @@ class _VisibilityReporterState extends State<VisibilityReporter> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final isVisible = TickerMode.of(context);
+    final isVisible = TickerMode.valuesOf(context).enabled;
     if (isVisible == _reported) return;
 
     _reported = isVisible;
