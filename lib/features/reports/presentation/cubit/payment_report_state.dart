@@ -16,6 +16,7 @@ class PaymentReportState extends Equatable {
   final ReportStatus status;
   final FeeReceiptsDocument? document;
   final Failure? failure;
+  final bool isDefaultSelection;
 
   const PaymentReportState({
     required this.period,
@@ -24,6 +25,7 @@ class PaymentReportState extends Equatable {
     this.status = ReportStatus.editing,
     this.document,
     this.failure,
+    this.isDefaultSelection = false,
   });
 
   factory PaymentReportState.startingAt(BillingMonth currentMonth) =>
@@ -31,6 +33,7 @@ class PaymentReportState extends Equatable {
         period: PaymentReportPeriod.single(currentMonth),
         currentMonth: currentMonth,
         visibleYear: currentMonth.year,
+        isDefaultSelection: true,
       );
 
   int get earliestYear => currentMonth.year - yearsOffered + 1;
@@ -61,37 +64,57 @@ class PaymentReportState extends Equatable {
     if (!isOffered(month)) return false;
 
     final selected = period;
-    if (selected == null) return true;
+    if (selected == null || isDefaultSelection) return true;
 
-    return month == selected.from ||
-        month == selected.to ||
-        month == selected.from.previous ||
-        month == selected.to.next;
+    return !_isInTheMiddle(selected, month);
   }
+
+  bool _isInTheMiddle(PaymentReportPeriod selected, BillingMonth month) =>
+      includes(month) && month != selected.from && month != selected.to;
 
   PaymentReportState toggling(BillingMonth month) {
     if (!canToggle(month)) return this;
 
-    return _editing(_toggled(period, month));
+    return _editing(_toggled(month));
   }
 
-  static PaymentReportPeriod? _toggled(
-    PaymentReportPeriod? selected,
-    BillingMonth month,
-  ) {
+  PaymentReportPeriod? _toggled(BillingMonth month) {
+    final selected = period;
     if (selected == null) return PaymentReportPeriod.single(month);
-    if (selected.isSingleMonth && month == selected.from) return null;
-    if (month == selected.from) {
-      return PaymentReportPeriod(from: month.next, to: selected.to);
-    }
-    if (month == selected.to) {
-      return PaymentReportPeriod(from: selected.from, to: month.previous);
-    }
+    if (isDefaultSelection) return _replacingDefault(selected, month);
+    if (month == selected.from) return _withoutFirst(selected);
+    if (month == selected.to) return _withoutLast(selected);
+    if (month == selected.from.previous) return _from(selected, month);
+    if (month == selected.to.next) return _until(selected, month);
 
-    return month.isBefore(selected.from)
-        ? PaymentReportPeriod(from: month, to: selected.to)
-        : PaymentReportPeriod(from: selected.from, to: month);
+    return PaymentReportPeriod.single(month);
   }
+
+  static PaymentReportPeriod? _replacingDefault(
+    PaymentReportPeriod selected,
+    BillingMonth month,
+  ) =>
+      month == selected.from ? null : PaymentReportPeriod.single(month);
+
+  static PaymentReportPeriod? _withoutFirst(PaymentReportPeriod selected) =>
+      selected.isSingleMonth
+          ? null
+          : PaymentReportPeriod(from: selected.from.next, to: selected.to);
+
+  static PaymentReportPeriod _withoutLast(PaymentReportPeriod selected) =>
+      PaymentReportPeriod(from: selected.from, to: selected.to.previous);
+
+  static PaymentReportPeriod _from(
+    PaymentReportPeriod selected,
+    BillingMonth month,
+  ) =>
+      PaymentReportPeriod(from: month, to: selected.to);
+
+  static PaymentReportPeriod _until(
+    PaymentReportPeriod selected,
+    BillingMonth month,
+  ) =>
+      PaymentReportPeriod(from: selected.from, to: month);
 
   PaymentReportState showingYear(int year) => PaymentReportState(
         period: period,
@@ -100,6 +123,7 @@ class PaymentReportState extends Equatable {
         status: status,
         document: document,
         failure: failure,
+        isDefaultSelection: isDefaultSelection,
       );
 
   PaymentReportState withStatus(
@@ -114,6 +138,7 @@ class PaymentReportState extends Equatable {
       status: status,
       document: document,
       failure: failure,
+      isDefaultSelection: isDefaultSelection,
     );
   }
 
@@ -126,6 +151,13 @@ class PaymentReportState extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [period, currentMonth, visibleYear, status, document, failure];
+  List<Object?> get props => [
+        period,
+        currentMonth,
+        visibleYear,
+        status,
+        document,
+        failure,
+        isDefaultSelection,
+      ];
 }
