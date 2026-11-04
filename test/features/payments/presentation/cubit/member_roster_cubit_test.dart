@@ -274,7 +274,10 @@ void main() {
   });
 
   group('a change to the roster made elsewhere', () {
-    Future<void> settle() => Future<void>.delayed(Duration.zero);
+    Future<void> settle() async {
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+    }
 
     test('reloads the list on its own, keeping the search', () async {
       stub(Right(roster()));
@@ -310,7 +313,10 @@ void main() {
   });
 
   group('a payment recorded or voided elsewhere', () {
-    Future<void> settle() => Future<void>.delayed(Duration.zero);
+    Future<void> settle() async {
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+    }
 
     test('reloads the list, so the mora shown is the new one', () async {
       stub(Right(roster()));
