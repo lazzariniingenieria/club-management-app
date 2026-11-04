@@ -12,6 +12,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/inline_error_card.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
+import '../../../../shared/widgets/visibility_reporter.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../../members/domain/entities/member_collection_filter.dart';
 import '../../../members/presentation/widgets/member_filter_chips.dart';
@@ -44,23 +45,44 @@ class AdminMembersScreen extends StatelessWidget {
           create: (_) => sl<AdminFamilyGroupsCubit>(),
         ),
       ],
-      child: AdminScaffold(
-        title: AppStrings.adminMembersTitle,
-        showsRoleBadge: true,
-        actions: [
-          if (sl<AppFeatures>().feeReceipts) const _ReportAction(),
-        ],
-        bottom: _MembersTabBar(
-          filter: filter,
-          showsFamilyGroups: showsFamilyGroups,
+      child: _ReloadOnlyWhenVisible(
+        child: AdminScaffold(
+          title: AppStrings.adminMembersTitle,
+          showsRoleBadge: true,
+          actions: [
+            if (sl<AppFeatures>().feeReceipts) const _ReportAction(),
+          ],
+          bottom: _MembersTabBar(
+            filter: filter,
+            showsFamilyGroups: showsFamilyGroups,
+          ),
+          floatingActionButton: showsFamilyGroups
+              ? const _BuildGroupButton()
+              : const _CreateMemberButton(),
+          body: showsFamilyGroups
+              ? const FamilyGroupsTab()
+              : _AdminMembersBody(filter: filter),
         ),
-        floatingActionButton: showsFamilyGroups
-            ? const _BuildGroupButton()
-            : const _CreateMemberButton(),
-        body: showsFamilyGroups
-            ? const FamilyGroupsTab()
-            : _AdminMembersBody(filter: filter),
       ),
+    );
+  }
+}
+
+class _ReloadOnlyWhenVisible extends StatelessWidget {
+  final Widget child;
+
+  const _ReloadOnlyWhenVisible({required this.child});
+
+  void _report(BuildContext context, bool isVisible) {
+    context.read<MemberRosterCubit>().visibilityChanged(isVisible);
+    context.read<AdminFamilyGroupsCubit>().visibilityChanged(isVisible);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return VisibilityReporter(
+      onChanged: (isVisible) => _report(context, isVisible),
+      child: child,
     );
   }
 }
