@@ -9,6 +9,7 @@ import 'package:club_management_app/features/auth/domain/entities/user.dart';
 import 'package:club_management_app/features/family_groups/data/datasources/family_group_fake_data_source.dart';
 import 'package:club_management_app/features/family_groups/data/models/family_group_model.dart';
 import 'package:club_management_app/features/members/data/datasources/member_fake_data_source.dart';
+import 'package:club_management_app/features/payments/presentation/widgets/payer_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -290,9 +291,15 @@ void main() {
         isNull,
       );
 
-      final relative = find.text(AppStrings.registerPaymentPayerRelative).first;
-      await tester.ensureVisible(relative);
-      await tester.tap(relative);
+      final selector = find.byType(PayerSelector);
+      await tester.scrollUntilVisible(
+        selector,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(
+        find.descendant(of: selector, matching: find.text('María Álvarez')),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.registerPaymentPayerRequired), findsNothing);
