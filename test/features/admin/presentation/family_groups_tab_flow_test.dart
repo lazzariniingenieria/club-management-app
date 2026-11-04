@@ -4,6 +4,8 @@ import 'package:club_management_app/core/router/app_router.dart';
 import 'package:club_management_app/core/router/app_routes.dart';
 import 'package:club_management_app/features/admin/presentation/widgets/family_groups_tab.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
+import 'package:club_management_app/features/family_groups/data/datasources/family_group_fake_data_source.dart';
+import 'package:club_management_app/features/family_groups/data/models/family_group_model.dart';
 import 'package:club_management_app/features/family_groups/presentation/widgets/family_group_list_tile.dart';
 import 'package:club_management_app/features/members/data/datasources/member_fake_data_source.dart';
 import 'package:club_management_app/features/members/presentation/widgets/member_list_tile.dart';
@@ -11,6 +13,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/app_test_harness.dart';
+
+class GroupReadsCounter extends FamilyGroupFakeDataSource {
+  GroupReadsCounter({required super.members})
+      : super(latency: Duration.zero);
+
+  int reads = 0;
+
+  @override
+  Future<List<FamilyGroupModel>> fetchGroups() {
+    reads++;
+
+    return super.fetchGroups();
+  }
+}
 
 void main() {
   String currentUri() => di
@@ -62,6 +78,32 @@ void main() {
 
     expect(find.byType(MemberListTile), findsWidgets);
     expect(find.byType(FamilyGroupsTab), findsNothing);
+  });
+
+  testWidgets('the groups are only read when the tab is opened', (
+    tester,
+  ) async {
+    final members = MemberFakeDataSource(latency: Duration.zero);
+    final groups = GroupReadsCounter(members: members);
+    await bootApp(
+      tester,
+      signedInAs: UserRole.admin,
+      memberSource: members,
+      familyGroupSource: groups,
+    );
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text(AppStrings.adminTabMembers),
+      ),
+    );
+    await settleSession(tester);
+
+    expect(groups.reads, 0);
+
+    await tapText(tester, AppStrings.adminMembersTabFamilyGroups);
+
+    expect(groups.reads, 1);
   });
 
   testWidgets('Grupos familiares lists every group with its members', (

@@ -31,6 +31,7 @@ class AdminFamilyGroupsCubit extends Cubit<AdminFamilyGroupsState> {
 
   bool _isLoading = false;
   bool _changedWhileLoading = false;
+  bool _wasRequested = false;
 
   @override
   Future<void> close() async {
@@ -41,8 +42,15 @@ class AdminFamilyGroupsCubit extends Cubit<AdminFamilyGroupsState> {
     return super.close();
   }
 
+  Future<void> loadOnFirstShow() async {
+    if (_wasRequested) return;
+
+    await load();
+  }
+
   Future<void> load() async {
     if (_isLoading) return;
+    _wasRequested = true;
     _isLoading = true;
     if (_lastLoaded == null) emit(const AdminFamilyGroupsLoading());
 
@@ -64,6 +72,8 @@ class AdminFamilyGroupsCubit extends Cubit<AdminFamilyGroupsState> {
   void clearSearch() => search('');
 
   Future<void> _reloadOnChange() async {
+    if (!_wasRequested) return;
+
     _changedWhileLoading = _isLoading;
     if (_isLoading) return;
 
