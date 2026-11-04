@@ -72,6 +72,36 @@ void main() {
     expect(exporter.shared, ['cuotas-cobradas-$month-${today.year}.pdf']);
   });
 
+  testWidgets('tapping a month other than the current one picks only that one', (
+    tester,
+  ) async {
+    await bootApp(tester, signedInAs: UserRole.admin);
+    final exporter = RecordingExporter();
+    di.sl.unregister<ReportFileExporter>();
+    di.sl.registerLazySingleton<ReportFileExporter>(() => exporter);
+    di.sl<AppRouter>().router.push(AppRoutes.adminFeeReceipts);
+    await tester.pumpAndSettle();
+    final today = DateTime.now();
+    final otherIndex = today.month == 1 ? 1 : 0;
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(MonthGrid),
+        matching: find.text(AppStrings.monthAbbreviations[otherIndex]),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text(AppStrings.reportGenerate));
+    await tester.tap(find.text(AppStrings.reportGenerate));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text(AppStrings.reportShare));
+    await tester.tap(find.text(AppStrings.reportShare));
+    await tester.pumpAndSettle();
+
+    final month = AppStrings.monthNames[otherIndex].toLowerCase();
+    expect(exporter.shared, ['cuotas-cobradas-$month-${today.year}.pdf']);
+  });
+
   testWidgets('the members tab no longer carries the PDF action', (
     tester,
   ) async {
