@@ -41,7 +41,7 @@ class AdminMembersScreen extends StatelessWidget {
           create: (_) => sl<MemberRosterCubit>()..load(),
         ),
         BlocProvider<AdminFamilyGroupsCubit>(
-          create: (_) => sl<AdminFamilyGroupsCubit>()..load(),
+          create: (_) => sl<AdminFamilyGroupsCubit>(),
         ),
       ],
       child: AdminScaffold(

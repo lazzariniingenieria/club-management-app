@@ -275,6 +275,35 @@ void main() {
       expect(toggle.value, isTrue);
     });
 
+    testWidgets('does not assume who paid: the payer has to be chosen first',
+        (tester) async {
+      await boot(tester);
+      await openRoute(tester, AppRoutes.adminFamilyGroup(1));
+      await tester.tap(find.text(AppStrings.familyGroupPayAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.registerPaymentPayerRequired), findsOneWidget);
+      expect(
+        tester
+            .widget<ElevatedButton>(find.byType(ElevatedButton).last)
+            .onPressed,
+        isNull,
+      );
+
+      final relative = find.text(AppStrings.registerPaymentPayerRelative).first;
+      await tester.ensureVisible(relative);
+      await tester.tap(relative);
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.registerPaymentPayerRequired), findsNothing);
+      expect(
+        tester
+            .widget<ElevatedButton>(find.byType(ElevatedButton).last)
+            .onPressed,
+        isNotNull,
+      );
+    });
+
     testWidgets('a group with a single active member offers no group payment',
         (tester) async {
       await boot(tester);

@@ -11,6 +11,7 @@ class PayerSelector extends StatelessWidget {
   final Member member;
   final List<Member> relatives;
   final int? selectedPayerId;
+  final bool awaitingChoice;
   final ValueChanged<int?> onSelected;
 
   const PayerSelector({
@@ -19,6 +20,7 @@ class PayerSelector extends StatelessWidget {
     required this.relatives,
     required this.selectedPayerId,
     required this.onSelected,
+    this.awaitingChoice = false,
   });
 
   @override
@@ -34,7 +36,7 @@ class PayerSelector extends StatelessWidget {
           _PayerOption(
             name: member.fullName,
             note: AppStrings.registerPaymentPayerSelf,
-            isSelected: selectedPayerId == null,
+            isSelected: !awaitingChoice && selectedPayerId == null,
             onSelected: () => onSelected(null),
           ),
           for (final relative in relatives)

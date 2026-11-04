@@ -280,6 +280,9 @@ class AppStrings {
   static const String registerPaymentTotalLabel = 'Total';
   static const String registerPaymentMethodTitle = 'Medio de pago';
   static const String registerPaymentPayerTitle = '¿Quién pagó?';
+  static const String registerPaymentPayerPick = 'Elegí quién está pagando.';
+  static const String registerPaymentPayerRequired =
+      'Falta elegir quién pagó.';
   static const String registerPaymentPayerSelf = 'El socio';
   static const String registerPaymentPayerRelative = 'Grupo familiar';
   static const String registerPaymentNoMonths = 'Ningún mes elegido';
