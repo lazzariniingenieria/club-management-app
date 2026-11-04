@@ -284,6 +284,9 @@ class AppStrings {
   static const String registerPaymentTotalLabel = 'Total';
   static const String registerPaymentMethodTitle = 'Medio de pago';
   static const String registerPaymentPayerTitle = '¿Quién pagó?';
+  static const String registerPaymentPayerPick = 'Elegí quién está pagando.';
+  static const String registerPaymentPayerRequired =
+      'Falta elegir quién pagó.';
   static const String registerPaymentPayerSelf = 'El socio';
   static const String registerPaymentPayerRelative = 'Grupo familiar';
   static const String registerPaymentNoMonths = 'Ningún mes elegido';
@@ -530,7 +533,7 @@ class AppStrings {
   static const String reportFromLabel = 'Desde';
   static const String reportToLabel = 'Hasta';
   static const String reportScopeNote =
-      'Arma las tabletas con los pagos realizados en el mes seleccionado.';
+      'Arma las tabletas con los pagos realizados en el período.';
   static const String reportInvalidRange =
       'El mes «Desde» tiene que ser anterior o igual a «Hasta».';
   static const String reportGenerate = 'Generar PDF';

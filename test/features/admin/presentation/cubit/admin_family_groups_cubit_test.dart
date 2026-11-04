@@ -75,6 +75,36 @@ void main() {
     expect(ready.groups.map((group) => group.group.id), [8, 7]);
   });
 
+  test('a change before the first load reads nothing', () async {
+    stub(Right(candidates));
+
+    paymentChanges.add(null);
+    await pumpEventQueue();
+
+    verifyNever(() => loadCandidates());
+    expect(cubit.state, isA<AdminFamilyGroupsLoading>());
+  });
+
+  test('loadOnFirstShow reads once, however many times the tab is shown',
+      () async {
+    stub(Right(candidates));
+
+    await cubit.loadOnFirstShow();
+    await cubit.loadOnFirstShow();
+
+    verify(() => loadCandidates()).called(1);
+  });
+
+  test('after the first load, changes reload as before', () async {
+    stub(Right(candidates));
+    await cubit.loadOnFirstShow();
+
+    paymentChanges.add(null);
+    await pumpEventQueue();
+
+    verify(() => loadCandidates()).called(2);
+  });
+
   test('reloads when a payment changes, so the mora badge stays true',
       () async {
     stub(Right(candidates));
