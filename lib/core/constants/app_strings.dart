@@ -531,7 +531,7 @@ class AppStrings {
   static const String reportFromLabel = 'Desde';
   static const String reportToLabel = 'Hasta';
   static const String reportScopeNote =
-      'Arma las tabletas con los pagos realizados en el mes seleccionado.';
+      'Arma las tabletas con los pagos realizados en el período.';
   static const String reportInvalidRange =
       'El mes «Desde» tiene que ser anterior o igual a «Hasta».';
   static const String reportGenerate = 'Generar PDF';
