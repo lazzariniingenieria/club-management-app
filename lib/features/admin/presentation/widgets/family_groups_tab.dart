@@ -16,8 +16,19 @@ import '../../../members/presentation/widgets/member_search_field.dart';
 import '../cubit/admin_family_groups_cubit.dart';
 import '../cubit/admin_family_groups_state.dart';
 
-class FamilyGroupsTab extends StatelessWidget {
+class FamilyGroupsTab extends StatefulWidget {
   const FamilyGroupsTab({super.key});
+
+  @override
+  State<FamilyGroupsTab> createState() => _FamilyGroupsTabState();
+}
+
+class _FamilyGroupsTabState extends State<FamilyGroupsTab> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<AdminFamilyGroupsCubit>().loadOnFirstShow();
+  }
 
   @override
   Widget build(BuildContext context) {

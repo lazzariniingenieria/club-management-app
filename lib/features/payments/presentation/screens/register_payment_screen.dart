@@ -387,6 +387,13 @@ class _PayerSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _SectionTitle(AppStrings.registerPaymentPayerTitle),
+        if (form.awaitingPayer) ...[
+          Text(
+            AppStrings.registerPaymentPayerPick,
+            style: AppTextStyles.bodyMedium,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
         if (notice is PayerLeftGroupNotice) ...[
           const AppNotice(
             message: AppStrings.registerPaymentPayerLeftGroup,
@@ -398,6 +405,7 @@ class _PayerSection extends StatelessWidget {
           member: form.ledger.member,
           relatives: form.ledger.familyMembers,
           selectedPayerId: form.payerId,
+          awaitingChoice: form.awaitingPayer,
           onSelected: context.read<RegisterPaymentCubit>().pickPayer,
         ),
       ],
@@ -454,6 +462,7 @@ class _ReviewBar extends StatelessWidget {
             )
           : months;
     }
+    if (form.awaitingPayer) return AppStrings.registerPaymentPayerRequired;
     final nothingLeft = (form.family?.isReady ?? false) && form.feeCount == 0;
 
     return nothingLeft

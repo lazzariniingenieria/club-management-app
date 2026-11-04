@@ -284,6 +284,9 @@ class AppStrings {
   static const String registerPaymentTotalLabel = 'Total';
   static const String registerPaymentMethodTitle = 'Medio de pago';
   static const String registerPaymentPayerTitle = '¿Quién pagó?';
+  static const String registerPaymentPayerPick = 'Elegí quién está pagando.';
+  static const String registerPaymentPayerRequired =
+      'Falta elegir quién pagó.';
   static const String registerPaymentPayerSelf = 'El socio';
   static const String registerPaymentPayerRelative = 'Grupo familiar';
   static const String registerPaymentNoMonths = 'Ningún mes elegido';
@@ -527,7 +530,7 @@ class AppStrings {
       'Tocá un mes, o dos para elegir un período';
   static const String reportMonthChosen = 'Elegido';
   static const String reportScopeNote =
-      'Arma las tabletas con los pagos realizados en el mes seleccionado.';
+      'Arma las tabletas con los pagos realizados en el período.';
   static const String reportGenerate = 'Generar PDF';
   static const String reportGenerating = 'Generando el PDF…';
   static const String reportReadyTitle = 'Tabletas listas';

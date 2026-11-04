@@ -27,6 +27,8 @@ void main() {
   late MockLoadMembersUseCase useCase;
   late StreamController<void> rosterChanges;
   late StreamController<void> paymentChanges;
+  late MockWatchRosterChangesUseCase watchRosterChanges;
+  late MockWatchPaymentChangesUseCase watchPaymentChanges;
   late MemberRosterCubit cubit;
 
   final overdueMember = buildMember(
@@ -55,19 +57,24 @@ void main() {
 
   MemberRosterReady readyState() => cubit.state as MemberRosterReady;
 
-  setUp(() {
-    useCase = MockLoadMembersUseCase();
-    rosterChanges = StreamController<void>.broadcast();
-    final watchRosterChanges = MockWatchRosterChangesUseCase();
-    when(() => watchRosterChanges()).thenAnswer((_) => rosterChanges.stream);
-    paymentChanges = StreamController<void>.broadcast();
-    final watchPaymentChanges = MockWatchPaymentChangesUseCase();
-    when(() => watchPaymentChanges()).thenAnswer((_) => paymentChanges.stream);
-    cubit = MemberRosterCubit(
+  MemberRosterCubit buildCubit({Duration reloadDelay = Duration.zero}) {
+    return MemberRosterCubit(
       loadMembers: useCase,
       watchRosterChanges: watchRosterChanges,
       watchPaymentChanges: watchPaymentChanges,
+      reloadDelay: reloadDelay,
     );
+  }
+
+  setUp(() {
+    useCase = MockLoadMembersUseCase();
+    rosterChanges = StreamController<void>.broadcast();
+    watchRosterChanges = MockWatchRosterChangesUseCase();
+    when(() => watchRosterChanges()).thenAnswer((_) => rosterChanges.stream);
+    paymentChanges = StreamController<void>.broadcast();
+    watchPaymentChanges = MockWatchPaymentChangesUseCase();
+    when(() => watchPaymentChanges()).thenAnswer((_) => paymentChanges.stream);
+    cubit = buildCubit();
   });
 
   tearDown(() async {
@@ -319,6 +326,73 @@ void main() {
       await cubit.close();
 
       expect(paymentChanges.hasListener, isFalse);
+    });
+  });
+
+  group('reloading after a change', () {
+    const delay = Duration(milliseconds: 40);
+    const afterDelay = Duration(milliseconds: 120);
+
+    Future<MemberRosterCubit> loadedCubit() async {
+      await cubit.close();
+      stub(Right(roster()));
+      final delayed = buildCubit(reloadDelay: delay);
+      await delayed.load();
+      clearInteractions(useCase);
+
+      return delayed;
+    }
+
+    test('three changes in a row reload the roster only once', () async {
+      final delayed = await loadedCubit();
+
+      paymentChanges.add(null);
+      rosterChanges.add(null);
+      paymentChanges.add(null);
+      await Future<void>.delayed(afterDelay);
+
+      verify(() => useCase()).called(1);
+      await delayed.close();
+    });
+
+    test('a hidden roster waits and reloads once when it is shown again',
+        () async {
+      final delayed = await loadedCubit();
+      delayed.visibilityChanged(false);
+
+      paymentChanges.add(null);
+      paymentChanges.add(null);
+      await Future<void>.delayed(afterDelay);
+      verifyNever(() => useCase());
+
+      delayed.visibilityChanged(true);
+      await pumpEventQueue();
+
+      verify(() => useCase()).called(1);
+      await delayed.close();
+    });
+
+    test('a hidden roster that saw no change does not reload when shown',
+        () async {
+      final delayed = await loadedCubit();
+
+      delayed.visibilityChanged(false);
+      delayed.visibilityChanged(true);
+      await pumpEventQueue();
+
+      verifyNever(() => useCase());
+      await delayed.close();
+    });
+
+    test('closing the cubit drops the reload that was waiting', () async {
+      final delayed = await loadedCubit();
+      paymentChanges.add(null);
+      await pumpEventQueue();
+
+      await delayed.close();
+      await Future<void>.delayed(afterDelay);
+
+      verifyNever(() => useCase());
     });
   });
 }
