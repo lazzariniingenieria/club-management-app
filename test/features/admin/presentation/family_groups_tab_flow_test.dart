@@ -9,6 +9,8 @@ import 'package:club_management_app/features/family_groups/data/models/family_gr
 import 'package:club_management_app/features/family_groups/presentation/widgets/family_group_list_tile.dart';
 import 'package:club_management_app/features/members/data/datasources/member_fake_data_source.dart';
 import 'package:club_management_app/features/members/data/models/member_model.dart';
+import 'package:club_management_app/features/members/data/repositories/member_repository_impl.dart';
+import 'package:club_management_app/features/members/domain/repositories/member_repository.dart';
 import 'package:club_management_app/features/members/presentation/widgets/member_list_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -122,6 +124,38 @@ void main() {
 
     expect(members.reads, rosterReadsAtHome + 2);
     expect(groups.reads, 1);
+  });
+
+  testWidgets(
+      'back on Socios, a change does not reread the groups until '
+      'their tab is shown again', (tester) async {
+    final members = MemberFakeDataSource(latency: Duration.zero);
+    final groups = GroupReadsCounter(members: members);
+    await bootApp(
+      tester,
+      signedInAs: UserRole.admin,
+      memberSource: members,
+      familyGroupSource: groups,
+    );
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text(AppStrings.adminTabMembers),
+      ),
+    );
+    await settleSession(tester);
+    await tapText(tester, AppStrings.adminMembersTabFamilyGroups);
+    await tapText(tester, AppStrings.adminMembersTabMembers);
+    expect(groups.reads, 1);
+
+    (di.sl<MemberRepository>() as MemberRepositoryImpl).notifyRosterChanged();
+    await settleSession(tester);
+
+    expect(groups.reads, 1);
+
+    await tapText(tester, AppStrings.adminMembersTabFamilyGroups);
+
+    expect(groups.reads, 2);
   });
 
   testWidgets('Grupos familiares lists every group with its members', (

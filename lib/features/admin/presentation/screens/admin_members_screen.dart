@@ -12,6 +12,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/inline_error_card.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
+import '../../../../shared/widgets/visibility_reporter.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../../members/domain/entities/member_collection_filter.dart';
 import '../../../members/presentation/widgets/member_filter_chips.dart';
@@ -44,23 +45,78 @@ class AdminMembersScreen extends StatelessWidget {
           create: (_) => sl<AdminFamilyGroupsCubit>(),
         ),
       ],
-      child: AdminScaffold(
-        title: AppStrings.adminMembersTitle,
-        showsRoleBadge: true,
-        actions: [
-          if (sl<AppFeatures>().feeReceipts) const _ReportAction(),
-        ],
-        bottom: _MembersTabBar(
-          filter: filter,
-          showsFamilyGroups: showsFamilyGroups,
+      child: _ReloadOnlyWhenVisible(
+        showsFamilyGroups: showsFamilyGroups,
+        child: AdminScaffold(
+          title: AppStrings.adminMembersTitle,
+          showsRoleBadge: true,
+          actions: [
+            if (sl<AppFeatures>().feeReceipts) const _ReportAction(),
+          ],
+          bottom: _MembersTabBar(
+            filter: filter,
+            showsFamilyGroups: showsFamilyGroups,
+          ),
+          floatingActionButton: showsFamilyGroups
+              ? const _BuildGroupButton()
+              : const _CreateMemberButton(),
+          body: showsFamilyGroups
+              ? const FamilyGroupsTab()
+              : _AdminMembersBody(filter: filter),
         ),
-        floatingActionButton: showsFamilyGroups
-            ? const _BuildGroupButton()
-            : const _CreateMemberButton(),
-        body: showsFamilyGroups
-            ? const FamilyGroupsTab()
-            : _AdminMembersBody(filter: filter),
       ),
+    );
+  }
+}
+
+class _ReloadOnlyWhenVisible extends StatefulWidget {
+  final bool showsFamilyGroups;
+  final Widget child;
+
+  const _ReloadOnlyWhenVisible({
+    required this.showsFamilyGroups,
+    required this.child,
+  });
+
+  @override
+  State<_ReloadOnlyWhenVisible> createState() => _ReloadOnlyWhenVisibleState();
+}
+
+class _ReloadOnlyWhenVisibleState extends State<_ReloadOnlyWhenVisible> {
+  bool _screenIsVisible = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _report();
+  }
+
+  @override
+  void didUpdateWidget(_ReloadOnlyWhenVisible oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.showsFamilyGroups != widget.showsFamilyGroups) _report();
+  }
+
+  void _screenVisibilityChanged(bool isVisible) {
+    _screenIsVisible = isVisible;
+    _report();
+  }
+
+  void _report() {
+    final showsGroups = widget.showsFamilyGroups;
+    context
+        .read<MemberRosterCubit>()
+        .visibilityChanged(_screenIsVisible && !showsGroups);
+    context
+        .read<AdminFamilyGroupsCubit>()
+        .visibilityChanged(_screenIsVisible && showsGroups);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return VisibilityReporter(
+      onChanged: _screenVisibilityChanged,
+      child: widget.child,
     );
   }
 }

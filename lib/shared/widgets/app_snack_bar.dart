@@ -14,3 +14,15 @@ void showAppSnackBar(
       ),
     );
 }
+
+void showAppActionSnackBar(
+  ScaffoldMessengerState messenger,
+  String message,
+  SnackBarAction action,
+) {
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(content: Text(message), action: action, persist: false),
+    );
+}

@@ -11,14 +11,17 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/formatters/display_formats.dart';
 import '../../../../shared/widgets/app_pill.dart';
+import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/inline_error_card.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
+import '../../../../shared/widgets/visibility_reporter.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../members/domain/entities/homonyms.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../domain/entities/payment_receipt.dart';
 import '../cubit/member_roster_cubit.dart';
 import '../cubit/member_roster_state.dart';
+import '../formatting/payment_formats.dart';
 
 class PaymentMemberPickerScreen extends StatelessWidget {
   const PaymentMemberPickerScreen({super.key});
@@ -27,10 +30,26 @@ class PaymentMemberPickerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider<MemberRosterCubit>(
       create: (_) => sl<MemberRosterCubit>()..load(),
-      child: const AdminScaffold(
-        title: AppStrings.paymentPickerTitle,
-        body: _PickerBody(),
+      child: const _ReloadOnlyWhenVisible(
+        child: AdminScaffold(
+          title: AppStrings.paymentPickerTitle,
+          body: _PickerBody(),
+        ),
       ),
+    );
+  }
+}
+
+class _ReloadOnlyWhenVisible extends StatelessWidget {
+  final Widget child;
+
+  const _ReloadOnlyWhenVisible({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return VisibilityReporter(
+      onChanged: context.read<MemberRosterCubit>().visibilityChanged,
+      child: child,
     );
   }
 }
@@ -156,10 +175,21 @@ class _PickerSearchField extends StatefulWidget {
 class _PickerSearchFieldState extends State<_PickerSearchField> {
   late final TextEditingController _controller =
       TextEditingController(text: widget.query);
+  final FocusNode _focus = FocusNode();
+
+  @override
+  void didUpdateWidget(_PickerSearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.query == _controller.text) return;
+
+    _controller.text = widget.query;
+    if (widget.query.isEmpty) _focus.requestFocus();
+  }
 
   @override
   void dispose() {
     _controller.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -167,6 +197,7 @@ class _PickerSearchFieldState extends State<_PickerSearchField> {
   Widget build(BuildContext context) {
     return TextField(
       controller: _controller,
+      focusNode: _focus,
       autofocus: true,
       onChanged: context.read<MemberRosterCubit>().search,
       textInputAction: TextInputAction.search,
@@ -230,15 +261,29 @@ class PaymentMemberPickerTile extends StatelessWidget {
   });
 
   Future<void> _pick(BuildContext context) async {
+    final roster = context.read<MemberRosterCubit>();
+    final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
     final receipt = await context.push<PaymentReceipt>(
       AppRoutes.adminPaymentRegistration(member.id),
     );
-    if (receipt == null || !context.mounted) return;
+    if (receipt == null) return;
 
-    context.pushReplacement(
-      AppRoutes.adminMemberLedger(member.id),
-      extra: receipt,
+    showAppActionSnackBar(
+      messenger,
+      AppStrings.paymentRegisteredFor(
+        PaymentFormats.receiptAnnouncement(receipt),
+        member.fullName,
+      ),
+      SnackBarAction(
+        label: AppStrings.paymentViewMember,
+        onPressed: () => router.push(
+          AppRoutes.adminMemberLedger(member.id),
+          extra: receipt,
+        ),
+      ),
     );
+    if (!roster.isClosed) roster.clearSearch();
   }
 
   @override

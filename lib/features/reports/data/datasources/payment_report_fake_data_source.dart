@@ -23,7 +23,7 @@ class PaymentReportFakeDataSource implements PaymentReportRemoteDataSource {
 
     return FeeReceiptsDocument(
       bytes: SamplePdf.withText('Tabletas de cuotas cobradas (datos de prueba)'),
-      fileName: FeeReceiptsRequest.defaultFileName(period),
+      fileName: FeeReceiptsRequest.fileNameFor(period),
     );
   }
 }

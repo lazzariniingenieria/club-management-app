@@ -44,6 +44,19 @@ class DroppingPaymentSource extends PaymentFakeDataSource {
   }
 }
 
+class RosterReadsCounter extends MemberRosterDataSource {
+  RosterReadsCounter(super.roster);
+
+  int reads = 0;
+
+  @override
+  Future<List<MemberModel>> fetchMembers() {
+    reads++;
+
+    return super.fetchMembers();
+  }
+}
+
 class RecordingPaymentSource extends PaymentFakeDataSource {
   final List<PaymentDraft> drafts = [];
   final List<List<PaymentDraft>> batches = [];
@@ -263,6 +276,15 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> reviewAndConfirmWhateverTotal(WidgetTester tester) async {
+    final review = tester.widget<Text>(
+      find.textContaining(AppStrings.registerPaymentReviewAction),
+    );
+    final total = review.data!.split(' · ').last;
+
+    await reviewAndConfirm(tester, total);
+  }
+
   group('from the Pagos tab', () {
     testWidgets('tapping a member opens their ledger', (tester) async {
       await bootClub(tester);
@@ -339,26 +361,100 @@ void main() {
       expect(find.text('Juan Zárate'), findsNothing);
     });
 
-    testWidgets('ends on the ledger of the member that just paid', (
+    testWidgets('comes back to the picker, ready for the next payment', (
       tester,
     ) async {
       await openPicker(tester);
+      await tester.enterText(find.byType(TextField), 'ana');
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Ana Álvarez'));
       await tester.pumpAndSettle();
       await reviewAndConfirm(tester, r'$15.000');
 
-      expect(currentLocation(), AppRoutes.adminMemberLedger(2));
+      expect(currentLocation(), AppRoutes.adminPaymentMemberPicker);
       expect(
         find.text(
-          AppStrings.paymentRegistered('noviembre de 2026', r'$15.000'),
+          AppStrings.paymentRegisteredFor(
+            AppStrings.paymentRegistered('noviembre de 2026', r'$15.000'),
+            'Ana Álvarez',
+          ),
         ),
         findsOneWidget,
+      );
+      final search = tester.widget<TextField>(find.byType(TextField));
+      expect(search.controller?.text, isEmpty);
+      expect(find.text('Juan Zárate'), findsOneWidget);
+    });
+
+    testWidgets(
+        'a batch of payments rereads the roster only for the list on screen',
+        (tester) async {
+      final members = RosterReadsCounter(roster);
+      await bootClub(
+        tester,
+        memberSource: members,
+        payments: (_) => PaymentFakeDataSource(
+          members: MemberRosterDataSource(roster),
+          latency: Duration.zero,
+          clock: () => DateTime(2026, 10, 14),
+        ),
+      );
+      await openMembersTab(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text(AppStrings.adminTabHome),
+        ),
+      );
+      await settleSession(tester);
+      await tester.tap(find.text(AppStrings.adminHomeRegisterPaymentAccess));
+      await settleSession(tester);
+      final readsBeforeTheBatch = members.reads;
+
+      for (final name in ['Ana Álvarez', 'Juan Zárate']) {
+        await tester.tap(
+          find.descendant(
+            of: find.byType(PaymentMemberPickerScreen),
+            matching: find.text(name),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(SnackBar), findsNothing);
+        await reviewAndConfirmWhateverTotal(tester);
+        await settleSession(tester);
+        expect(currentLocation(), AppRoutes.adminPaymentMemberPicker);
+      }
+
+      const pickerShownAgainAfterEachPayment = 2;
+      expect(
+        members.reads,
+        readsBeforeTheBatch + pickerShownAgainAfterEachPayment,
       );
 
       di.sl<AppRouter>().router.pop();
       await settleSession(tester);
-      expect(currentLocation(), AppRoutes.adminHome);
+      await openMembersTab(tester);
+
+      expect(
+        members.reads,
+        readsBeforeTheBatch + pickerShownAgainAfterEachPayment + 1,
+      );
+    });
+
+    testWidgets('the notice opens the member who just paid', (tester) async {
+      await openPicker(tester);
+      await tester.tap(find.text('Ana Álvarez'));
+      await tester.pumpAndSettle();
+      await reviewAndConfirm(tester, r'$15.000');
+
+      await tester.tap(find.text(AppStrings.paymentViewMember));
+      await tester.pumpAndSettle();
+
+      expect(currentLocation(), AppRoutes.adminMemberLedger(2));
+      di.sl<AppRouter>().router.pop();
+      await settleSession(tester);
+      expect(currentLocation(), AppRoutes.adminPaymentMemberPicker);
     });
   });
 

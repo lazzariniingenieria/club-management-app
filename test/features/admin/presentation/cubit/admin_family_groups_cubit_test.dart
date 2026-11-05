@@ -27,6 +27,9 @@ class MockWatchPayments extends Mock implements WatchPaymentChangesUseCase {}
 void main() {
   late MockLoadCandidates loadCandidates;
   late StreamController<void> paymentChanges;
+  late MockWatchRoster watchRoster;
+  late MockWatchGroups watchGroups;
+  late MockWatchPayments watchPayments;
   late AdminFamilyGroupsCubit cubit;
 
   final candidates = FamilyGroupCandidates(
@@ -44,21 +47,26 @@ void main() {
     when(() => loadCandidates()).thenAnswer((_) async => result);
   }
 
-  setUp(() {
-    loadCandidates = MockLoadCandidates();
-    paymentChanges = StreamController<void>.broadcast();
-    final watchRoster = MockWatchRoster();
-    final watchGroups = MockWatchGroups();
-    final watchPayments = MockWatchPayments();
-    when(() => watchRoster()).thenAnswer((_) => const Stream.empty());
-    when(() => watchGroups()).thenAnswer((_) => const Stream.empty());
-    when(() => watchPayments()).thenAnswer((_) => paymentChanges.stream);
-    cubit = AdminFamilyGroupsCubit(
+  AdminFamilyGroupsCubit buildCubit({Duration reloadDelay = Duration.zero}) {
+    return AdminFamilyGroupsCubit(
       loadGroups: loadCandidates,
       watchRosterChanges: watchRoster,
       watchGroupChanges: watchGroups,
       watchPaymentChanges: watchPayments,
+      reloadDelay: reloadDelay,
     );
+  }
+
+  setUp(() {
+    loadCandidates = MockLoadCandidates();
+    paymentChanges = StreamController<void>.broadcast();
+    watchRoster = MockWatchRoster();
+    watchGroups = MockWatchGroups();
+    watchPayments = MockWatchPayments();
+    when(() => watchRoster()).thenAnswer((_) => const Stream.empty());
+    when(() => watchGroups()).thenAnswer((_) => const Stream.empty());
+    when(() => watchPayments()).thenAnswer((_) => paymentChanges.stream);
+    cubit = buildCubit();
   });
 
   tearDown(() async {
@@ -137,5 +145,48 @@ void main() {
     final ready = cubit.state as AdminFamilyGroupsReady;
     expect(ready.searchQuery, 'gomez');
     expect(ready.visibleGroups.single.group.id, 7);
+  });
+
+  group('reloading after a change', () {
+    const delay = Duration(milliseconds: 40);
+    const afterDelay = Duration(milliseconds: 120);
+
+    Future<AdminFamilyGroupsCubit> loadedCubit() async {
+      await cubit.close();
+      stub(Right(candidates));
+      final delayed = buildCubit(reloadDelay: delay);
+      await delayed.load();
+      clearInteractions(loadCandidates);
+
+      return delayed;
+    }
+
+    test('three changes in a row read the groups only once', () async {
+      final delayed = await loadedCubit();
+
+      paymentChanges.add(null);
+      paymentChanges.add(null);
+      paymentChanges.add(null);
+      await Future<void>.delayed(afterDelay);
+
+      verify(() => loadCandidates()).called(1);
+      await delayed.close();
+    });
+
+    test('a hidden tab waits and reads once when it is shown again',
+        () async {
+      final delayed = await loadedCubit();
+      delayed.visibilityChanged(false);
+
+      paymentChanges.add(null);
+      await Future<void>.delayed(afterDelay);
+      verifyNever(() => loadCandidates());
+
+      delayed.visibilityChanged(true);
+      await pumpEventQueue();
+
+      verify(() => loadCandidates()).called(1);
+      await delayed.close();
+    });
   });
 }

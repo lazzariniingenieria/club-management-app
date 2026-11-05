@@ -225,7 +225,7 @@ Socios ──[fila]──► Ficha del socio ─────────┼─�
 
 **Cuatro toques desde el Inicio** para el caso común — un socio que paga el mes siguiente al último, en efectivo y a la cuota del club: *Registrar pago* → socio → *Revisar y confirmar* → *Confirmar*. El tope de tres no alcanza sin sacrificar la confirmación, que en un pago no se negocia.
 
-**Elegir socio** (`/admin/payments/new`): buscador con foco al entrar y solo socios activos, en dos grupos: **en mora** primero, de más días a menos, y **al día** de la A a la Z. Quien viene a pagar suele ser el que debe. Elegir un socio abre el registro; al confirmar, la pantalla de elegir se reemplaza por las cuotas de ese socio, así que "volver" lleva al Inicio y no a una lista que ya no sirve.
+**Elegir socio** (`/admin/payments/new`): buscador con foco al entrar y solo socios activos, en dos grupos: **en mora** primero, de más días a menos, y **al día** de la A a la Z. Quien viene a pagar suele ser el que debe. Elegir un socio abre el registro; **al confirmar se vuelve a Elegir socio**, con el buscador limpio y el foco puesto, y el aviso "Pago registrado … · Ana Álvarez" con la acción *Ver socio* (revisión en el celular, 2026-10-31). Así se cargan varios pagos seguidos sin ir y volver al Inicio. Un pago empezado desde la ficha del socio vuelve a la ficha, como antes. El medio de pago no se recuerda entre un pago y otro: arranca siempre en Efectivo.
 
 **Registrar pago** (`/admin/members/:memberId/payments/new`, con `?family=true` para arrancar pagando por todo el grupo), de arriba abajo:
 
@@ -254,9 +254,9 @@ Socios ──[fila]──► Ficha del socio ─────────┼─�
 1. Arriba y centrado, lo que se confirma: el **total** grande y debajo "2 cuotas · Efectivo".
 2. Una lista con **una fila por socio**: nombre y meses debajo; si son varios, el subtotal de cada uno a la derecha (con uno solo repetiría el total). Quien ya tiene pagos esos meses figura con "No se cobra · Ya tiene pagos esos meses".
 3. *Importe por mes* y *Pagó*.
-4. El aviso *"Un pago registrado no se edita: si hay un error, se anula desde el historial del socio."* y las dos acciones, *Confirmar pago de $X* y *Volver a editar*.
+4. Las dos acciones, *Confirmar pago de $X* y *Volver a editar*. Sin aviso de que un pago no se edita: la hoja ya es la confirmación, y el texto la recargaba.
 
-**Después de confirmar** se vuelve a las ficha del socio con un snackbar ("Pago registrado …") y los meses recién pagos marcados como *NUEVO* en el historial. Socios, sus contadores de mora y el Inicio se actualizan solos.
+**Después de confirmar desde la ficha** se vuelve a la ficha del socio con un snackbar ("Pago registrado …") y los meses recién pagos marcados como *NUEVO* en el historial. Socios, sus contadores de mora y el Inicio se actualizan solos.
 
 **Lo que puede salir mal, sin perder lo cargado**:
 
@@ -421,7 +421,7 @@ Si el bloqueo pisa reservas existentes, la confirmación **debe listar las reser
 - **Entrada**: ícono de PDF con `tooltip` "Reporte de cuotas cobradas" en la barra superior de Socios (`/admin/payments/report`). Ícono solo, como permite §1 para el admin, para no quitarle lugar al título.
 - **Período por fecha de cobro**: *Un mes* o *Varios meses* (desde / hasta) entre los últimos 24 meses. La app lo traduce a días (`paidFrom` = día 1 del primer mes, `paidTo` = último día del último mes). Se eligen meses y no días sueltos porque así rinde el club, y porque el selector de fechas de Flutter sale en inglés mientras la app no tenga la localización en español. Un rango invertido se explica en el campo y deshabilita *Generar PDF*.
 - **Estados**: generando (botón con progreso y "Generando el PDF…"; el modo y los meses quedan bloqueados hasta que responda, y una respuesta de un período que ya no está elegido se descarta), listo ("Tabletas listas", el período, *Compartir PDF* y *Ver o imprimir*), **sin cobros** (el `204`: "No hubo cobros en ese período, así que no hay tabletas para imprimir"), error sin conexión o del servidor, y **el servidor tardó demasiado** (el PDF tiene 60 s de espera, no los 15 s generales; si igual no alcanza, "Probá con menos meses o de nuevo en un rato" en lugar de "sin conexión"). Si el dispositivo no puede abrir o compartir el PDF, un snackbar lo dice.
-- El archivo conserva el nombre que manda el backend (`cuotas-cobradas-2026-10-01-al-2026-10-31.pdf`).
+- El archivo se llama por sus meses, no por las fechas ISO que usa el backend en el `Content-Disposition`: `cuotas-cobradas-octubre-2026.pdf`, `cuotas-cobradas-agosto-a-octubre-2026.pdf` o `cuotas-cobradas-noviembre-2025-a-febrero-2026.pdf`. Es lo que dice el PDF por dentro ("MES DE OCTUBRE 2026"), que no imprime fechas con números.
 
 ---
 
