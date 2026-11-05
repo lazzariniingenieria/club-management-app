@@ -8,6 +8,7 @@ import 'package:club_management_app/features/family_groups/data/datasources/fami
 import 'package:club_management_app/features/family_groups/data/models/family_group_model.dart';
 import 'package:club_management_app/features/family_groups/presentation/widgets/family_group_list_tile.dart';
 import 'package:club_management_app/features/members/data/datasources/member_fake_data_source.dart';
+import 'package:club_management_app/features/members/data/models/member_model.dart';
 import 'package:club_management_app/features/members/presentation/widgets/member_list_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +26,19 @@ class GroupReadsCounter extends FamilyGroupFakeDataSource {
     reads++;
 
     return super.fetchGroups();
+  }
+}
+
+class RosterReadsCounter extends MemberFakeDataSource {
+  RosterReadsCounter() : super(latency: Duration.zero);
+
+  int reads = 0;
+
+  @override
+  Future<List<MemberModel>> fetchMembers() {
+    reads++;
+
+    return super.fetchMembers();
   }
 }
 
@@ -83,7 +97,7 @@ void main() {
   testWidgets('the groups are only read when the tab is opened', (
     tester,
   ) async {
-    final members = MemberFakeDataSource(latency: Duration.zero);
+    final members = RosterReadsCounter();
     final groups = GroupReadsCounter(members: members);
     await bootApp(
       tester,
@@ -91,6 +105,8 @@ void main() {
       memberSource: members,
       familyGroupSource: groups,
     );
+    final rosterReadsAtHome = members.reads;
+
     await tester.tap(
       find.descendant(
         of: find.byType(NavigationBar),
@@ -99,10 +115,12 @@ void main() {
     );
     await settleSession(tester);
 
+    expect(members.reads, rosterReadsAtHome + 1);
     expect(groups.reads, 0);
 
     await tapText(tester, AppStrings.adminMembersTabFamilyGroups);
 
+    expect(members.reads, rosterReadsAtHome + 2);
     expect(groups.reads, 1);
   });
 
