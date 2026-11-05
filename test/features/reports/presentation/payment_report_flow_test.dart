@@ -32,6 +32,16 @@ class RecordingExporter implements ReportFileExporter {
       shared.add(fileName);
 }
 
+class FailingExporter implements ReportFileExporter {
+  @override
+  Future<void> preview(Uint8List bytes, String fileName) =>
+      throw StateError('no viewer');
+
+  @override
+  Future<void> share(Uint8List bytes, String fileName) =>
+      throw StateError('no app to share with');
+}
+
 class SlowReportSource implements PaymentReportRemoteDataSource {
   @override
   Future<FeeReceiptsDocument?> fetchFeeReceipts(PaymentReportPeriod period) =>
@@ -270,6 +280,27 @@ void main() {
       find.descendant(
         of: find.byType(BottomSheet),
         matching: find.text(AppStrings.reportShare),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a share that fails says so inside the sheet', (tester) async {
+    await bootApp(tester, signedInAs: UserRole.admin);
+    di.sl.unregister<ReportFileExporter>();
+    di.sl.registerLazySingleton<ReportFileExporter>(FailingExporter.new);
+    di.sl<AppRouter>().router.push(AppRoutes.adminFeeReceipts);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppStrings.reportGenerate));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(AppStrings.reportShare));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text(AppStrings.reportExportFailed),
       ),
       findsOneWidget,
     );

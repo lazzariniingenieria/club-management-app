@@ -9,7 +9,6 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_notice.dart';
 import '../../../../shared/widgets/app_secondary_button.dart';
-import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../payments/domain/entities/billing_month.dart';
 import '../../../payments/presentation/widgets/month_grid.dart';
@@ -219,16 +218,22 @@ class _FailureNotice extends StatelessWidget {
   }
 }
 
-class _ReadySheet extends StatelessWidget {
+class _ReadySheet extends StatefulWidget {
   final PaymentReportPeriod period;
 
   const _ReadySheet({required this.period});
 
-  Future<void> _run(BuildContext context, Future<bool> Function() action) async {
+  @override
+  State<_ReadySheet> createState() => _ReadySheetState();
+}
+
+class _ReadySheetState extends State<_ReadySheet> {
+  bool _exportFailed = false;
+
+  Future<void> _run(Future<bool> Function() action) async {
+    setState(() => _exportFailed = false);
     final succeeded = await action();
-    if (!succeeded && context.mounted) {
-      showAppSnackBar(context, AppStrings.reportExportFailed, isError: true);
-    }
+    if (mounted) setState(() => _exportFailed = !succeeded);
   }
 
   @override
@@ -247,34 +252,57 @@ class _ReadySheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Semantics(
-              header: true,
-              child: Text(
-                AppStrings.reportReadyTitle,
-                style: AppTextStyles.titleLarge,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              PaymentReportFormats.periodLabel(period),
-              style: AppTextStyles.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
+            _ReadyHeader(period: widget.period),
             const SizedBox(height: AppSpacing.lg),
+            if (_exportFailed) ...[
+              const AppNotice(
+                tone: AppNoticeTone.danger,
+                message: AppStrings.reportExportFailed,
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
             ElevatedButton.icon(
-              onPressed: () => _run(context, cubit.share),
+              onPressed: () => _run(cubit.share),
               icon: const Icon(Icons.share_outlined),
               label: const Text(AppStrings.reportShare),
             ),
             const SizedBox(height: AppSpacing.sm),
             AppSecondaryButton(
               label: AppStrings.reportPreview,
-              onPressed: () => _run(context, cubit.preview),
+              onPressed: () => _run(cubit.preview),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ReadyHeader extends StatelessWidget {
+  final PaymentReportPeriod period;
+
+  const _ReadyHeader({required this.period});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          header: true,
+          child: Text(
+            AppStrings.reportReadyTitle,
+            style: AppTextStyles.titleLarge,
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          PaymentReportFormats.periodLabel(period),
+          style: AppTextStyles.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 }
