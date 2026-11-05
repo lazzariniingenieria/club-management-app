@@ -44,6 +44,19 @@ class DroppingPaymentSource extends PaymentFakeDataSource {
   }
 }
 
+class RosterReadsCounter extends MemberRosterDataSource {
+  RosterReadsCounter(super.roster);
+
+  int reads = 0;
+
+  @override
+  Future<List<MemberModel>> fetchMembers() {
+    reads++;
+
+    return super.fetchMembers();
+  }
+}
+
 class RecordingPaymentSource extends PaymentFakeDataSource {
   final List<PaymentDraft> drafts = [];
   final List<List<PaymentDraft>> batches = [];
@@ -263,6 +276,15 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> reviewAndConfirmWhateverTotal(WidgetTester tester) async {
+    final review = tester.widget<Text>(
+      find.textContaining(AppStrings.registerPaymentReviewAction),
+    );
+    final total = review.data!.split(' · ').last;
+
+    await reviewAndConfirm(tester, total);
+  }
+
   group('from the Pagos tab', () {
     testWidgets('tapping a member opens their ledger', (tester) async {
       await bootClub(tester);
@@ -363,6 +385,63 @@ void main() {
       final search = tester.widget<TextField>(find.byType(TextField));
       expect(search.controller?.text, isEmpty);
       expect(find.text('Juan Zárate'), findsOneWidget);
+    });
+
+    testWidgets(
+        'a batch of payments rereads the roster only for the list on screen',
+        (tester) async {
+      final members = RosterReadsCounter(roster);
+      await bootClub(
+        tester,
+        memberSource: members,
+        payments: (_) => PaymentFakeDataSource(
+          members: MemberRosterDataSource(roster),
+          latency: Duration.zero,
+          clock: () => DateTime(2026, 10, 14),
+        ),
+      );
+      await openMembersTab(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text(AppStrings.adminTabHome),
+        ),
+      );
+      await settleSession(tester);
+      await tester.tap(find.text(AppStrings.adminHomeRegisterPaymentAccess));
+      await settleSession(tester);
+      final readsBeforeTheBatch = members.reads;
+      const snackBarLifetime = Duration(seconds: 10);
+
+      for (final name in ['Ana Álvarez', 'Juan Zárate']) {
+        await tester.tap(
+          find.descendant(
+            of: find.byType(PaymentMemberPickerScreen),
+            matching: find.text(name),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await reviewAndConfirmWhateverTotal(tester);
+        await settleSession(tester);
+        expect(currentLocation(), AppRoutes.adminPaymentMemberPicker);
+        await tester.pump(snackBarLifetime);
+        await tester.pumpAndSettle();
+      }
+
+      const pickerShownAgainAfterEachPayment = 2;
+      expect(
+        members.reads,
+        readsBeforeTheBatch + pickerShownAgainAfterEachPayment,
+      );
+
+      di.sl<AppRouter>().router.pop();
+      await settleSession(tester);
+      await openMembersTab(tester);
+
+      expect(
+        members.reads,
+        readsBeforeTheBatch + pickerShownAgainAfterEachPayment + 1,
+      );
     });
 
     testWidgets('the notice opens the member who just paid', (tester) async {
