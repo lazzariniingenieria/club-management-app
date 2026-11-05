@@ -49,7 +49,7 @@ class RegisterPaymentCubit extends Cubit<RegisterPaymentState> {
 
     emit(result.fold(_unavailableFrom, _editingFor));
     if (forFamily && _hasRelativesToCharge) {
-      _edit((form) => form.awaitingPayerChoice());
+      _edit((form) => form.askingForPayer());
       await payForFamily(enabled: true);
     }
   }
