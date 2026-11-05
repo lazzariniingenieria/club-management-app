@@ -415,7 +415,6 @@ void main() {
       await tester.tap(find.text(AppStrings.adminHomeRegisterPaymentAccess));
       await settleSession(tester);
       final readsBeforeTheBatch = members.reads;
-      const snackBarLifetime = Duration(seconds: 10);
 
       for (final name in ['Ana Álvarez', 'Juan Zárate']) {
         await tester.tap(
@@ -425,11 +424,10 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        expect(find.byType(SnackBar), findsNothing);
         await reviewAndConfirmWhateverTotal(tester);
         await settleSession(tester);
         expect(currentLocation(), AppRoutes.adminPaymentMemberPicker);
-        await tester.pump(snackBarLifetime);
-        await tester.pumpAndSettle();
       }
 
       const pickerShownAgainAfterEachPayment = 2;

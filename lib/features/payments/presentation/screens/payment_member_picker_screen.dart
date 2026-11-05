@@ -257,7 +257,7 @@ class PaymentMemberPickerTile extends StatelessWidget {
   Future<void> _pick(BuildContext context) async {
     final roster = context.read<MemberRosterCubit>();
     final router = GoRouter.of(context);
-    final messenger = ScaffoldMessenger.of(context);
+    final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
     FocusManager.instance.primaryFocus?.unfocus();
     final receipt = await context.push<PaymentReceipt>(
       AppRoutes.adminPaymentRegistration(member.id),
