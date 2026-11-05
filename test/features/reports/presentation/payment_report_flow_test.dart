@@ -13,6 +13,7 @@ import 'package:club_management_app/features/reports/data/datasources/payment_re
 import 'package:club_management_app/features/reports/data/datasources/payment_report_remote_data_source.dart';
 import 'package:club_management_app/features/reports/domain/entities/fee_receipts_document.dart';
 import 'package:club_management_app/features/reports/domain/entities/payment_report_period.dart';
+import 'package:club_management_app/features/reports/presentation/cubit/payment_report_cubit.dart';
 import 'package:club_management_app/features/reports/presentation/export/report_file_exporter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,10 +38,32 @@ class SlowReportSource implements PaymentReportRemoteDataSource {
 }
 
 void main() {
+  DateTime today() => DateTime(2026, 10, 14);
+
+  Future<void> bootOnAFixedDay(WidgetTester tester) async {
+    await bootApp(
+      tester,
+      signedInAs: UserRole.admin,
+      reportSource: PaymentReportFakeDataSource(
+        latency: Duration.zero,
+        clock: today,
+      ),
+    );
+    di.sl.unregister<PaymentReportCubit>();
+    di.sl.registerFactory(
+      () => PaymentReportCubit(
+        downloadReceipts: di.sl(),
+        exporter: di.sl(),
+        logger: di.sl(),
+        clock: today,
+      ),
+    );
+  }
+
   testWidgets('the home opens the metrics, whose PDF downloads and shares', (
     tester,
   ) async {
-    await bootApp(tester, signedInAs: UserRole.admin);
+    await bootOnAFixedDay(tester);
     final exporter = RecordingExporter();
     di.sl.unregister<ReportFileExporter>();
     di.sl.registerLazySingleton<ReportFileExporter>(() => exporter);
@@ -67,9 +90,7 @@ void main() {
     await tester.tap(find.text(AppStrings.reportShare));
     await tester.pumpAndSettle();
 
-    final today = DateTime.now();
-    final month = AppStrings.monthNames[today.month - 1].toLowerCase();
-    expect(exporter.shared, ['cuotas-cobradas-$month-${today.year}.pdf']);
+    expect(exporter.shared, ['cuotas-cobradas-octubre-2026.pdf']);
   });
 
   testWidgets('tapping a month other than the current one picks only that one', (

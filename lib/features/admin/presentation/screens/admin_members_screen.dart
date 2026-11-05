@@ -45,6 +45,7 @@ class AdminMembersScreen extends StatelessWidget {
         ),
       ],
       child: _ReloadOnlyWhenVisible(
+        showsFamilyGroups: showsFamilyGroups,
         child: _MembersTabs(
           filter: filter,
           showsFamilyGroups: showsFamilyGroups,
@@ -54,21 +55,54 @@ class AdminMembersScreen extends StatelessWidget {
   }
 }
 
-class _ReloadOnlyWhenVisible extends StatelessWidget {
+class _ReloadOnlyWhenVisible extends StatefulWidget {
+  final bool showsFamilyGroups;
   final Widget child;
 
-  const _ReloadOnlyWhenVisible({required this.child});
+  const _ReloadOnlyWhenVisible({
+    required this.showsFamilyGroups,
+    required this.child,
+  });
 
-  void _report(BuildContext context, bool isVisible) {
-    context.read<MemberRosterCubit>().visibilityChanged(isVisible);
-    context.read<AdminFamilyGroupsCubit>().visibilityChanged(isVisible);
+  @override
+  State<_ReloadOnlyWhenVisible> createState() => _ReloadOnlyWhenVisibleState();
+}
+
+class _ReloadOnlyWhenVisibleState extends State<_ReloadOnlyWhenVisible> {
+  bool _screenIsVisible = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _report();
+  }
+
+  @override
+  void didUpdateWidget(_ReloadOnlyWhenVisible oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.showsFamilyGroups != widget.showsFamilyGroups) _report();
+  }
+
+  void _screenVisibilityChanged(bool isVisible) {
+    _screenIsVisible = isVisible;
+    _report();
+  }
+
+  void _report() {
+    final showsGroups = widget.showsFamilyGroups;
+    context
+        .read<MemberRosterCubit>()
+        .visibilityChanged(_screenIsVisible && !showsGroups);
+    context
+        .read<AdminFamilyGroupsCubit>()
+        .visibilityChanged(_screenIsVisible && showsGroups);
   }
 
   @override
   Widget build(BuildContext context) {
     return VisibilityReporter(
-      onChanged: (isVisible) => _report(context, isVisible),
-      child: child,
+      onChanged: _screenVisibilityChanged,
+      child: widget.child,
     );
   }
 }
