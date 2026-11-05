@@ -5,32 +5,37 @@ import '../../../payments/domain/entities/billing_month.dart';
 import '../../domain/entities/fee_receipts_document.dart';
 import '../../domain/entities/payment_report_period.dart';
 
-enum ReportRangeMode { single, range }
-
 enum ReportStatus { editing, generating, ready, failed }
 
 class PaymentReportState extends Equatable {
-  final ReportRangeMode mode;
-  final BillingMonth from;
-  final BillingMonth to;
+  static const int yearsOffered = 3;
+
+  final PaymentReportPeriod period;
+  final BillingMonth currentMonth;
+  final int visibleYear;
+  final bool awaitsRangeEnd;
   final ReportStatus status;
   final FeeReceiptsDocument? document;
   final Failure? failure;
-  final List<BillingMonth> offeredMonths;
 
   const PaymentReportState({
-    required this.from,
-    required this.to,
-    required this.offeredMonths,
-    this.mode = ReportRangeMode.single,
+    required this.period,
+    required this.currentMonth,
+    required this.visibleYear,
+    this.awaitsRangeEnd = false,
     this.status = ReportStatus.editing,
     this.document,
     this.failure,
   });
 
-  PaymentReportPeriod get period => mode == ReportRangeMode.single
-      ? PaymentReportPeriod.single(from)
-      : PaymentReportPeriod(from: from, to: to);
+  factory PaymentReportState.startingAt(BillingMonth currentMonth) =>
+      PaymentReportState(
+        period: PaymentReportPeriod.single(currentMonth),
+        currentMonth: currentMonth,
+        visibleYear: currentMonth.year,
+      );
+
+  int get earliestYear => currentMonth.year - yearsOffered + 1;
 
   bool get isGenerating => status == ReportStatus.generating;
 
@@ -43,18 +48,32 @@ class PaymentReportState extends Equatable {
   bool get hadNoCollections =>
       status == ReportStatus.ready && document == null;
 
-  PaymentReportState editing({
-    ReportRangeMode? mode,
-    BillingMonth? from,
-    BillingMonth? to,
-  }) {
-    return PaymentReportState(
-      mode: mode ?? this.mode,
-      from: from ?? this.from,
-      to: to ?? this.to,
-      offeredMonths: offeredMonths,
-    );
+  bool isOffered(BillingMonth month) =>
+      !currentMonth.isBefore(month) && month.year >= earliestYear;
+
+  bool includes(BillingMonth month) =>
+      !month.isBefore(period.from) && !period.to.isBefore(month);
+
+  PaymentReportState tapping(BillingMonth month) {
+    if (!awaitsRangeEnd || month == period.from) {
+      return _editing(PaymentReportPeriod.single(month), awaitsRangeEnd: true);
+    }
+
+    final from = month.isBefore(period.from) ? month : period.from;
+    final to = month.isBefore(period.from) ? period.from : month;
+
+    return _editing(PaymentReportPeriod(from: from, to: to));
   }
+
+  PaymentReportState showingYear(int year) => PaymentReportState(
+        period: period,
+        currentMonth: currentMonth,
+        visibleYear: year.clamp(earliestYear, currentMonth.year),
+        awaitsRangeEnd: awaitsRangeEnd,
+        status: status,
+        document: document,
+        failure: failure,
+      );
 
   PaymentReportState withStatus(
     ReportStatus status, {
@@ -62,17 +81,36 @@ class PaymentReportState extends Equatable {
     Failure? failure,
   }) {
     return PaymentReportState(
-      mode: mode,
-      from: from,
-      to: to,
-      offeredMonths: offeredMonths,
+      period: period,
+      currentMonth: currentMonth,
+      visibleYear: visibleYear,
+      awaitsRangeEnd: awaitsRangeEnd,
       status: status,
       document: document,
       failure: failure,
     );
   }
 
+  PaymentReportState _editing(
+    PaymentReportPeriod period, {
+    bool awaitsRangeEnd = false,
+  }) {
+    return PaymentReportState(
+      period: period,
+      currentMonth: currentMonth,
+      visibleYear: visibleYear,
+      awaitsRangeEnd: awaitsRangeEnd,
+    );
+  }
+
   @override
-  List<Object?> get props =>
-      [mode, from, to, offeredMonths, status, document, failure];
+  List<Object?> get props => [
+        period,
+        currentMonth,
+        visibleYear,
+        awaitsRangeEnd,
+        status,
+        document,
+        failure,
+      ];
 }

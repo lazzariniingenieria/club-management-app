@@ -22,32 +22,13 @@ class PaymentReportCubit extends Cubit<PaymentReportState> {
   })  : _downloadReceipts = downloadReceipts,
         _exporter = exporter,
         _logger = logger,
-        super(_initialState(BillingMonth.of(clock())));
+        super(PaymentReportState.startingAt(BillingMonth.of(clock())));
 
-  static const int monthsOffered = 24;
-
-  static PaymentReportState _initialState(BillingMonth current) {
-    return PaymentReportState(
-      from: current,
-      to: current,
-      offeredMonths: _monthsEndingAt(current),
-    );
+  void tapMonth(BillingMonth month) {
+    if (state.isOffered(month)) emit(state.tapping(month));
   }
 
-  static List<BillingMonth> _monthsEndingAt(BillingMonth last) {
-    final months = [last];
-    while (months.length < monthsOffered) {
-      months.add(months.last.previous);
-    }
-
-    return months;
-  }
-
-  void selectMode(ReportRangeMode mode) => emit(state.editing(mode: mode));
-
-  void selectFrom(BillingMonth month) => emit(state.editing(from: month));
-
-  void selectTo(BillingMonth month) => emit(state.editing(to: month));
+  void showYear(int year) => emit(state.showingYear(year));
 
   Future<void> generate() async {
     if (!state.canGenerate) return;

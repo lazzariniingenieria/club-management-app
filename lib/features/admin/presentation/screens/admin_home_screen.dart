@@ -16,6 +16,7 @@ import '../cubit/admin_home_cubit.dart';
 import '../cubit/admin_home_state.dart';
 import '../widgets/admin_scaffold.dart';
 import '../widgets/quick_access_card.dart';
+import '../widgets/reports_access_card.dart';
 import '../widgets/summary_count_card.dart';
 
 class AdminHomeScreen extends StatelessWidget {
@@ -93,12 +94,25 @@ class _AdminHomeBody extends StatelessWidget {
           _SectionTitle(AppStrings.adminHomeSummaryTitle),
           SizedBox(height: AppSpacing.md),
           _SummarySection(),
+          SizedBox(height: AppSpacing.md),
+          _ReportsAccess(),
           SizedBox(height: AppSpacing.xl),
           _SectionTitle(AppStrings.adminHomeQuickAccessTitle),
           SizedBox(height: AppSpacing.md),
           _QuickAccessRow(),
         ],
       ),
+    );
+  }
+}
+
+class _ReportsAccess extends StatelessWidget {
+  const _ReportsAccess();
+
+  @override
+  Widget build(BuildContext context) {
+    return ReportsAccessCard(
+      onTap: () => context.push(AppRoutes.adminReports),
     );
   }
 }

@@ -13,7 +13,7 @@ import '../../../../shared/widgets/app_secondary_button.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../payments/domain/entities/billing_month.dart';
-import '../../../payments/presentation/formatting/payment_formats.dart';
+import '../../../payments/presentation/widgets/month_grid.dart';
 import '../../domain/entities/payment_report_period.dart';
 import '../cubit/payment_report_cubit.dart';
 import '../cubit/payment_report_state.dart';
@@ -34,20 +34,55 @@ class PaymentReportScreen extends StatelessWidget {
   }
 }
 
-class _ReportBody extends StatelessWidget {
+class _ReportBody extends StatefulWidget {
   const _ReportBody();
 
   @override
+  State<_ReportBody> createState() => _ReportBodyState();
+}
+
+class _ReportBodyState extends State<_ReportBody> {
+  static const Duration _scrollDuration = Duration(milliseconds: 300);
+
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  static bool _finishedGenerating(
+    PaymentReportState previous,
+    PaymentReportState current,
+  ) =>
+      previous.isGenerating && !current.isGenerating;
+
+  void _revealOutcome() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+
+      _scroll.animateTo(
+        _scroll.position.maxScrollExtent,
+        duration: _scrollDuration,
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PaymentReportCubit, PaymentReportState>(
+    return BlocConsumer<PaymentReportCubit, PaymentReportState>(
+      listenWhen: _finishedGenerating,
+      listener: (_, __) => _revealOutcome(),
       builder: (context, state) => ListView(
+        controller: _scroll,
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
           Text(AppStrings.reportPeriodQuestion, style: AppTextStyles.labelLarge),
           const SizedBox(height: AppSpacing.md),
-          _ModeSelector(state: state),
-          const SizedBox(height: AppSpacing.lg),
-          _PeriodFields(state: state),
+          _PeriodGrid(state: state),
+          _PeriodSummary(period: state.period),
           const SizedBox(height: AppSpacing.md),
           const AppNotice(message: AppStrings.reportScopeNote),
           const SizedBox(height: AppSpacing.lg),
@@ -74,108 +109,52 @@ class _ReportBody extends StatelessWidget {
   }
 }
 
-class _ModeSelector extends StatelessWidget {
+class _PeriodGrid extends StatelessWidget {
   final PaymentReportState state;
 
-  const _ModeSelector({required this.state});
+  const _PeriodGrid({required this.state});
 
-  @override
-  Widget build(BuildContext context) {
-    return SegmentedButton<ReportRangeMode>(
-      segments: const [
-        ButtonSegment(
-          value: ReportRangeMode.single,
-          label: Text(AppStrings.reportModeSingle),
-        ),
-        ButtonSegment(
-          value: ReportRangeMode.range,
-          label: Text(AppStrings.reportModeRange),
-        ),
-      ],
-      selected: {state.mode},
-      onSelectionChanged: state.isGenerating
-          ? null
-          : (selection) =>
-              context.read<PaymentReportCubit>().selectMode(selection.single),
-    );
+  MonthCellLook _lookOf(BillingMonth month) {
+    if (!state.isOffered(month)) return const MonthCellLook.unavailable();
+    if (state.includes(month)) {
+      return const MonthCellLook.selected(AppStrings.reportMonthChosen);
+    }
+
+    return const MonthCellLook.available();
   }
-}
-
-class _PeriodFields extends StatelessWidget {
-  final PaymentReportState state;
-
-  const _PeriodFields({required this.state});
 
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<PaymentReportCubit>();
-    final locked = state.isGenerating;
-    if (state.mode == ReportRangeMode.single) {
-      return _MonthField(
-        label: AppStrings.reportMonthLabel,
-        options: state.offeredMonths,
-        value: state.from,
-        onChanged: locked ? null : cubit.selectFrom,
-      );
-    }
+    final year = state.visibleYear;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _MonthField(
-          label: AppStrings.reportFromLabel,
-          options: state.offeredMonths,
-          value: state.from,
-          onChanged: locked ? null : cubit.selectFrom,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        _MonthField(
-          label: AppStrings.reportToLabel,
-          options: state.offeredMonths,
-          value: state.to,
-          onChanged: locked ? null : cubit.selectTo,
-          errorText:
-              state.period.isValid ? null : AppStrings.reportInvalidRange,
-        ),
-      ],
+    return MonthGrid(
+      view: MonthGridYear(
+        year: year,
+        canGoBack: year > state.earliestYear,
+        canGoForward: year < state.currentMonth.year,
+      ),
+      lookOf: _lookOf,
+      onTap: state.isGenerating ? null : cubit.tapMonth,
+      onShowYear: cubit.showYear,
     );
   }
 }
 
-class _MonthField extends StatelessWidget {
-  final String label;
-  final List<BillingMonth> options;
-  final BillingMonth value;
-  final ValueChanged<BillingMonth>? onChanged;
-  final String? errorText;
+class _PeriodSummary extends StatelessWidget {
+  final PaymentReportPeriod period;
 
-  const _MonthField({
-    required this.label,
-    required this.options,
-    required this.value,
-    required this.onChanged,
-    this.errorText,
-  });
+  const _PeriodSummary({required this.period});
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<BillingMonth>(
-      key: ValueKey(value),
-      initialValue: value,
-      isExpanded: true,
-      decoration: InputDecoration(labelText: label, errorText: errorText),
-      items: [
-        for (final month in options)
-          DropdownMenuItem(
-            value: month,
-            child: Text(PaymentFormats.monthTitle(month)),
-          ),
-      ],
-      onChanged: onChanged == null
-          ? null
-          : (month) {
-              if (month != null) onChanged!(month);
-            },
+    return Semantics(
+      liveRegion: true,
+      child: Text(
+        PaymentReportFormats.periodLabel(period),
+        style: AppTextStyles.titleMedium,
+        textAlign: TextAlign.center,
+      ),
     );
   }
 }

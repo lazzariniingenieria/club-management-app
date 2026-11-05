@@ -6,9 +6,20 @@ abstract final class PaymentReportFormats {
   static String periodLabel(PaymentReportPeriod period) {
     if (period.isSingleMonth) return PaymentFormats.monthTitle(period.from);
 
-    return AppStrings.reportPeriodRange(
-      PaymentFormats.monthTitle(period.from),
-      PaymentFormats.monthWithYear(period.to),
+    final to = PaymentFormats.monthWithYear(period.to);
+    if (period.from.year != period.to.year) {
+      return AppStrings.reportPeriodRange(
+        PaymentFormats.monthTitle(period.from),
+        to,
+      );
+    }
+
+    return AppStrings.monthsInYear(
+      AppStrings.reportPeriodRange(
+        PaymentFormats.capitalized(PaymentFormats.monthName(period.from)),
+        PaymentFormats.monthName(period.to),
+      ),
+      period.to.year,
     );
   }
 }

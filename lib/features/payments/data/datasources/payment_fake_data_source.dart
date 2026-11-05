@@ -58,6 +58,26 @@ class PaymentFakeDataSource implements PaymentRemoteDataSource {
   }
 
   @override
+  Future<List<PaymentModel>> fetchPayments() async {
+    await _seededRoster();
+
+    return [
+      for (final payment in _payments)
+        if (!payment.isVoided) _modelOf(payment),
+    ];
+  }
+
+  static PaymentModel _modelOf(Payment payment) => PaymentModel(
+        id: payment.id,
+        memberId: payment.memberId,
+        paidByMemberId: payment.paidByMemberId,
+        amountCents: payment.amountCents,
+        month: payment.month,
+        method: payment.method,
+        paidAt: payment.paidAt,
+      );
+
+  @override
   Future<void> recordPayment(PaymentDraft draft) async {
     final roster = await _seededRoster();
     final member = _memberIn(roster, draft.memberId);

@@ -84,6 +84,8 @@ import '../../features/reports/data/datasources/payment_report_remote_data_sourc
 import '../../features/reports/data/repositories/payment_report_repository_impl.dart';
 import '../../features/reports/domain/repositories/payment_report_repository.dart';
 import '../../features/reports/domain/usecases/download_fee_receipts_use_case.dart';
+import '../../features/reports/domain/usecases/load_club_metrics_use_case.dart';
+import '../../features/reports/presentation/cubit/club_metrics_cubit.dart';
 import '../../features/reports/presentation/cubit/payment_report_cubit.dart';
 import '../../features/reports/presentation/export/report_file_exporter.dart';
 import '../config/app_environment.dart';
@@ -337,10 +339,20 @@ void _registerReports() {
     () => PaymentReportRepositoryImpl(remoteDataSource: sl(), logger: sl()),
   );
   sl.registerLazySingleton(() => DownloadFeeReceiptsUseCase(sl()));
+  sl.registerLazySingleton(
+    () => LoadClubMetricsUseCase(payments: sl(), members: sl()),
+  );
   sl.registerLazySingleton<ReportFileExporter>(
     () => const PrintingReportFileExporter(),
   );
 
+  sl.registerFactory(
+    () => ClubMetricsCubit(
+      loadMetrics: sl(),
+      watchRosterChanges: sl(),
+      watchPaymentChanges: sl(),
+    ),
+  );
   sl.registerFactory(
     () => PaymentReportCubit(
       downloadReceipts: sl(),
