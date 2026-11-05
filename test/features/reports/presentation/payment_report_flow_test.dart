@@ -11,6 +11,7 @@ import 'package:club_management_app/features/admin/presentation/widgets/reports_
 import 'package:club_management_app/features/payments/presentation/widgets/month_grid.dart';
 import 'package:club_management_app/features/reports/data/datasources/payment_report_fake_data_source.dart';
 import 'package:club_management_app/features/reports/data/datasources/payment_report_remote_data_source.dart';
+import 'package:club_management_app/features/reports/data/models/fee_receipts_request.dart';
 import 'package:club_management_app/features/reports/domain/entities/fee_receipts_document.dart';
 import 'package:club_management_app/features/reports/domain/entities/payment_report_period.dart';
 import 'package:club_management_app/features/reports/presentation/cubit/payment_report_cubit.dart';
@@ -31,24 +32,43 @@ class RecordingExporter implements ReportFileExporter {
       shared.add(fileName);
 }
 
+class FailingExporter implements ReportFileExporter {
+  @override
+  Future<void> preview(Uint8List bytes, String fileName) =>
+      throw StateError('no viewer');
+
+  @override
+  Future<void> share(Uint8List bytes, String fileName) =>
+      throw StateError('no app to share with');
+}
+
 class SlowReportSource implements PaymentReportRemoteDataSource {
   @override
   Future<FeeReceiptsDocument?> fetchFeeReceipts(PaymentReportPeriod period) =>
       throw ResponseTimeoutException('the PDF took too long');
 }
 
-void main() {
-  DateTime today() => DateTime(2026, 10, 14);
+class RecordingReportSource extends PaymentReportFakeDataSource {
+  RecordingReportSource({required super.clock}) : super(latency: Duration.zero);
 
-  Future<void> bootOnAFixedDay(WidgetTester tester) async {
-    await bootApp(
-      tester,
-      signedInAs: UserRole.admin,
-      reportSource: PaymentReportFakeDataSource(
-        latency: Duration.zero,
-        clock: today,
-      ),
-    );
+  final requested = <PaymentReportPeriod>[];
+
+  @override
+  Future<FeeReceiptsDocument?> fetchFeeReceipts(PaymentReportPeriod period) {
+    requested.add(period);
+
+    return super.fetchFeeReceipts(period);
+  }
+}
+
+void main() {
+  Future<RecordingReportSource> bootOnAFixedDay(
+    WidgetTester tester, {
+    DateTime? day,
+  }) async {
+    DateTime today() => day ?? DateTime(2026, 10, 14);
+    final reports = RecordingReportSource(clock: today);
+    await bootApp(tester, signedInAs: UserRole.admin, reportSource: reports);
     di.sl.unregister<PaymentReportCubit>();
     di.sl.registerFactory(
       () => PaymentReportCubit(
@@ -58,6 +78,8 @@ void main() {
         clock: today,
       ),
     );
+
+    return reports;
   }
 
   testWidgets('the home opens the metrics, whose PDF downloads and shares', (
@@ -90,6 +112,40 @@ void main() {
     await tester.tap(find.text(AppStrings.reportShare));
     await tester.pumpAndSettle();
 
+    expect(exporter.shared, ['cuotas-cobradas-octubre-2026.pdf']);
+  });
+
+  testWidgets(
+      'in November, tapping October once asks for the PDF of October alone', (
+    tester,
+  ) async {
+    final reports = await bootOnAFixedDay(tester, day: DateTime(2026, 11, 3));
+    final exporter = RecordingExporter();
+    di.sl.unregister<ReportFileExporter>();
+    di.sl.registerLazySingleton<ReportFileExporter>(() => exporter);
+    di.sl<AppRouter>().router.push(AppRoutes.adminFeeReceipts);
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(MonthGrid),
+        matching: find.text(AppStrings.monthAbbreviations[9]),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text(AppStrings.reportGenerate));
+    await tester.tap(find.text(AppStrings.reportGenerate));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text(AppStrings.reportShare));
+    await tester.tap(find.text(AppStrings.reportShare));
+    await tester.pumpAndSettle();
+
+    expect(
+      reports.requested.map(FeeReceiptsRequest.queryOf),
+      [
+        {'paidFrom': '2026-10-01', 'paidTo': '2026-10-31'},
+      ],
+    );
     expect(exporter.shared, ['cuotas-cobradas-octubre-2026.pdf']);
   });
 
@@ -193,5 +249,60 @@ void main() {
           .matchedLocation;
       expect(location, AppRoutes.adminReports);
     });
+  });
+
+  testWidgets('the generate button stays clear of the system navigation bar', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    tester.view.padding = const FakeViewPadding(bottom: 144);
+    addTearDown(tester.view.reset);
+    await bootApp(tester, signedInAs: UserRole.admin);
+    di.sl<AppRouter>().router.push(AppRoutes.adminFeeReceipts);
+    await tester.pumpAndSettle();
+
+    final button = tester.getRect(find.text(AppStrings.reportGenerate));
+    final screenHeight = tester.view.physicalSize.height / 3;
+    expect(button.bottom, lessThanOrEqualTo(screenHeight - 48));
+  });
+
+  testWidgets('a finished PDF opens its actions in a sheet', (tester) async {
+    await bootApp(tester, signedInAs: UserRole.admin);
+    di.sl<AppRouter>().router.push(AppRoutes.adminFeeReceipts);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(AppStrings.reportGenerate));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text(AppStrings.reportShare),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a share that fails says so inside the sheet', (tester) async {
+    await bootApp(tester, signedInAs: UserRole.admin);
+    di.sl.unregister<ReportFileExporter>();
+    di.sl.registerLazySingleton<ReportFileExporter>(FailingExporter.new);
+    di.sl<AppRouter>().router.push(AppRoutes.adminFeeReceipts);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppStrings.reportGenerate));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(AppStrings.reportShare));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text(AppStrings.reportExportFailed),
+      ),
+      findsOneWidget,
+    );
   });
 }

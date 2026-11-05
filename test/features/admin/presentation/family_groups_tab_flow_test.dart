@@ -10,6 +10,7 @@ import 'package:club_management_app/features/family_groups/presentation/widgets/
 import 'package:club_management_app/features/members/data/datasources/member_fake_data_source.dart';
 import 'package:club_management_app/features/members/data/models/member_model.dart';
 import 'package:club_management_app/features/members/data/repositories/member_repository_impl.dart';
+import 'package:club_management_app/features/members/domain/entities/member_collection_filter.dart';
 import 'package:club_management_app/features/members/domain/repositories/member_repository.dart';
 import 'package:club_management_app/features/members/presentation/widgets/member_list_tile.dart';
 import 'package:flutter/material.dart';
@@ -223,7 +224,7 @@ void main() {
     await settleSession(tester);
 
     await tester.tap(find.text(AppStrings.adminHomeOverdueMembers.toUpperCase()));
-    await settleSession(tester);
+    await tester.pumpAndSettle();
 
     expect(find.byType(FamilyGroupsTab), findsNothing);
     expect(find.byType(MemberListTile), findsWidgets);
@@ -278,5 +279,31 @@ void main() {
       expect(find.byType(FamilyGroupListTile), findsNWidgets(3));
       expect(find.textContaining('Grupo familiar armado'), findsOneWidget);
     });
+  });
+
+  testWidgets('swiping moves between Socios and Grupos familiares', (
+    tester,
+  ) async {
+    await bootApp(tester, signedInAs: UserRole.admin);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text(AppStrings.adminTabMembers),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tapText(tester, '${AppStrings.adminMembersFilterOverdue} (5)');
+
+    await tester.fling(find.byType(TabBarView), const Offset(-500, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(currentUri(), AppRoutes.adminFamilyGroups);
+    expect(find.byType(FamilyGroupListTile), findsWidgets);
+
+    await tester.fling(find.byType(TabBarView), const Offset(500, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(
+      currentUri(),
+      AppRoutes.adminMembersWithFilter(MemberCollectionFilter.overdue),
+    );
   });
 }

@@ -37,7 +37,7 @@ class ClubMetricsReady extends ClubMetricsState {
   int get newMembers => metrics.newMembersIn(month);
 
   List<MonthlyCollection> get recentCollections =>
-      metrics.collectionsEndingIn(month, chartMonths);
+      metrics.collectionsEndingIn(currentMonth, chartMonths);
 
   ClubMetricsReady showing(BillingMonth month) => ClubMetricsReady(
         metrics: metrics,

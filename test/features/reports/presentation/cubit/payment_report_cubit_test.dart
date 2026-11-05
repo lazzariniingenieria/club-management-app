@@ -38,6 +38,7 @@ void main() {
   late MockDownloadReceipts download;
   late PaymentReportCubit cubit;
 
+  const june = BillingMonth(2026, 6);
   const august = BillingMonth(2026, 8);
   const september = BillingMonth(2026, 9);
   const october = BillingMonth(2026, 10);
@@ -77,35 +78,101 @@ void main() {
     expect(cubit.state.document, isNull);
   });
 
-  group('choosing the period on the month grid', () {
+  group('choosing the months one by one, always in a row', () {
     test('opens on the current month alone', () {
       expect(cubit.state.period, const PaymentReportPeriod.single(october));
     });
 
-    test('a first tap picks that month alone', () {
-      cubit.tapMonth(august);
+    test('the first month tapped replaces the one the screen opened on', () {
+      cubit.tapMonth(september);
 
-      expect(cubit.state.period, const PaymentReportPeriod.single(august));
+      expect(cubit.state.period, const PaymentReportPeriod.single(september));
     });
 
-    test('a second tap spans the months in between, in either order', () {
-      cubit.tapMonth(october);
-      cubit.tapMonth(august);
+    test('a month far from the one opened on is chosen alone', () {
+      cubit.tapMonth(june);
+
+      expect(cubit.state.canToggle(june), isTrue);
+      expect(cubit.state.period, const PaymentReportPeriod.single(june));
+    });
+
+    test('a neighbouring month joins the selection once it is chosen', () {
+      cubit
+        ..tapMonth(september)
+        ..tapMonth(august);
 
       expect(
         cubit.state.period,
-        const PaymentReportPeriod(from: august, to: october),
+        const PaymentReportPeriod(from: august, to: september),
       );
-      expect(cubit.state.includes(september), isTrue);
     });
 
-    test('a third tap starts over on a single month', () {
+    test('a month at either end leaves it', () {
       cubit
+        ..tapMonth(september)
+        ..tapMonth(august)
+        ..tapMonth(october)
+        ..tapMonth(august)
+        ..tapMonth(october);
+
+      expect(cubit.state.period, const PaymentReportPeriod.single(september));
+    });
+
+    test('a month in the middle stays, so the period has no gap', () {
+      cubit
+        ..tapMonth(september)
         ..tapMonth(august)
         ..tapMonth(october)
         ..tapMonth(september);
 
+      expect(cubit.state.canToggle(september), isFalse);
+      expect(
+        cubit.state.period,
+        const PaymentReportPeriod(from: august, to: october),
+      );
+    });
+
+    test('a month away from the selection starts a new one', () {
+      cubit
+        ..tapMonth(september)
+        ..tapMonth(august)
+        ..tapMonth(june);
+
+      expect(cubit.state.canToggle(june), isTrue);
+      expect(cubit.state.period, const PaymentReportPeriod.single(june));
+    });
+
+    test('tapping the month it opened on takes it out', () {
+      cubit.tapMonth(october);
+
+      expect(cubit.state.period, isNull);
+    });
+
+    test('changing the year does not count as choosing a month', () {
+      cubit.showYear(2025);
+      cubit.tapMonth(september);
+
       expect(cubit.state.period, const PaymentReportPeriod.single(september));
+    });
+
+    test('the PDF of the only month tapped is the one requested', () async {
+      when(() => download(any())).thenAnswer((_) async => Right(octoberPdf));
+
+      cubit.tapMonth(september);
+      await cubit.generate();
+
+      verify(() => download(const PaymentReportPeriod.single(september)))
+          .called(1);
+    });
+
+    test('unticking the only month leaves nothing to generate', () {
+      cubit.tapMonth(october);
+
+      expect(cubit.state.period, isNull);
+      expect(cubit.state.canGenerate, isFalse);
+
+      cubit.tapMonth(june);
+      expect(cubit.state.period, const PaymentReportPeriod.single(june));
     });
 
     test('a month that has not started cannot be picked', () {

@@ -24,15 +24,13 @@ class PaymentReportCubit extends Cubit<PaymentReportState> {
         _logger = logger,
         super(PaymentReportState.startingAt(BillingMonth.of(clock())));
 
-  void tapMonth(BillingMonth month) {
-    if (state.isOffered(month)) emit(state.tapping(month));
-  }
+  void tapMonth(BillingMonth month) => emit(state.toggling(month));
 
   void showYear(int year) => emit(state.showingYear(year));
 
   Future<void> generate() async {
-    if (!state.canGenerate) return;
     final requested = state.period;
+    if (requested == null || state.isGenerating) return;
     emit(state.withStatus(ReportStatus.generating));
 
     final result = await _downloadReceipts(requested);

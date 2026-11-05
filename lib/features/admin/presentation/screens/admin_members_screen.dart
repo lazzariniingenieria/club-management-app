@@ -46,19 +46,9 @@ class AdminMembersScreen extends StatelessWidget {
       ],
       child: _ReloadOnlyWhenVisible(
         showsFamilyGroups: showsFamilyGroups,
-        child: AdminScaffold(
-          title: AppStrings.adminMembersTitle,
-          showsRoleBadge: true,
-          bottom: _MembersTabBar(
-            filter: filter,
-            showsFamilyGroups: showsFamilyGroups,
-          ),
-          floatingActionButton: showsFamilyGroups
-              ? const _BuildGroupButton()
-              : const _CreateMemberButton(),
-          body: showsFamilyGroups
-              ? const FamilyGroupsTab()
-              : _AdminMembersBody(filter: filter),
+        child: _MembersTabs(
+          filter: filter,
+          showsFamilyGroups: showsFamilyGroups,
         ),
       ),
     );
@@ -117,20 +107,17 @@ class _ReloadOnlyWhenVisibleState extends State<_ReloadOnlyWhenVisible> {
   }
 }
 
-class _MembersTabBar extends StatefulWidget implements PreferredSizeWidget {
+class _MembersTabs extends StatefulWidget {
   final MemberCollectionFilter filter;
   final bool showsFamilyGroups;
 
-  const _MembersTabBar({required this.filter, required this.showsFamilyGroups});
+  const _MembersTabs({required this.filter, required this.showsFamilyGroups});
 
   @override
-  Size get preferredSize => const Size.fromHeight(kTextTabBarHeight);
-
-  @override
-  State<_MembersTabBar> createState() => _MembersTabBarState();
+  State<_MembersTabs> createState() => _MembersTabsState();
 }
 
-class _MembersTabBarState extends State<_MembersTabBar>
+class _MembersTabsState extends State<_MembersTabs>
     with SingleTickerProviderStateMixin {
   static const int _familyGroupsIndex = 1;
 
@@ -138,17 +125,21 @@ class _MembersTabBarState extends State<_MembersTabBar>
     length: 2,
     vsync: this,
     initialIndex: _indexOf(widget.showsFamilyGroups),
-  );
+  )..addListener(_followTab);
   late MemberCollectionFilter _lastFilter = widget.filter;
 
   static int _indexOf(bool showsFamilyGroups) =>
       showsFamilyGroups ? _familyGroupsIndex : 0;
 
   @override
-  void didUpdateWidget(_MembersTabBar oldWidget) {
+  void didUpdateWidget(_MembersTabs oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!widget.showsFamilyGroups) _lastFilter = widget.filter;
-    _controller.index = _indexOf(widget.showsFamilyGroups);
+
+    final index = _indexOf(widget.showsFamilyGroups);
+    if (_controller.index != index && !_controller.indexIsChanging) {
+      _controller.animateTo(index);
+    }
   }
 
   @override
@@ -157,9 +148,14 @@ class _MembersTabBarState extends State<_MembersTabBar>
     super.dispose();
   }
 
-  void _open(int index) {
+  void _followTab() {
+    if (_controller.indexIsChanging) return;
+
+    final showsFamilyGroups = _controller.index == _familyGroupsIndex;
+    if (showsFamilyGroups == widget.showsFamilyGroups) return;
+
     context.go(
-      index == _familyGroupsIndex
+      showsFamilyGroups
           ? AppRoutes.adminFamilyGroups
           : AppRoutes.adminMembersWithFilter(_lastFilter),
     );
@@ -167,14 +163,27 @@ class _MembersTabBarState extends State<_MembersTabBar>
 
   @override
   Widget build(BuildContext context) {
-    return TabBar(
-      controller: _controller,
-      onTap: _open,
-      labelStyle: AppTextStyles.labelLarge,
-      tabs: const [
-        Tab(text: AppStrings.adminMembersTabMembers),
-        Tab(text: AppStrings.adminMembersTabFamilyGroups),
-      ],
+    return AdminScaffold(
+      title: AppStrings.adminMembersTitle,
+      showsRoleBadge: true,
+      bottom: TabBar(
+        controller: _controller,
+        labelStyle: AppTextStyles.labelLarge,
+        tabs: const [
+          Tab(text: AppStrings.adminMembersTabMembers),
+          Tab(text: AppStrings.adminMembersTabFamilyGroups),
+        ],
+      ),
+      floatingActionButton: widget.showsFamilyGroups
+          ? const _BuildGroupButton()
+          : const _CreateMemberButton(),
+      body: TabBarView(
+        controller: _controller,
+        children: [
+          _AdminMembersBody(filter: _lastFilter),
+          const FamilyGroupsTab(),
+        ],
+      ),
     );
   }
 }
