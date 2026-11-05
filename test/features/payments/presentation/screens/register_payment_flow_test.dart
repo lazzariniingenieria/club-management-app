@@ -11,6 +11,7 @@ import 'package:club_management_app/features/payments/domain/entities/payment_dr
 import 'package:club_management_app/features/payments/domain/entities/billing_month.dart';
 import 'package:club_management_app/features/payments/data/models/member_ledger_model.dart';
 import 'package:club_management_app/features/payments/presentation/screens/payment_member_picker_screen.dart';
+import 'package:club_management_app/features/payments/presentation/widgets/payer_selector.dart';
 import 'package:club_management_app/features/payments/presentation/widgets/payment_history_tile.dart';
 import 'package:club_management_app/features/payments/data/datasources/payment_fake_data_source.dart';
 import 'package:flutter/material.dart';
@@ -776,6 +777,51 @@ void main() {
       expect(source.drafts.map((draft) => draft.memberId), [1, 2]);
       expect(source.drafts.map((draft) => draft.paidByMemberId), [null, 1]);
       expectFamilySnackBar(2, r'$30.000');
+    });
+
+    testWidgets(
+        'opened from the group, the relative picked as payer is shown and '
+        'recorded for everyone else', (tester) async {
+      late RecordingPaymentSource source;
+      await bootClub(
+        tester,
+        memberSource: MemberRosterDataSource(family),
+        payments: (members) =>
+            source = RecordingPaymentSource(members: members),
+      );
+      di.sl<AppRouter>().router.push(
+            AppRoutes.adminFamilyPaymentRegistration(1),
+          );
+      await tester.pumpAndSettle();
+
+      final payer = find.descendant(
+        of: find.byType(PayerSelector),
+        matching: find.text('Ana Zárate'),
+      );
+      await tester.scrollUntilVisible(
+        find.byType(PayerSelector),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -200));
+      await tester.pumpAndSettle();
+      await tester.tap(payer);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.text(AppStrings.registerPaymentReviewWithTotal(r'$30.000')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(AppStrings.paymentPayerRelative('Ana Zárate')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text(AppStrings.confirmPaymentAction(r'$30.000')));
+      await tester.pumpAndSettle();
+
+      expect(source.drafts.map((draft) => draft.memberId), [1, 2]);
+      expect(source.drafts.map((draft) => draft.paidByMemberId), [2, null]);
     });
 
     testWidgets(
