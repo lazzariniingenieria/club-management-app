@@ -268,8 +268,6 @@ class _PickerIntro extends StatelessWidget {
         Text(selection.prompt, style: AppTextStyles.labelLarge),
         const SizedBox(height: AppSpacing.md),
         _SearchField(query: selection.query),
-        const SizedBox(height: AppSpacing.sm),
-        Text(AppStrings.familyGroupPickerHint, style: AppTextStyles.bodyMedium),
         const SizedBox(height: AppSpacing.lg),
       ],
     );

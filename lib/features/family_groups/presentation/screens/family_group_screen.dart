@@ -10,7 +10,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/widgets/app_notice.dart';
 import '../../../../shared/widgets/app_pill.dart';
 import '../../../../shared/widgets/app_secondary_button.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
@@ -132,12 +131,6 @@ class _GroupContent extends StatelessWidget {
               padding: const EdgeInsets.all(AppSpacing.lg),
               children: [
                 _GroupHeader(detail: detail),
-                const SizedBox(height: AppSpacing.md),
-                AppNotice(
-                  message: detail.hasSingleMember
-                      ? AppStrings.familyGroupSingleMemberNote
-                      : AppStrings.familyGroupNote,
-                ),
                 const SizedBox(height: AppSpacing.xl),
                 _MembersSection(detail: detail, newMemberId: newMemberId),
                 const SizedBox(height: AppSpacing.md),

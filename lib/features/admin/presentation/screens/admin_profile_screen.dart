@@ -185,13 +185,6 @@ class _ClubCard extends StatelessWidget {
           Text(club.name, style: AppTextStyles.titleMedium),
           const SizedBox(height: AppSpacing.md),
           _MonthlyFeeRow(user: user, monthlyFeeCents: club.monthlyFeeCents),
-          if (user.role.canEditClubFee) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              AppStrings.profileMonthlyFeeHelp,
-              style: AppTextStyles.bodySmall,
-            ),
-          ],
         ],
       ),
     );

@@ -70,8 +70,6 @@ class LinkedMemberField extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(AppStrings.adminFormMemberHelp, style: AppTextStyles.bodySmall),
       ],
     );
   }

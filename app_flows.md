@@ -69,7 +69,9 @@ La regla de fondo: **el Splash nunca es una pantalla sin salida**. Cualquier ram
 
 El backend no expone ni va a exponer recuperación por email: **el reset de contraseña es una acción manual de un ADMIN o SUPER_ADMIN**, decisión de arquitectura ya tomada del lado de la API. La pantalla no puede ser un formulario de email porque no hay endpoint del otro lado.
 
-Se construye entonces como pantalla informativa (E11, parte del Bloque 1): dice que la app no puede enviar una contraseña nueva por email y separa por quién la lee, porque la pantalla está antes del login y la ve cualquiera: *"Si sos administrador, pedile al administrador principal del club que te asigne una contraseña nueva desde Administradores. Después podés cambiarla desde tu Perfil."* (E8) y *"Si sos socio, todavía no se puede recuperar desde la app: consultá en la administración del club."* (no hay reset de socio, [backend_api.md](backend_api.md) §10); suma un aviso para el propio administrador principal, cuya contraseña se cambia en la base, y *Volver al ingreso*. El canal de contacto queda pendiente: la API no expone datos de contacto del club ([backend_api.md](backend_api.md) §10). Sin campo de email, sin botón "Enviar" — un formulario que no manda nada a ningún lado es peor que no tener la pantalla.
+Se construye entonces como pantalla informativa (E11, parte del Bloque 1): separa por quién la lee, porque la pantalla está antes del login y la ve cualquiera, en dos líneas: *"Si sos administrador, pedile al administrador principal una contraseña nueva."* (E8) y *"Si sos socio, consultá en la administración del club."* (no hay reset de socio, [backend_api.md](backend_api.md) §10), y *Volver al ingreso*. Se acortó en la revisión de textos del 2026-10-31: tenía cuatro párrafos, incluido un aviso para el administrador principal que casi nadie lee. El canal de contacto queda pendiente: la API no expone datos de contacto del club ([backend_api.md](backend_api.md) §10). Sin campo de email, sin botón "Enviar" — un formulario que no manda nada a ningún lado es peor que no tener la pantalla.
+
+**Textos de ayuda** (revisión de textos, 2026-10-31): cada pantalla dice lo justo. Se sacaron las explicaciones que repetían lo que la pantalla ya muestra (la sugerencia de meses, de dónde sale el importe, "tocá un pago para…", las notas de cuota individual del grupo) y se acortaron las que evitan errores. Quedan enteros los avisos de errores y de acciones irreversibles. Antes de sumar un texto de ayuda, preguntarse si la pantalla sin él se entiende igual.
 
 ### 3.2 Shell del Administrador
 
@@ -97,7 +99,7 @@ Rutas push, fuera de los tabs:
 
 **El listado de socios es un tab, no una pantalla aparte.** El diseño original lo tenía como ruta push en `/admin/members`, con un tab Pagos separado para las cuotas. Son la misma tarea: el admin abre la lista de socios *para cobrar*, y partirla en dos superficies obligaba a saltar entre ellas para resolver un solo trámite. Una pantalla menos, un tab que ahora hace algo, y el estado del listado lo preserva el `StatefulShellRoute` en lugar de reconstruirse en cada push.
 
-**El tab se llama Socios, no Pagos** (revisión en el celular, 2026-10-31): lo que se ve es el padrón, y los pagos se registran desde *Registrar pago* o desde las cuotas de un socio. La ruta pasó de `/admin/payments` a `/admin/members`; *Elegir socio* y el reporte conservan `/admin/payments/new` y `/admin/payments/report` porque sí son pantallas de pagos.
+**El tab se llama Socios, no Pagos** (revisión en el celular, 2026-10-31): lo que se ve es el padrón, y los pagos se registran desde *Registrar pago* o desde la ficha de un socio. La ruta pasó de `/admin/payments` a `/admin/members`; *Elegir socio* y el reporte conservan `/admin/payments/new` y `/admin/payments/report` porque sí son pantallas de pagos.
 
 **Canchas sigue sin ser tab.** Es una tarea de sesión (entrás, resolvés, volvés); la barra inferior queda para lo que el admin mira varias veces por día.
 
@@ -128,7 +130,7 @@ Los contadores de los chips (§3.2.2) salen del mismo listado que ya está en me
 1. **Header**: "Socios" + `RoleBadge`, y debajo dos pestañas: **Socios** (lo que sigue) y **Grupos familiares** (§4.2.2).
 2. **Buscador**: placeholder "Buscar socio por nombre o DNI...". Lo resuelve el cliente sobre el padrón ya cargado, porque la API no expone búsqueda; ignora mayúsculas y acentos, así que "alvarez" encuentra a "Álvarez".
 3. **Filtros**: tres chips con contador — "Todos (n)", "En mora (n)" e "Inactivos (n)". Seleccionado en navy sólido. En un teléfono angosto el tercero puede quedar a medio ver: la fila se desliza de costado y el borde se difumina para anunciarlo.
-4. **Listado**: `ListView.builder` de `MemberListTile`, ordenado por apellido. Cada fila: nombre, badge solo si hay algo que mirar (**En mora** o **Inactivo**) y acción **lápiz** → edición. **Tocar el resto de la fila abre las cuotas del socio** (§4.2.1); el lápiz sigue siendo un target propio de 48×48.
+4. **Listado**: `ListView.builder` de `MemberListTile`, ordenado por apellido. Cada fila: nombre, badge solo si hay algo que mirar (**En mora** o **Inactivo**) y acción **lápiz** → edición. **Tocar el resto de la fila abre las ficha del socio** (§4.2.1); el lápiz sigue siendo un target propio de 48×48.
 5. **FAB azul, abajo derecha**: crear socio. Es el único FAB de la pantalla.
 
 **Qué filtra cada chip**:
@@ -216,7 +218,7 @@ Inicio ──[Total de socios ⇒ chip Todos ]──►
 
 ```
 Inicio ──[Registrar pago]──► Elegir socio ──┐
-Socios ──[fila]──► Cuotas del socio ─────────┼──► Registrar pago ──► Confirmar ──► Cuotas del socio
+Socios ──[fila]──► Ficha del socio ─────────┼──► Registrar pago ──► Confirmar ──► Ficha del socio
                         ▲  [Registrar pago] ┘                                    (meses nuevos marcados)
                         └── [historial] ──► Detalle del pago ──► Anular
 ```
@@ -243,7 +245,7 @@ Socios ──[fila]──► Cuotas del socio ─────────┼─�
 - Cada fila dice qué se le cobra. **Un mes que un integrante ya tiene pago se le saltea**; si no le queda ninguno, la fila dice "Ya tiene pagos esos meses: no se le cobra". El total cuenta cuotas: importe × los meses que debe cada socio elegido.
 - Mientras se leen los historiales no se puede revisar. Si la lectura falla, la sección muestra el aviso con *Reintentar*.
 - *¿Quién pagó?* vale para todas las cuotas: si pagó el socio de la pantalla, figura como el socio en la suya y como familiar en las demás.
-- La confirmación es la misma hoja que para un socio, con una fila por integrante (o que se le saltea). Al terminar se vuelve a las cuotas del socio con "Pago registrado para 3 socios del grupo · $45.000".
+- La confirmación es la misma hoja que para un socio, con una fila por integrante (o que se le saltea). Al terminar se vuelve a las ficha del socio con "Pago registrado para 3 socios del grupo · $45.000".
 - **Todo o nada**: la app manda un solo `POST /api/payments/batch` con una entrada por socio a cobrar ([backend_api.md](backend_api.md) §6). Si el servidor lo rechaza no se registra a nadie, así que no hay pagos a medias ni cobro fijo: el formulario sigue editable y el comprobante suma el importe del formulario por cada cuota registrada.
 - Antes de enviar se relee el historial de cada integrante y se cobra solo lo que falta: un mes que ya figura pago no se manda. Un integrante dado de baja mientras se cargaba el formulario queda fuera del cobro y el aviso de éxito de las cuotas lo nombra; si el que se dio de baja es el socio de la pantalla, no se cobra a nadie. El padrón recibe un solo aviso al terminar.
 
@@ -254,7 +256,7 @@ Socios ──[fila]──► Cuotas del socio ─────────┼─�
 3. *Importe por mes* y *Pagó*.
 4. El aviso *"Un pago registrado no se edita: si hay un error, se anula desde el historial del socio."* y las dos acciones, *Confirmar pago de $X* y *Volver a editar*.
 
-**Después de confirmar** se vuelve a las cuotas del socio con un snackbar ("Pago registrado …") y los meses recién pagos marcados como *NUEVO* en el historial. Socios, sus contadores de mora y el Inicio se actualizan solos.
+**Después de confirmar** se vuelve a las ficha del socio con un snackbar ("Pago registrado …") y los meses recién pagos marcados como *NUEVO* en el historial. Socios, sus contadores de mora y el Inicio se actualizan solos.
 
 **Lo que puede salir mal, sin perder lo cargado**:
 
@@ -280,9 +282,9 @@ Socios ──[fila]──► Cuotas del socio ─────────┼─�
 
 **Un socio inactivo no puede pagar.** No aparece al elegir socio, y en sus cuotas el botón se reemplaza por una nota que explica por qué y un acceso a *Editar socio* para reactivarlo. La API no lo impide, así que la app lo controla en tres lugares: al abrir el registro, al releer el historial antes de enviar, y en las cuotas, que se recargan cuando el socio cambia (una baja o una reactivación hecha desde *Editar socio* se ve al volver) y cuando un pago pudo haber cambiado (un registro que no respondió a tiempo pero entró se ve al volver atrás).
 
-#### 4.2.1 Cuotas del socio y anulación
+#### 4.2.1 Ficha del socio y anulación
 
-`/admin/members/:memberId/payments` — se llega desde la fila de Socios o después de registrar.
+`/admin/members/:memberId/payments` — se llega desde la fila de Socios o después de registrar. El título de la pantalla es **"Socio"**, no "Cuotas" (revisión en el celular, 2026-10-31): es la ficha completa — datos, situación de la cuota, grupo familiar e historial —, no solo los pagos.
 
 - **Encabezado** del socio y **card de situación**: al día, *n* días de mora o inactivo, con el último mes pago (o "Todavía no tiene pagos", con la fecha de alta, para quien recién se sumó).
 - **Historial**, del mes más nuevo al más viejo: mes, importe, medio, fecha de carga y quién pagó cuando no fue el socio. Vacío con mensaje propio si nunca pagó.
@@ -291,7 +293,7 @@ Socios ──[fila]──► Cuotas del socio ─────────┼─�
 
 **Anular un pago**: tocar una fila del historial abre el **detalle** (los mismos datos y la fecha de carga; quién lo cargó queda pendiente de backend, [backend_api.md](backend_api.md) §10) con la acción *Anular pago*, que pide confirmación en una segunda hoja:
 
-- Dice el efecto: *"Ese mes vuelve a figurar impago y la mora se recalcula. La anulación queda registrada y no se puede revertir: si fue un error, vas a tener que cargar el pago de nuevo."*
+- Dice el efecto: *"Ese mes vuelve a figurar impago y la mora se recalcula."*
 - **Motivo opcional**, hasta 150 caracteres.
 - Cualquier admin puede anular, no solo quien registró el pago.
 - Se anula **un mes por vez**: un pago de tres meses son tres filas.
@@ -302,7 +304,7 @@ Socios ──[fila]──► Cuotas del socio ─────────┼─�
 ### 4.2.2 Grupos familiares
 
 ```
-Cuotas del socio ──[card Grupo familiar]
+Ficha del socio ──[card Grupo familiar]
      │
      ├─ sin grupo ──[Armar grupo familiar]──► Elegir familiar ──┬─ familiar sin grupo ──► Confirmar (grupo nuevo + nombre) ──┐
      │                                                          └─ familiar con grupo ──► Confirmar (sumarse a su grupo)   ──┴► Cuotas (card con el grupo)
@@ -316,13 +318,13 @@ Cuotas del socio ──[card Grupo familiar]
 
 **Para qué existe el grupo**: para que un integrante pueda figurar como quien pagó la cuota de otro (*¿Quién pagó?* en Registrar pago, §4.2), y para registrar en un paso la cuota de todo el grupo (*Pagar por todo el grupo*, §4.2). **La cuota sigue siendo individual**: no hay abono familiar ni importe compartido, y la pantalla lo repite donde se arma o se mira un grupo, porque es la duda natural.
 
-**Se entra desde las cuotas del socio o desde la pestaña Grupos familiares del tab Socios.** La primera versión no tenía listado: un grupo se busca casi siempre a partir de una persona, y la API no borraba los grupos vacíos. Con `DELETE /api/family-groups/{id}` el listado se puede mantener limpio, y la revisión en el celular (2026-10-31) pidió poder entrar a un grupo para pagar por todos o editarlo sin pasar por un socio.
+**Se entra desde las ficha del socio o desde la pestaña Grupos familiares del tab Socios.** La primera versión no tenía listado: un grupo se busca casi siempre a partir de una persona, y la API no borraba los grupos vacíos. Con `DELETE /api/family-groups/{id}` el listado se puede mantener limpio, y la revisión en el celular (2026-10-31) pidió poder entrar a un grupo para pagar por todos o editarlo sin pasar por un socio.
 
 **Pestaña Grupos familiares** (`/admin/members?view=groups`): buscador por nombre del grupo o de un integrante y una fila por grupo con el nombre (o "Grupo familiar"), los integrantes y el badge **En mora** si algún integrante activo debe. Se ordena por el primer integrante; los grupos sin integrantes van al final con "Sin integrantes", para poder entrar y eliminarlos. Tocar la fila abre el grupo. El botón **+ Armar grupo** (`/admin/family-groups/new`) pregunta primero "¿Para qué socio es el grupo?" entre los activos sin grupo y sigue con el mismo *Elegir familiar* y la misma confirmación que desde las cuotas; al terminar vuelve al listado con el aviso. Es un paso más que desde la ficha del socio, a cambio de no tener que buscar antes al socio. La pestaña viaja en la URL igual que el chip, así una card del Inicio siempre abre la pestaña Socios.
 
 **Registrar pago del grupo**, en el pie de la pantalla del grupo cuando tiene dos o más integrantes activos: abre Registrar pago con *Pagar por todo el grupo* ya activado (`?family=true`), anclado en el integrante con más días de mora, así los meses sugeridos cubren al que más debe y "¿Quién pagó?" arranca en él. Al volver, la pantalla del grupo muestra el mismo snackbar que las cuotas y se recarga. *Sumar integrante* pasa a ser el botón secundario.
 
-**Card "Grupo familiar"** en las cuotas del socio, entre la situación de la cuota y el historial:
+**Card "Grupo familiar"** en las ficha del socio, entre la situación de la cuota y el historial:
 
 | Caso | Qué muestra |
 | :--- | :--- |
@@ -340,8 +342,7 @@ Cuotas del socio ──[card Grupo familiar]
 **Grupo familiar** (`/admin/family-groups/:familyGroupId`), de arriba abajo:
 
 - **Encabezado** con el nombre (o "Grupo familiar" si no tiene), la cantidad de integrantes y un lápiz que abre *Nombre del grupo*.
-- **Nota**: "Cada integrante paga su propia cuota. Al registrar un pago, cualquiera del grupo puede figurar como quien pagó."
-- **Integrantes**, ordenados por apellido y nombre: nombre, el mismo badge que el listado (**En mora** / **Inactivo**, nada si está al día) y, a la derecha, *Quitar* (ícono con `tooltip` y `Semantics`, 48×48). Tocar el resto de la fila abre las cuotas de ese integrante. Un integrante dado de baja **sigue en el grupo** hasta que alguien lo quite.
+- **Integrantes**, ordenados por apellido y nombre: nombre, el mismo badge que el listado (**En mora** / **Inactivo**, nada si está al día) y, a la derecha, *Quitar* (ícono con `tooltip` y `Semantics`, 48×48). Tocar el resto de la fila abre la ficha de ese integrante. Un integrante dado de baja **sigue en el grupo** hasta que alguien lo quite.
 - **Eliminar grupo**, como acción de texto al pie de la lista, con un diálogo de confirmación: los integrantes siguen siendo socios, sus pagos no cambian y cada uno paga su propia cuota ([backend_api.md](backend_api.md) §5, `DELETE /api/family-groups/{id}`). Al terminar vuelve a la pantalla anterior con «Grupo eliminado». Un grupo que ya no existe (otro admin lo eliminó) se toma como eliminado. Mientras se borra, el botón queda deshabilitado con un indicador de carga, así un segundo toque no abre otra confirmación.
 - **Pie fijo** con *Sumar integrante*.
 
@@ -349,8 +350,8 @@ Cuotas del socio ──[card Grupo familiar]
 
 **Quitar** y **Eliminar** usan el diálogo estándar de bajas reversibles (§4.3), no el patrón de escribir el nombre:
 
-- Quitar: *"¿Quitar a Tomás Gómez del grupo? Sigue siendo socio y sus pagos no cambian. Vas a poder volver a sumarlo cuando quieras."*
-- Eliminar: *"¿Eliminar Familia Gómez? Los 4 integrantes siguen siendo socios, con todos sus pagos. Solo dejan de estar agrupados y ya no van a poder pagarse la cuota entre ellos."*
+- Quitar: *"¿Quitar a Tomás Gómez del grupo? Sigue siendo socio y sus pagos no cambian."*
+- Eliminar: *"¿Eliminar Familia Gómez? Los integrantes siguen siendo socios y sus pagos no cambian."*
 
 **Casos límite**:
 
@@ -370,7 +371,7 @@ Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la not
 
 **Cualquier admin o super admin** arma, edita y desarma grupos: no es una acción de SUPER_ADMIN.
 
-**Pantalla ancha (notebook)**: *Grupo familiar* se abre como panel de detalle a la derecha de las cuotas del socio, y *Elegir familiar* como diálogo centrado de hasta 560 dp. Las hojas inferiores pasan a diálogos. Nada cambia de contenido.
+**Pantalla ancha (notebook)**: *Grupo familiar* se abre como panel de detalle a la derecha de las ficha del socio, y *Elegir familiar* como diálogo centrado de hasta 560 dp. Las hojas inferiores pasan a diálogos. Nada cambia de contenido.
 
 ### 4.3 ABM de administradores (solo superAdmin)
 
