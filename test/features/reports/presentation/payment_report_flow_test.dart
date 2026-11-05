@@ -11,6 +11,7 @@ import 'package:club_management_app/features/admin/presentation/widgets/reports_
 import 'package:club_management_app/features/payments/presentation/widgets/month_grid.dart';
 import 'package:club_management_app/features/reports/data/datasources/payment_report_fake_data_source.dart';
 import 'package:club_management_app/features/reports/data/datasources/payment_report_remote_data_source.dart';
+import 'package:club_management_app/features/reports/data/models/fee_receipts_request.dart';
 import 'package:club_management_app/features/reports/domain/entities/fee_receipts_document.dart';
 import 'package:club_management_app/features/reports/domain/entities/payment_report_period.dart';
 import 'package:club_management_app/features/reports/presentation/cubit/payment_report_cubit.dart';
@@ -37,18 +38,27 @@ class SlowReportSource implements PaymentReportRemoteDataSource {
       throw ResponseTimeoutException('the PDF took too long');
 }
 
-void main() {
-  DateTime today() => DateTime(2026, 10, 14);
+class RecordingReportSource extends PaymentReportFakeDataSource {
+  RecordingReportSource({required super.clock}) : super(latency: Duration.zero);
 
-  Future<void> bootOnAFixedDay(WidgetTester tester) async {
-    await bootApp(
-      tester,
-      signedInAs: UserRole.admin,
-      reportSource: PaymentReportFakeDataSource(
-        latency: Duration.zero,
-        clock: today,
-      ),
-    );
+  final requested = <PaymentReportPeriod>[];
+
+  @override
+  Future<FeeReceiptsDocument?> fetchFeeReceipts(PaymentReportPeriod period) {
+    requested.add(period);
+
+    return super.fetchFeeReceipts(period);
+  }
+}
+
+void main() {
+  Future<RecordingReportSource> bootOnAFixedDay(
+    WidgetTester tester, {
+    DateTime? day,
+  }) async {
+    DateTime today() => day ?? DateTime(2026, 10, 14);
+    final reports = RecordingReportSource(clock: today);
+    await bootApp(tester, signedInAs: UserRole.admin, reportSource: reports);
     di.sl.unregister<PaymentReportCubit>();
     di.sl.registerFactory(
       () => PaymentReportCubit(
@@ -58,6 +68,8 @@ void main() {
         clock: today,
       ),
     );
+
+    return reports;
   }
 
   testWidgets('the home opens the metrics, whose PDF downloads and shares', (
@@ -93,22 +105,21 @@ void main() {
     expect(exporter.shared, ['cuotas-cobradas-octubre-2026.pdf']);
   });
 
-  testWidgets('tapping a month other than the current one picks only that one', (
+  testWidgets(
+      'in November, tapping October once asks for the PDF of October alone', (
     tester,
   ) async {
-    await bootApp(tester, signedInAs: UserRole.admin);
+    final reports = await bootOnAFixedDay(tester, day: DateTime(2026, 11, 3));
     final exporter = RecordingExporter();
     di.sl.unregister<ReportFileExporter>();
     di.sl.registerLazySingleton<ReportFileExporter>(() => exporter);
     di.sl<AppRouter>().router.push(AppRoutes.adminFeeReceipts);
     await tester.pumpAndSettle();
-    final today = DateTime.now();
-    final otherIndex = today.month == 1 ? 1 : 0;
 
     await tester.tap(
       find.descendant(
         of: find.byType(MonthGrid),
-        matching: find.text(AppStrings.monthAbbreviations[otherIndex]),
+        matching: find.text(AppStrings.monthAbbreviations[9]),
       ),
     );
     await tester.pumpAndSettle();
@@ -119,8 +130,13 @@ void main() {
     await tester.tap(find.text(AppStrings.reportShare));
     await tester.pumpAndSettle();
 
-    final month = AppStrings.monthNames[otherIndex].toLowerCase();
-    expect(exporter.shared, ['cuotas-cobradas-$month-${today.year}.pdf']);
+    expect(
+      reports.requested.map(FeeReceiptsRequest.queryOf),
+      [
+        {'paidFrom': '2026-10-01', 'paidTo': '2026-10-31'},
+      ],
+    );
+    expect(exporter.shared, ['cuotas-cobradas-octubre-2026.pdf']);
   });
 
   testWidgets('the members tab no longer carries the PDF action', (
