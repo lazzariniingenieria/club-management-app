@@ -13,6 +13,7 @@ class AdminScaffold extends StatelessWidget {
   final Widget? floatingActionButton;
   final bool showsRoleBadge;
   final List<Widget> actions;
+  final PreferredSizeWidget? bottom;
 
   const AdminScaffold({
     super.key,
@@ -21,6 +22,7 @@ class AdminScaffold extends StatelessWidget {
     this.floatingActionButton,
     this.showsRoleBadge = false,
     this.actions = const [],
+    this.bottom,
   });
 
   @override
@@ -33,6 +35,7 @@ class AdminScaffold extends StatelessWidget {
           if (showsRoleBadge) const _CurrentRoleBadge(),
           const SizedBox(width: AppSpacing.lg),
         ],
+        bottom: bottom,
       ),
       body: body,
       floatingActionButton: floatingActionButton,

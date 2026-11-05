@@ -21,6 +21,8 @@ class PaymentForm extends Equatable {
   final PaymentMethod method;
   final int? payerId;
   final FamilyPayment? family;
+  final bool asksForPayer;
+  final bool payerChosen;
 
   const PaymentForm({
     required this.ledger,
@@ -31,6 +33,8 @@ class PaymentForm extends Equatable {
     this.amountCents,
     this.payerId,
     this.family,
+    this.asksForPayer = false,
+    this.payerChosen = false,
   });
 
   factory PaymentForm.start(MemberLedger ledger, DateTime today) {
@@ -55,7 +59,12 @@ class PaymentForm extends Equatable {
       : chargedMembers.fold(0, (sum, member) => sum + monthsFor(member).length);
 
   bool get canReview =>
-      selectedMonths.isNotEmpty && (amountCents ?? 0) > 0 && _familyIsSettled;
+      selectedMonths.isNotEmpty &&
+      (amountCents ?? 0) > 0 &&
+      _familyIsSettled &&
+      !awaitingPayer;
+
+  bool get awaitingPayer => asksForPayer && paysForFamily && !payerChosen;
 
   bool get startsFromLastPaid => ledger.lastPaidMonth != null;
 
@@ -130,6 +139,8 @@ class PaymentForm extends Equatable {
         amountCents: cents,
         payerId: payerId,
         family: family,
+        asksForPayer: asksForPayer,
+        payerChosen: payerChosen,
       );
 
   PaymentForm withMethod(PaymentMethod value) => _with(method: value);
@@ -143,6 +154,21 @@ class PaymentForm extends Equatable {
         amountCents: amountCents,
         payerId: memberId,
         family: family,
+        asksForPayer: asksForPayer,
+        payerChosen: true,
+      );
+
+  PaymentForm askingForPayer() => PaymentForm(
+        ledger: ledger,
+        selectedMonths: selectedMonths,
+        suggestedMonth: suggestedMonth,
+        visibleYear: visibleYear,
+        method: method,
+        amountCents: amountCents,
+        payerId: payerId,
+        family: family,
+        asksForPayer: true,
+        payerChosen: payerChosen,
       );
 
   PaymentForm withFamily(FamilyPayment? value) => PaymentForm(
@@ -154,6 +180,8 @@ class PaymentForm extends Equatable {
         amountCents: amountCents,
         payerId: payerId,
         family: value,
+        asksForPayer: asksForPayer,
+        payerChosen: payerChosen,
       );
 
   PaymentForm withLedger(MemberLedger refreshed) {
@@ -177,6 +205,8 @@ class PaymentForm extends Equatable {
       amountCents: amountCents,
       payerId: payerStillInGroup ? payerId : null,
       family: family,
+      asksForPayer: asksForPayer,
+      payerChosen: payerChosen && (payerId == null || payerStillInGroup),
     );
   }
 
@@ -250,6 +280,8 @@ class PaymentForm extends Equatable {
       amountCents: amountCents,
       payerId: payerId,
       family: family,
+      asksForPayer: asksForPayer,
+      payerChosen: payerChosen,
     );
   }
 
@@ -263,5 +295,7 @@ class PaymentForm extends Equatable {
         method,
         payerId,
         family,
+        asksForPayer,
+        payerChosen,
       ];
 }

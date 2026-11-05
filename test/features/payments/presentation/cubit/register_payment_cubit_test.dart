@@ -598,6 +598,114 @@ void main() {
       expect(form().family?.isReady, isTrue);
     });
 
+    group('opened from the family group', () {
+      test('does not assume who paid until somebody is picked', () async {
+        stubStatuses();
+
+        await cubit.open(1, forFamily: true);
+
+        expect(form().paysForFamily, isTrue);
+        expect(form().awaitingPayer, isTrue);
+        expect(form().canReview, isFalse);
+      });
+
+      test('can be reviewed once the payer is picked, even the member',
+          () async {
+        stubStatuses();
+        await cubit.open(1, forFamily: true);
+
+        cubit.pickPayer(2);
+
+        expect(form().awaitingPayer, isFalse);
+        expect(form().payerId, 2);
+        expect(form().canReview, isTrue);
+      });
+
+      test('picking the member on screen as payer is also a choice', () async {
+        stubStatuses();
+        await cubit.open(1, forFamily: true);
+
+        cubit.pickPayer(null);
+
+        expect(form().payerId, isNull);
+        expect(form().canReview, isTrue);
+      });
+
+      test('sends the relative picked as payer for every other member',
+          () async {
+        stubStatuses();
+        stubOutcome(
+          const FamilyPaymentRegistered(months: {}, skippedIds: []),
+        );
+        await cubit.open(1, forFamily: true);
+        cubit.pickPayer(2);
+
+        await cubit.submit();
+
+        final request = verify(() => registerFamilyPayment(captureAny()))
+            .captured
+            .single as FamilyPaymentRequest;
+        expect(request.payerId, 2);
+      });
+
+      test('turning the group off pays only for the member, no choice needed',
+          () async {
+        stubStatuses();
+        await cubit.open(1, forFamily: true);
+
+        await cubit.payForFamily(enabled: false);
+
+        expect(form().awaitingPayer, isFalse);
+        expect(form().canReview, isTrue);
+      });
+
+      test('turning the group back on asks again who paid', () async {
+        stubStatuses();
+        await cubit.open(1, forFamily: true);
+
+        await cubit.payForFamily(enabled: false);
+        await cubit.payForFamily(enabled: true);
+
+        expect(form().awaitingPayer, isTrue);
+        expect(form().canReview, isFalse);
+      });
+
+      test('a payer picked before turning the group off is kept', () async {
+        stubStatuses();
+        await cubit.open(1, forFamily: true);
+        cubit.pickPayer(2);
+
+        await cubit.payForFamily(enabled: false);
+        await cubit.payForFamily(enabled: true);
+
+        expect(form().awaitingPayer, isFalse);
+        expect(form().payerId, 2);
+        expect(form().canReview, isTrue);
+      });
+
+      test('a member without active relatives keeps paying as before',
+          () async {
+        when(() => loadLedger(any())).thenAnswer(
+          (_) async => Right(buildLedger(member: buildLedgerMember())),
+        );
+
+        await cubit.open(1, forFamily: true);
+
+        expect(form().awaitingPayer, isFalse);
+        expect(form().canReview, isTrue);
+      });
+    });
+
+    test('opened from the ledger of a member, that member pays by default',
+        () async {
+      stubStatuses();
+
+      await openForFamily();
+
+      expect(form().awaitingPayer, isFalse);
+      expect(form().canReview, isTrue);
+    });
+
     test('turning it off pays only for the member again', () async {
       stubStatuses();
       stubRegister(const Right(null));
@@ -954,6 +1062,23 @@ void main() {
           FamilyGroupChangedNotice(leftNames: [luis.fullName], payerLeft: true),
         );
         expect(form().payerId, isNull);
+      });
+
+      test('opened from the group, a payer who left has to be chosen again',
+          () async {
+        stubGroup(threeInGroup);
+        stubStatusesOf([1, 2, 3]);
+        await cubit.open(1, forFamily: true);
+        stubOutcome(rejected);
+        cubit.pickPayer(luis.id);
+        stubGroup(without(luis.id));
+        stubStatusesOf([1, 2]);
+
+        await cubit.submit();
+
+        expect(form().payerId, isNull);
+        expect(form().awaitingPayer, isTrue);
+        expect(form().canReview, isFalse);
       });
 
       test('a relative deactivated meanwhile is named too', () async {

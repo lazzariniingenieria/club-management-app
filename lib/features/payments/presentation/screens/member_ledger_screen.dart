@@ -11,7 +11,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/formatters/display_formats.dart';
 import '../../../../shared/widgets/app_notice.dart';
 import '../../../../shared/widgets/app_pill.dart';
 import '../../../../shared/widgets/app_secondary_button.dart';
@@ -76,36 +75,8 @@ class _MemberLedgerViewState extends State<_MemberLedgerView> {
     }
   }
 
-  void _announce(PaymentReceipt receipt) {
-    final leftOut = receipt.leftOutNames;
-
-    showAppSnackBar(
-      context,
-      [
-        _registeredMessageOf(receipt),
-        if (leftOut.isNotEmpty)
-          AppStrings.familyPaymentRelativesLeft(
-            DisplayFormats.listed(leftOut),
-            leftOut.length,
-          ),
-      ].join('. '),
-    );
-  }
-
-  static String _registeredMessageOf(PaymentReceipt receipt) {
-    final total = DisplayFormats.pesos(receipt.totalCents);
-    final familyMembers = receipt.familyMemberCount;
-
-    return familyMembers == null
-        ? AppStrings.paymentRegistered(
-            PaymentFormats.monthsSummary(receipt.months).toLowerCase(),
-            total,
-          )
-        : AppStrings.familyPaymentRegistered(
-            AppStrings.memberCount(familyMembers),
-            total,
-          );
-  }
+  void _announce(PaymentReceipt receipt) =>
+      showAppSnackBar(context, PaymentFormats.receiptAnnouncement(receipt));
 
   Future<void> _registerPayment() async {
     final cubit = context.read<MemberLedgerCubit>();
