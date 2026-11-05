@@ -659,6 +659,30 @@ void main() {
         expect(form().canReview, isTrue);
       });
 
+      test('turning the group back on asks again who paid', () async {
+        stubStatuses();
+        await cubit.open(1, forFamily: true);
+
+        await cubit.payForFamily(enabled: false);
+        await cubit.payForFamily(enabled: true);
+
+        expect(form().awaitingPayer, isTrue);
+        expect(form().canReview, isFalse);
+      });
+
+      test('a payer picked before turning the group off is kept', () async {
+        stubStatuses();
+        await cubit.open(1, forFamily: true);
+        cubit.pickPayer(2);
+
+        await cubit.payForFamily(enabled: false);
+        await cubit.payForFamily(enabled: true);
+
+        expect(form().awaitingPayer, isFalse);
+        expect(form().payerId, 2);
+        expect(form().canReview, isTrue);
+      });
+
       test('a member without active relatives keeps paying as before',
           () async {
         when(() => loadLedger(any())).thenAnswer(
@@ -1038,6 +1062,23 @@ void main() {
           FamilyGroupChangedNotice(leftNames: [luis.fullName], payerLeft: true),
         );
         expect(form().payerId, isNull);
+      });
+
+      test('opened from the group, a payer who left has to be chosen again',
+          () async {
+        stubGroup(threeInGroup);
+        stubStatusesOf([1, 2, 3]);
+        await cubit.open(1, forFamily: true);
+        stubOutcome(rejected);
+        cubit.pickPayer(luis.id);
+        stubGroup(without(luis.id));
+        stubStatusesOf([1, 2]);
+
+        await cubit.submit();
+
+        expect(form().payerId, isNull);
+        expect(form().awaitingPayer, isTrue);
+        expect(form().canReview, isFalse);
       });
 
       test('a relative deactivated meanwhile is named too', () async {
