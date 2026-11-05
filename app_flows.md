@@ -78,7 +78,7 @@ Bottom navigation navy, 3 items con ícono **y** etiqueta. Badge `RoleBadge` ("A
 | Tab | Ruta | Contenido |
 | :--- | :--- | :--- |
 | **Inicio** | `/admin` | Resumen General + Accesos Rápidos (§3.2.1) |
-| **Pagos** | `/admin/payments` | Listado de socios con buscador y chips Todos / En mora (§3.2.2) |
+| **Socios** | `/admin/members` | Listado de socios con buscador y chips Todos / En mora / Inactivos (§3.2.2) |
 | **Perfil** | `/admin/profile` | Datos, cambiar contraseña, logout, y acceso a Administradores si `canManageAdmins` |
 
 **Reservas entra como cuarto tab recién en E9**, cuando la agenda exista. Un tab que no hace nada, tocado varias veces por semana durante varios sprints, se lee como app rota, no como app simple: el costo de que la barra cambie de forma una vez es menor que el de sostener un tab muerto. Hasta entonces la agenda no tiene presencia en ninguna superficie: el `UpcomingSlotsCard` de §3.2.1 se diseñó y quedó **sin construir**, porque un card que no puede mostrar ni un turno real es un hueco anunciado, no una pista útil. Entra con la agenda.
@@ -95,7 +95,9 @@ Rutas push, fuera de los tabs:
 | Gestión de canchas | `/admin/courts` | admin | E9 |
 | Gestión de administradores | `/admin/admins` (+ `/new`, `/:adminId/edit`) | **superAdmin** | E8 |
 
-**El listado de socios vive dentro del tab Pagos, no en una pantalla aparte.** El diseño original lo tenía como ruta push en `/admin/members`, con un tab Pagos separado para las cuotas. Son la misma tarea: el admin abre la lista de socios *para cobrar*, y partirla en dos superficies obligaba a saltar entre ellas para resolver un solo trámite. Una pantalla menos, un tab que ahora hace algo, y el estado del listado lo preserva el `StatefulShellRoute` en lugar de reconstruirse en cada push.
+**El listado de socios es un tab, no una pantalla aparte.** El diseño original lo tenía como ruta push en `/admin/members`, con un tab Pagos separado para las cuotas. Son la misma tarea: el admin abre la lista de socios *para cobrar*, y partirla en dos superficies obligaba a saltar entre ellas para resolver un solo trámite. Una pantalla menos, un tab que ahora hace algo, y el estado del listado lo preserva el `StatefulShellRoute` en lugar de reconstruirse en cada push.
+
+**El tab se llama Socios, no Pagos** (revisión en el celular, 2026-10-31): lo que se ve es el padrón, y los pagos se registran desde *Registrar pago* o desde las cuotas de un socio. La ruta pasó de `/admin/payments` a `/admin/members`; *Elegir socio* y el reporte conservan `/admin/payments/new` y `/admin/payments/report` porque sí son pantallas de pagos.
 
 **Canchas sigue sin ser tab.** Es una tarea de sesión (entrás, resolvés, volvés); la barra inferior queda para lo que el admin mira varias veces por día.
 
@@ -105,8 +107,8 @@ Rutas push, fuera de los tabs:
 
 | Bloque | Contenido | Visual | Al tocar |
 | :--- | :--- | :--- | :--- |
-| `ActiveMembersCard` | "SOCIOS ACTIVOS" + contador | Card navy sólida, texto blanco | → tab **Pagos** con el chip **Todos** |
-| `OverdueMembersCard` | "SOCIOS EN MORA" + contador | Card azul claro, contador en rojo | → tab **Pagos** con el chip **En mora** |
+| `ActiveMembersCard` | "TOTAL DE SOCIOS" + contador de activos | Card navy sólida, texto blanco | → tab **Socios** con el chip **Todos** |
+| `OverdueMembersCard` | "SOCIOS EN MORA" + contador | Card azul claro, contador en rojo | → tab **Socios** con el chip **En mora** |
 | `UpcomingSlotsCard` **(E9, sin construir)** | "PRÓXIMOS TURNOS" + cancha / horario | Card azul claro, horario en azul a la derecha | → agenda |
 
 **Accesos Rápidos** — dos cards lado a lado, cada una una **acción**, no un destino que ya está en otro lado: *Nuevo socio* (navy) → alta de socio (`/admin/members/new`), *Registrar pago* (verde) → elegir socio → registro de pago (§4.2). Hasta E6 estuvo dibujada en gris.
@@ -117,37 +119,41 @@ Las dos cards de la primera versión salieron: *Gestión de Socios* abría exact
 
 **Cada card lleva a lo que su título dice.** Un card que anuncia "SOCIOS EN MORA" con un número y abre el listado completo sin filtrar rompe la expectativa de manipulación directa en la primera pantalla que ve el admin, y le enseña a no confiar en que tocar algo específico devuelva algo específico. No es una mejora posterior: el filtro de mora ya se construye para los chips de §3.2.2, así que el costo es pasar un parámetro de ruta.
 
-El filtro viaja como query param (`/admin/payments?filter=overdue`), no como estado global ni como estado interno del listado: así el listado es enlazable y, sobre todo, cada card vuelve a imponer *su* filtro. Si el chip activo viviera solo en el Cubit, un admin que cambió de chip a mano y después tocara "Socios activos" se encontraría con el filtro anterior, porque la URL del branch no habría cambiado y no habría nada que avisara al listado.
+El filtro viaja como query param (`/admin/members?filter=overdue`), no como estado global ni como estado interno del listado: así el listado es enlazable y, sobre todo, cada card vuelve a imponer *su* filtro. Si el chip activo viviera solo en el Cubit, un admin que cambió de chip a mano y después tocara "Total de socios" se encontraría con el filtro anterior, porque la URL del branch no habría cambiado y no habría nada que avisara al listado.
 
-Los contadores de los chips (§3.2.2) salen del mismo listado que ya está en memoria, así que cambiar de chip no vuelve a pegarle a la API.
+Los contadores de los chips (§3.2.2) salen del mismo listado que ya está en memoria, así que cambiar de chip no vuelve a pegarle a la API. **"Total de socios" y "Todos (n)" dan siempre el mismo número**: los dos cuentan solo socios activos, porque un socio dado de baja ya no es socio del club. Los inactivos tienen su propio chip.
 
-#### 3.2.2 Pagos — listado de socios y cobranza
+#### 3.2.2 Socios — listado y cobranza
 
-1. **Header**: "Pagos" + `RoleBadge`.
+1. **Header**: "Socios" + `RoleBadge`.
 2. **Buscador**: placeholder "Buscar socio por nombre o DNI...". Lo resuelve el cliente sobre el padrón ya cargado, porque la API no expone búsqueda; ignora mayúsculas y acentos, así que "alvarez" encuentra a "Álvarez".
-3. **Filtros**: dos chips con contador — "Todos (n)" y "En mora (n)". Seleccionado en navy sólido.
-4. **Listado**: `ListView.builder` de `MemberListTile`, ordenado por apellido. Cada fila: nombre, badge **Activo / Inactivo** y acción **lápiz** → edición. **Tocar el resto de la fila abre las cuotas del socio** (§4.2.1); el lápiz sigue siendo un target propio de 48×48.
+3. **Filtros**: tres chips con contador — "Todos (n)", "En mora (n)" e "Inactivos (n)". Seleccionado en navy sólido. En un teléfono angosto el tercero puede quedar a medio ver: la fila se desliza de costado y el borde se difumina para anunciarlo.
+4. **Listado**: `ListView.builder` de `MemberListTile`, ordenado por apellido. Cada fila: nombre, badge solo si hay algo que mirar (**En mora** o **Inactivo**) y acción **lápiz** → edición. **Tocar el resto de la fila abre las cuotas del socio** (§4.2.1); el lápiz sigue siendo un target propio de 48×48.
 5. **FAB azul, abajo derecha**: crear socio. Es el único FAB de la pantalla.
 
 **Qué filtra cada chip**:
 
 | Chip | Contenido |
 | :--- | :--- |
-| **Todos** | Todo el padrón, activos e inactivos |
-| **En mora** | Socios con la cuota vencida (`daysOverdue > 0`) |
+| **Todos** | Socios activos |
+| **En mora** | Socios activos con la cuota vencida (`daysOverdue > 0`) |
+| **Inactivos** | Socios dados de baja |
+
+Como "Todos" ya no trae a los dados de baja, una búsqueda sin resultados que sí coincide con socios inactivos ofrece *Ver en Inactivos (n)*: buscar a alguien para reactivarlo no tiene que terminar en "no encontramos nada".
 
 **Sin chip "A cobrar".** E4 lo construyó como una canasta de socios marcados a mano con un ícono de documento en cada fila, para alimentar el reporte. Se quitó en E6, cuando el reporte se redefinió como un PDF de los pagos registrados en un período (§4.6): ese reporte no sale de una selección de socios, así que la canasta, la marca de cada fila y el botón "Generar reporte" del pie quedaron sin uso. La fila queda con dos destinos: sus cuotas y su edición.
 
-**El badge de la fila muestra un solo eje: Activo / Inactivo.**
+**El badge de la fila marca solo lo que pide atención.** Un "Activo" verde en casi todas las filas no dice nada y recarga la pantalla (revisión en el celular, 2026-10-31):
 
 | Estado | Badge | Color |
 | :--- | :--- | :--- |
-| Activo | "Activo" | `successSurface` / `successText` |
+| Activo y al día | — | — |
+| Activo y en mora | "En mora" | `dangerSurface` / `dangerText` |
 | Inactivo | "Inactivo" | `disabledSurface` / `textSecondary` |
 
-Los dos ejes de estado siguen siendo independientes en el dominio (§9): `activo/inactivo` dice si sigue siendo socio, `al día/en mora` dice si la cuota está paga, y un socio puede estar activo y en mora a la vez. Lo que cambió es cómo se muestran: la mora se consulta entrando al chip "En mora", no leyendo fila por fila. **Consecuencia asumida**: en "Todos" no se distingue a simple vista quién debe. Si molesta en uso real, el badge combinado ("Activo · En mora") ya está diseñado y es un cambio de una sola función. El listado tampoco se ordena por días de mora ni los muestra, aunque V6 lo mencione: el chip "En mora" alcanza para el uso real (decisión del 22/10/2026).
+Los dos ejes de estado siguen siendo independientes en el dominio (§9): `activo/inactivo` dice si sigue siendo socio, `al día/en mora` dice si la cuota está paga. Un inactivo no muestra mora porque su cuota no cuenta. El listado no se ordena por días de mora ni los muestra: para eso está el chip "En mora" (decisión del 22/10/2026).
 
-**Tres vacíos distintos, no uno** (§5): padrón sin socios, "ningún socio está en mora" y búsqueda sin resultados con acción "Limpiar búsqueda".
+**Cuatro vacíos distintos, no uno** (§5): padrón sin socios, "ningún socio está en mora", "ningún socio está dado de baja" y búsqueda sin resultados con acción "Limpiar búsqueda".
 
 **Acciones todavía no disponibles**: se dibujan en gris y, al tocarlas, explican en qué entrega se habilitan, en lugar de ocultarse. Así la pantalla tiene su forma definitiva y las filas no cambian de layout en cada entrega. Así se hizo con el FAB de alta y el lápiz hasta E5.
 
@@ -157,9 +163,9 @@ Tres bloques, de arriba abajo:
 
 | Bloque | Contenido |
 | :--- | :--- |
-| **Tu cuenta** | El rol ("Administrador" / "Administrador principal") y, si la cuenta está vinculada a un socio, su nombre y DNI. Si no, "Esta cuenta no está vinculada a un socio." No hay más datos: la API no expone la cuenta logueada ([backend_api.md](backend_api.md) §10) |
+| **Tu cuenta** | El rol ("Administrador" / "Administrador principal") y, si la cuenta está vinculada a un socio, su nombre. Si no, "Esta cuenta no está vinculada a un socio." Debajo, el link *Cambiar contraseña*, con el mismo peso visual que "¿Olvidaste tu contraseña?" en el login: es una acción de la cuenta que se usa poco, y como tarjeta competía con lo importante (revisión en el celular, 2026-10-31). No hay más datos: la API no expone la cuenta logueada ([backend_api.md](backend_api.md) §10) |
 | **Club** | Nombre del club y **cuota mensual de referencia** (`monthlyFeeAmount`), o "Sin cargar". El ADMIN y el SUPER_ADMIN la editan desde un lápiz que abre una hoja con el mismo campo de importe que Registrar pago; vacío la borra |
-| **Sesión y seguridad** | *Cambiar contraseña*, *Administradores* (solo `canManageAdmins`) y *Cerrar sesión* |
+| **Sesión y seguridad** | *Administradores* (solo `canManageAdmins`) y *Cerrar sesión* |
 
 **Cambiar contraseña** pide solo la nueva (de 8 caracteres a 72 bytes —las letras con tilde y la ñ cuentan como dos—, con mostrar/ocultar): decisión de producto, tiene que ser simple. Al guardarla, la API revoca todas las sesiones de la cuenta, así que la app lo avisa antes ("Al cambiarla se cierran tus sesiones abiertas…") y después muestra "Contraseña cambiada. Ingresá de nuevo con la contraseña nueva." y cierra la sesión. Funciona igual para el ADMIN y el SUPER_ADMIN.
 
@@ -185,8 +191,8 @@ Ordenados por entrega: primero los del admin.
 ### 4.1 Gestión de socios — listado, alta y edición
 
 ```
-Inicio ──[Socios activos ⇒ chip Todos  ]──►
-       ──[Socios en mora ⇒ chip En mora]──►  tab Pagos
+Inicio ──[Total de socios ⇒ chip Todos ]──►
+       ──[Socios en mora ⇒ chip En mora]──►  tab Socios
        ──[Nuevo socio]──────┐                   │
                             │        ┌──────────┼───────────────┐
                             │        ▼          ▼               ▼
@@ -200,15 +206,17 @@ Inicio ──[Socios activos ⇒ chip Todos  ]──►
 
 - La búsqueda y el filtrado hoy los resuelve el cliente sobre el padrón completo, porque la API devuelve la lista entera sin paginar ni filtrar. Sirve con los ~245 socios del club; cuando el backend exponga paginación, el listado pasa a "cargando más" al pie y el mapeo no cambia.
 - El DNI duplicado lo valida el backend y se muestra en el campo, no en un snackbar genérico (E5).
+- **El DNI se escribe, pero casi no se muestra** (revisión en el celular, 2026-10-31): no es un dato que el admin quiera leer a cada rato. Se ve en los formularios, en la fila de un administrador sin socio vinculado (es lo único que lo identifica) y, en los buscadores para elegir un socio (registrar pago, armar grupo, vincular admin), **solo cuando hay otro socio con el mismo nombre y apellido**. La búsqueda por DNI sigue funcionando aunque no se vea.
+- **El DNI acepta de 6 a 8 dígitos**, en el login y en las altas: 7 u 8 es lo normal (los de extranjeros también tienen 8) y 6 cubre las LE/LC más viejas. La API acepta hasta 20, así que la regla es del cliente.
 - Al volver de un alta exitosa el listado refresca y hace scroll al socio creado.
-- El listado se recarga solo cuando el padrón cambia (alta, edición, baja o reactivación), venga el cambio de donde venga: un alta hecha desde el Inicio ya aparece al abrir Pagos, sin pull-to-refresh. La recarga conserva búsqueda y chip.
+- El listado se recarga solo cuando el padrón cambia (alta, edición, baja o reactivación), venga el cambio de donde venga: un alta hecha desde el Inicio ya aparece al abrir Socios, sin pull-to-refresh. La recarga conserva búsqueda y chip.
 - Abandonar un formulario con cambios pide confirmación, también con el gesto de deslizar desde el borde en iOS. Sin cambios, el gesto vuelve directo. La búsqueda y el filtro sobreviven a la ida y vuelta.
 
 ### 4.2 Registrar un pago
 
 ```
 Inicio ──[Registrar pago]──► Elegir socio ──┐
-Pagos ──[fila]──► Cuotas del socio ─────────┼──► Registrar pago ──► Confirmar ──► Cuotas del socio
+Socios ──[fila]──► Cuotas del socio ─────────┼──► Registrar pago ──► Confirmar ──► Cuotas del socio
                         ▲  [Registrar pago] ┘                                    (meses nuevos marcados)
                         └── [historial] ──► Detalle del pago ──► Anular
 ```
@@ -219,7 +227,7 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 
 **Registrar pago** (`/admin/members/:memberId/payments/new`), de arriba abajo:
 
-- **Encabezado** con el socio, su DNI y su situación (al día, días de mora, o sin pagos).
+- **Encabezado** con el socio y su situación (al día, días de mora, o sin pagos).
 - **Meses**: grilla de 12 meses (4 × 3) con selector de año. Cada mes está *libre*, *Elegido* o *Pagado*; los pagados no se pueden tocar. Arranca con **un mes sugerido** — el que sigue al último pago, o el del alta si nunca pagó — y un texto que dice por qué. Se pueden sumar meses futuros sin límite y meses viejos sueltos que hayan quedado sin pagar.
 - **Importe por mes**, precargado con la cuota de referencia del club cuando existe; si el club no la tiene cargada, el campo arranca vacío y lo dice. Acepta lo mismo que la API: hasta 8 enteros y 2 decimales, con coma decimal (`15.000,50`). Solo la coma abre los decimales: un punto tipeado a mano se ignora, porque los puntos de miles los pone el campo y en es-AR el punto se lee como miles — tipear `15.000` tiene que dar quince mil, no quince pesos. Debajo, el **total** (importe × meses) se actualiza mientras se elige, porque la API registra el importe por mes ([backend_api.md](backend_api.md) §6).
 - **Medio de pago**: Efectivo (por defecto), Transferencia u Otro.
@@ -235,13 +243,18 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 - Cada fila dice qué se le cobra. **Un mes que un integrante ya tiene pago se le saltea**; si no le queda ninguno, la fila dice "Ya tiene pagos esos meses: no se le cobra". El total cuenta cuotas: importe × los meses que debe cada socio elegido.
 - Mientras se leen los historiales no se puede revisar. Si la lectura falla, la sección muestra el aviso con *Reintentar*.
 - *¿Quién pagó?* vale para todas las cuotas: si pagó el socio de la pantalla, figura como el socio en la suya y como familiar en las demás.
-- La confirmación lista a cada socio con sus meses (o que se le saltea) y el total en cuotas. Al terminar se vuelve a las cuotas del socio con "Pago registrado para 3 socios del grupo · $45.000".
+- La confirmación es la misma hoja que para un socio, con una fila por integrante (o que se le saltea). Al terminar se vuelve a las cuotas del socio con "Pago registrado para 3 socios del grupo · $45.000".
 - **Todo o nada**: la app manda un solo `POST /api/payments/batch` con una entrada por socio a cobrar ([backend_api.md](backend_api.md) §6). Si el servidor lo rechaza no se registra a nadie, así que no hay pagos a medias ni cobro fijo: el formulario sigue editable y el comprobante suma el importe del formulario por cada cuota registrada.
 - Antes de enviar se relee el historial de cada integrante y se cobra solo lo que falta: un mes que ya figura pago no se manda. Un integrante dado de baja mientras se cargaba el formulario queda fuera del cobro y el aviso de éxito de las cuotas lo nombra; si el que se dio de baja es el socio de la pantalla, no se cobra a nadie. El padrón recibe un solo aviso al terminar.
 
-**Confirmación** en una hoja inferior: socio, meses, importe por mes, total, medio y quién pagó, con el aviso *"Un pago registrado no se edita: si hay un error, hay que anularlo desde el historial del socio y cargarlo de nuevo."* y dos acciones, *Confirmar* y *Volver a editar*.
+**Confirmación** en una hoja inferior, **igual para un socio que para el grupo** (revisión en el celular, 2026-10-31; antes era una tabla de etiqueta y valor que alineaba a la derecha textos de varias líneas y armaba el caso del grupo distinto):
 
-**Después de confirmar** se vuelve a las cuotas del socio con un snackbar ("Pago registrado …") y los meses recién pagos marcados como *NUEVO* en el historial. Pagos, sus contadores de mora y el Inicio se actualizan solos.
+1. Arriba y centrado, lo que se confirma: el **total** grande y debajo "2 cuotas · Efectivo".
+2. Una lista con **una fila por socio**: nombre y meses debajo; si son varios, el subtotal de cada uno a la derecha (con uno solo repetiría el total). Quien ya tiene pagos esos meses figura con "No se cobra · Ya tiene pagos esos meses".
+3. *Importe por mes* y *Pagó*.
+4. El aviso *"Un pago registrado no se edita: si hay un error, se anula desde el historial del socio."* y las dos acciones, *Confirmar pago de $X* y *Volver a editar*.
+
+**Después de confirmar** se vuelve a las cuotas del socio con un snackbar ("Pago registrado …") y los meses recién pagos marcados como *NUEVO* en el historial. Socios, sus contadores de mora y el Inicio se actualizan solos.
 
 **Lo que puede salir mal, sin perder lo cargado**:
 
@@ -257,7 +270,7 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 | Quien figuraba como pagador salió del grupo | El `400` rechaza el pedido entero. La app relee el grupo y quién pagó vuelve al socio; el aviso lo dice y el admin revisa y registra de nuevo |
 | En el pago del grupo, el servidor no respondió a tiempo | Igual que en el pago individual, pero la app relee el historial de **todos** los integrantes: si cada uno muestra todos sus meses, termina como registrado con el comprobante completo y sin aviso de error; si no, dice que no sabe si entró y *Reintentar* revisa antes de enviar. Como el pedido es uno solo, nunca quedan algunos registrados y otros no |
 | Otro admin ya cobró esos meses a todos los elegidos | Aviso; la lista se actualiza y no queda nada para cobrar. Si el pedido anterior de esta pantalla pudo haber entrado (timeout), termina como registrado en lugar de avisar |
-| El socio ya no existe | Pantalla de "No encontramos a este socio" con *Volver a Pagos* |
+| El socio ya no existe | Pantalla de "No encontramos a este socio" con *Volver a Socios* |
 | El socio fue dado de baja mientras tanto | Pantalla de "Este socio está dado de baja" con *Volver*. En el pago del grupo, la baja se detecta al releer el historial antes de enviar, así que no se le cobra a nadie del grupo |
 | Otro error del servidor | Aviso con el mensaje; el formulario sigue editable |
 
@@ -269,7 +282,7 @@ Pagos ──[fila]──► Cuotas del socio ─────────┼─�
 
 #### 4.2.1 Cuotas del socio y anulación
 
-`/admin/members/:memberId/payments` — se llega desde la fila de Pagos o después de registrar.
+`/admin/members/:memberId/payments` — se llega desde la fila de Socios o después de registrar.
 
 - **Encabezado** del socio y **card de situación**: al día, *n* días de mora o inactivo, con el último mes pago (o "Todavía no tiene pagos", con la fecha de alta, para quien recién se sumó).
 - **Historial**, del mes más nuevo al más viejo: mes, importe, medio, fecha de carga y quién pagó cuando no fue el socio. Vacío con mensaje propio si nunca pagó.
@@ -324,7 +337,7 @@ Cuotas del socio ──[card Grupo familiar]
 
 - **Encabezado** con el nombre (o "Grupo familiar" si no tiene), la cantidad de integrantes y un lápiz que abre *Nombre del grupo*.
 - **Nota**: "Cada integrante paga su propia cuota. Al registrar un pago, cualquiera del grupo puede figurar como quien pagó."
-- **Integrantes**, ordenados por apellido y nombre: nombre, badge **Activo / Inactivo** y, a la derecha, *Quitar* (ícono con `tooltip` y `Semantics`, 48×48). Tocar el resto de la fila abre las cuotas de ese integrante. Un integrante dado de baja **sigue en el grupo** hasta que alguien lo quite.
+- **Integrantes**, ordenados por apellido y nombre: nombre, el mismo badge que el listado (**En mora** / **Inactivo**, nada si está al día) y, a la derecha, *Quitar* (ícono con `tooltip` y `Semantics`, 48×48). Tocar el resto de la fila abre las cuotas de ese integrante. Un integrante dado de baja **sigue en el grupo** hasta que alguien lo quite.
 - **Eliminar grupo**, como acción de texto al pie de la lista, con un diálogo de confirmación: los integrantes siguen siendo socios, sus pagos no cambian y cada uno paga su propia cuota ([backend_api.md](backend_api.md) §5, `DELETE /api/family-groups/{id}`). Al terminar vuelve a la pantalla anterior con «Grupo eliminado». Un grupo que ya no existe (otro admin lo eliminó) se toma como eliminado. Mientras se borra, el botón queda deshabilitado con un indicador de carga, así un segundo toque no abre otra confirmación.
 - **Pie fijo** con *Sumar integrante*.
 
@@ -365,13 +378,13 @@ Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la not
 - Un admin dado de baja sigue en el listado, marcado como inactivo, con la acción de reactivar en su fila. Desaparecer de la lista al desactivar hace creer que se borró.
 - **No hace falta lógica defensiva contra la auto-baja del superAdmin**: el listado de la API nunca devuelve esa cuenta, así que no existe la fila que se podría tocar por error.
 
-**Listado** (`/admin/admins`): activos primero y después los dados de baja. Dentro de cada bloque, los vinculados a un socio por apellido y nombre (sin acentos) y al final los sin vincular por DNI numérico: el orden sigue lo que se ve en la fila. Cada fila muestra el nombre del socio vinculado o, si no tiene, "DNI 30.222.333"; el email (o "Sin email") y el badge Activo / Inactivo. Tocar la fila abre la edición; las filas dadas de baja suman *Reactivar*. FAB extendido *Nuevo administrador*. Estados de §5: skeleton, vacío con mensaje y error con *Reintentar*.
+**Listado** (`/admin/admins`): activos primero y después los dados de baja. Dentro de cada bloque, los vinculados a un socio por apellido y nombre (sin acentos) y al final los sin vincular por DNI numérico: el orden sigue lo que se ve en la fila. Cada fila muestra el nombre del socio vinculado o, si no tiene, "DNI 30.222.333"; el email (o "Sin email") y, solo si está dado de baja, el badge Inactivo. Tocar la fila abre la edición; las filas dadas de baja suman *Reactivar*. FAB extendido *Nuevo administrador*. Estados de §5: skeleton, vacío con mensaje y error con *Reintentar*.
 
 **Alta y edición** (`/admin/admins/new`, `/admin/admins/:adminId/edit`), con etiquetas visibles en cada campo:
 
 | Campo | Regla |
 | :--- | :--- |
-| DNI | Requerido, solo números, hasta 20; se agrupa con puntos y viaja sin ellos |
+| DNI | Requerido, solo números, de 6 a 8; se agrupa con puntos y viaja sin ellos |
 | Email (opcional) | Formato y hasta 150 |
 | Contraseña inicial | Solo en el alta, de 8 caracteres a 72 bytes (las letras con tilde y la ñ cuentan como dos, [backend_api.md](backend_api.md) §5), con mostrar/ocultar. La define el SUPER_ADMIN: la API no genera ninguna |
 | Socio vinculado (opcional) | Campo que abre una hoja con buscador y lista perezosa sobre los socios activos (más el vinculado, si está inactivo) y "Sin vincular". Los socios ya vinculados a otra cuenta se ven deshabilitados con "Ya tiene una cuenta de administrador", para no terminar en un `409` evitable |
@@ -400,7 +413,7 @@ Si el bloqueo pisa reservas existentes, la confirmación **debe listar las reser
 
 **El PDF lo genera el backend** (`GET /api/payments/receipts`, [backend_api.md](backend_api.md) §6): son las **tabletas** que hoy el admin arma a mano en Excel para imprimir y recortar, una por grupo familiar y mes cubierto (o por socio si no tiene grupo), con cada socio que pagó ese mes, su importe y el total; cada tableta sale dos veces lado a lado, con líneas de corte. La app elige el período, baja el PDF y lo comparte o imprime.
 
-- **Entrada**: ícono de PDF con `tooltip` "Reporte de cuotas cobradas" en la barra superior de Pagos (`/admin/payments/report`). Ícono solo, como permite §1 para el admin, para no quitarle lugar al título.
+- **Entrada**: ícono de PDF con `tooltip` "Reporte de cuotas cobradas" en la barra superior de Socios (`/admin/payments/report`). Ícono solo, como permite §1 para el admin, para no quitarle lugar al título.
 - **Período por fecha de cobro**: *Un mes* o *Varios meses* (desde / hasta) entre los últimos 24 meses. La app lo traduce a días (`paidFrom` = día 1 del primer mes, `paidTo` = último día del último mes). Se eligen meses y no días sueltos porque así rinde el club, y porque el selector de fechas de Flutter sale en inglés mientras la app no tenga la localización en español. Un rango invertido se explica en el campo y deshabilita *Generar PDF*.
 - **Estados**: generando (botón con progreso y "Generando el PDF…"; el modo y los meses quedan bloqueados hasta que responda, y una respuesta de un período que ya no está elegido se descarta), listo ("Tabletas listas", el período, *Compartir PDF* y *Ver o imprimir*), **sin cobros** (el `204`: "No hubo cobros en ese período, así que no hay tabletas para imprimir"), error sin conexión o del servidor, y **el servidor tardó demasiado** (el PDF tiene 60 s de espera, no los 15 s generales; si igual no alcanza, "Probá con menos meses o de nuevo en un rato" en lugar de "sin conexión"). Si el dispositivo no puede abrir o compartir el PDF, un snackbar lo dice.
 - El archivo conserva el nombre que manda el backend (`cuotas-cobradas-2026-10-01-al-2026-10-31.pdf`).
@@ -437,7 +450,7 @@ GoRouter
 ├── /member                         → superficie del socio en preparación
 ├── StatefulShellRoute (admin + superAdmin)
 │   ├── branch: /admin              → Inicio
-│   ├── branch: /admin/payments      → Pagos   ?filter=all|overdue
+│   ├── branch: /admin/members       → Socios  ?filter=all|overdue|inactive
 │   ├── branch: /admin/profile       → Perfil
 │   └── branch: /admin/reservations  → Agenda        ← se suma en E9
 ├── rutas push del admin
@@ -448,7 +461,7 @@ GoRouter
 │   ├── /admin/family-groups/:familyGroupId  (+ /add)  ← grupo y sumar integrante (E6.5)
 
 
-Una ruta con un `:familyGroupId` que no es un número vuelve a Pagos, igual que con `:memberId`.
+Una ruta con un `:familyGroupId` que no es un número vuelve a Socios, igual que con `:memberId`.
 │   ├── /admin/payments/report                        ← se suma en E10
 │   ├── /admin/courts
 │   └── /admin/admins   (+ /new, /:adminId/edit)      ← solo superAdmin
@@ -459,7 +472,9 @@ Una ruta con un `:familyGroupId` que no es un número vuelve a Pagos, igual que 
     └── branch: /profile
 ```
 
-`StatefulShellRoute.indexedStack`: preserva el estado de cada tab, que es lo que el admin espera al volver de Pagos a un listado a medio filtrar. `initialLocation` es `/`; el destino post-login del admin es `/admin`.
+`StatefulShellRoute.indexedStack`: preserva el estado de cada tab, que es lo que el admin espera al volver de Socios a un listado a medio filtrar. `initialLocation` es `/`; el destino post-login del admin es `/admin`.
+
+**Atrás del sistema** (botón o gesto de Android): en una pantalla apilada vuelve a la anterior, igual que la flecha del AppBar; en un tab que no es Inicio vuelve a Inicio; en Inicio sale de la app, sin "tocá de nuevo para salir". El shell no lo resuelve solo: sin el `PopScope` del `AdminShell`, el navegador raíz tiene una sola página y atrás cerraba la app desde cualquier tab.
 
 **Guards** en el `redirect`:
 
@@ -470,7 +485,7 @@ Una ruta con un `:familyGroupId` que no es un número vuelve a Pagos, igual que 
 5. `admin` intentando `/admin/admins` → fuera; solo `superAdmin`.
 6. Sesión expirada (401 no recuperable del interceptor) → `/login` con mensaje de sesión vencida.
 
-Las rutas con `:memberId` que no es un número vuelven a Pagos en lugar de abrir una pantalla rota.
+Las rutas con `:memberId` que no es un número vuelven a Socios en lugar de abrir una pantalla rota.
 
 Esto requiere un `AuthBloc` de sesión, separado del `LoginCubit` de formulario que ya existe. Ambos existen desde E2; los seis guards se testean por rol.
 
@@ -486,7 +501,7 @@ Paleta derivada de las capturas, confirmada en `AppColors`.
 | `brandGreen` | `#12784A` | Card "Gestión de Canchas" |
 | `accentBlue` | `#2563EB` | FAB de crear socio, horarios, enlaces |
 | `infoSurface` | `#DDE7F7` | Fondo de cards informativas (mora, próximos turnos) |
-| `successSurface` / `successText` | `#C8EFD9` / `#0F6B41` | Badge "Activo" de la fila de socio, `RoleBadge` |
+| `successSurface` / `successText` | `#C8EFD9` / `#0F6B41` | `RoleBadge`, estado "Al día" de las cuotas |
 | `dangerSurface` / `dangerText` | `#FADBDB` / `#B3261E` | Contador de mora, errores de campo |
 | `background` / `surface` | `#F4F6F9` / `#FFFFFF` | Fondo de pantalla / cards y campos |
 | `textSecondary` | `#5B6472` | Placeholders y labels |

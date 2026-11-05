@@ -23,7 +23,7 @@ import '../../features/members/domain/entities/member.dart';
 import '../../features/members/domain/entities/member_collection_filter.dart';
 import '../../features/members/presentation/screens/member_form_screen.dart';
 import '../../features/payments/domain/entities/payment_receipt.dart';
-import '../../features/payments/presentation/screens/admin_payments_screen.dart';
+import '../../features/admin/presentation/screens/admin_members_screen.dart';
 import '../../features/payments/presentation/screens/member_ledger_screen.dart';
 import '../../features/payments/presentation/screens/payment_member_picker_screen.dart';
 import '../../features/payments/presentation/screens/register_payment_screen.dart';
@@ -103,7 +103,7 @@ class AppRouter {
         AdminShell(navigationShell: navigationShell),
     branches: [
       _branch(AppRoutes.adminHome, (context, state) => const AdminHomeScreen()),
-      _branch(AppRoutes.adminPayments, _buildPaymentsScreen),
+      _branch(AppRoutes.adminMembers, _buildPaymentsScreen),
       _branch(
         AppRoutes.adminProfile,
         (context, state) => const AdminProfileScreen(),
@@ -113,7 +113,7 @@ class AppRouter {
 
   static Widget _buildPaymentsScreen(
       BuildContext context, GoRouterState state) {
-    return AdminPaymentsScreen(
+    return AdminMembersScreen(
       filter: MemberCollectionFilter.fromQueryValue(
         state.uri.queryParameters[AppRoutes.filterQueryParameter],
       ),
@@ -130,7 +130,7 @@ class AppRouter {
   GoRoute get _paymentReportRoute => GoRoute(
         path: AppRoutes.adminPaymentReport,
         redirect: (context, state) =>
-            features.feeReceipts ? null : AppRoutes.adminPayments,
+            features.feeReceipts ? null : AppRoutes.adminMembers,
         builder: (context, state) => const PaymentReportScreen(),
       );
 
@@ -142,7 +142,7 @@ class AppRouter {
     GoRoute(
       path: AppRoutes.adminMemberEditionPattern,
       redirect: (context, state) =>
-          state.extra is Member ? null : AppRoutes.adminPayments,
+          state.extra is Member ? null : AppRoutes.adminMembers,
       builder: (context, state) =>
           MemberFormScreen(member: state.extra as Member),
     ),
@@ -230,11 +230,11 @@ class AppRouter {
     BuildContext context,
     GoRouterState state,
   ) =>
-      _familyGroupIdOf(state) == null ? AppRoutes.adminPayments : null;
+      _familyGroupIdOf(state) == null ? AppRoutes.adminMembers : null;
 
   static String? _requireMemberId(
     BuildContext context,
     GoRouterState state,
   ) =>
-      _memberIdOf(state) == null ? AppRoutes.adminPayments : null;
+      _memberIdOf(state) == null ? AppRoutes.adminMembers : null;
 }

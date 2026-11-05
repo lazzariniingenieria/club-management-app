@@ -10,6 +10,8 @@ class AdminShell extends StatelessWidget {
 
   const AdminShell({super.key, required this.navigationShell});
 
+  static const int _homeIndex = 0;
+
   static const List<NavigationDestination> destinations = [
     NavigationDestination(
       icon: Icon(Icons.home_outlined),
@@ -17,9 +19,9 @@ class AdminShell extends StatelessWidget {
       label: AppStrings.adminTabHome,
     ),
     NavigationDestination(
-      icon: Icon(Icons.payments_outlined),
-      selectedIcon: Icon(Icons.payments_rounded),
-      label: AppStrings.adminTabPayments,
+      icon: Icon(Icons.groups_outlined),
+      selectedIcon: Icon(Icons.groups_rounded),
+      label: AppStrings.adminTabMembers,
     ),
     NavigationDestination(
       icon: Icon(Icons.person_outline_rounded),
@@ -35,16 +37,26 @@ class AdminShell extends StatelessWidget {
     );
   }
 
+  bool get _isOnHome => navigationShell.currentIndex == _homeIndex;
+
+  void _returnHomeInsteadOfLeaving(bool didPop, Object? _) {
+    if (!didPop) navigationShell.goBranch(_homeIndex);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: NavigationBarTheme(
-        data: _navigationBarTheme,
-        child: NavigationBar(
-          selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: _onDestinationSelected,
-          destinations: destinations,
+    return PopScope(
+      canPop: _isOnHome,
+      onPopInvokedWithResult: _returnHomeInsteadOfLeaving,
+      child: Scaffold(
+        body: navigationShell,
+        bottomNavigationBar: NavigationBarTheme(
+          data: _navigationBarTheme,
+          child: NavigationBar(
+            selectedIndex: navigationShell.currentIndex,
+            onDestinationSelected: _onDestinationSelected,
+            destinations: destinations,
+          ),
         ),
       ),
     );

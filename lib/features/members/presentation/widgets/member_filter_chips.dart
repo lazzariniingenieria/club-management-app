@@ -146,8 +146,9 @@ class _FilterChip extends StatelessWidget {
 
 String _labelFor(MemberCollectionFilter filter) {
   return switch (filter) {
-    MemberCollectionFilter.all => AppStrings.adminPaymentsFilterAll,
-    MemberCollectionFilter.overdue => AppStrings.adminPaymentsFilterOverdue,
+    MemberCollectionFilter.all => AppStrings.adminMembersFilterAll,
+    MemberCollectionFilter.overdue => AppStrings.adminMembersFilterOverdue,
+    MemberCollectionFilter.inactive => AppStrings.adminMembersFilterInactive,
   };
 }
 

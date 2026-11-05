@@ -1,14 +1,21 @@
+import '../../../../shared/validation/dni_rules.dart';
+
 enum MemberField { firstName, lastName, dni, phone, email }
 
-enum MemberFieldError { required, tooLong, nonNumericDni, malformedEmail }
+enum MemberFieldError {
+  required,
+  tooLong,
+  nonNumericDni,
+  invalidDniLength,
+  malformedEmail,
+}
 
 abstract final class MemberDraftRules {
   static const int maxNameLength = 100;
-  static const int maxDniLength = 20;
+  static const int maxDniLength = DniRules.maxLength;
   static const int maxPhoneLength = 30;
   static const int maxEmailLength = 150;
 
-  static final RegExp _onlyDigits = RegExp(r'^\d+$');
   static final RegExp _email = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
   static MemberFieldError? validate(MemberField field, String value) {
@@ -30,10 +37,12 @@ abstract final class MemberDraftRules {
   }
 
   static MemberFieldError? _validateDni(String value) {
-    if (value.isEmpty) return MemberFieldError.required;
-    if (!_onlyDigits.hasMatch(value)) return MemberFieldError.nonNumericDni;
-
-    return _validateLength(value, maxDniLength);
+    return switch (DniRules.validate(value)) {
+      DniError.required => MemberFieldError.required,
+      DniError.nonNumeric => MemberFieldError.nonNumericDni,
+      DniError.invalidLength => MemberFieldError.invalidDniLength,
+      null => null,
+    };
   }
 
   static MemberFieldError? _validateEmail(String value) {

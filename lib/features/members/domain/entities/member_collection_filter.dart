@@ -2,7 +2,8 @@ import 'member.dart';
 
 enum MemberCollectionFilter {
   all('all'),
-  overdue('overdue');
+  overdue('overdue'),
+  inactive('inactive');
 
   const MemberCollectionFilter(this.queryValue);
 
@@ -18,8 +19,9 @@ enum MemberCollectionFilter {
 
   bool matches(Member member) {
     return switch (this) {
-      MemberCollectionFilter.all => true,
-      MemberCollectionFilter.overdue => member.isOverdue,
+      MemberCollectionFilter.all => member.isActive,
+      MemberCollectionFilter.overdue => member.isActive && member.isOverdue,
+      MemberCollectionFilter.inactive => !member.isActive,
     };
   }
 }

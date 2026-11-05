@@ -210,6 +210,7 @@ String? _messageFor(MemberFieldError? error) {
     MemberFieldError.required => AppStrings.memberFormRequiredField,
     MemberFieldError.tooLong => AppStrings.memberFormTooLong,
     MemberFieldError.nonNumericDni => AppStrings.memberFormDniOnlyDigits,
+    MemberFieldError.invalidDniLength => AppStrings.dniInvalidLength,
     MemberFieldError.malformedEmail => AppStrings.memberFormMalformedEmail,
     null => null,
   };

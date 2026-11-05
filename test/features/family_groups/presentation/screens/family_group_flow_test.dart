@@ -261,11 +261,8 @@ void main() {
           .toList();
       expect(inGroup, isNotEmpty);
 
-      await tester.scrollUntilVisible(
-        find.text(AppStrings.familyGroupDeleteAction),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await tester.ensureVisible(find.text(AppStrings.familyGroupDeleteAction));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.familyGroupDeleteAction));
       await tester.pumpAndSettle();
       expect(
@@ -299,11 +296,8 @@ void main() {
         familyGroupSource: groups,
       );
       await openRoute(tester, AppRoutes.adminFamilyGroup(1));
-      await tester.scrollUntilVisible(
-        find.text(AppStrings.familyGroupDeleteAction),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await tester.ensureVisible(find.text(AppStrings.familyGroupDeleteAction));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text(AppStrings.familyGroupDeleteAction));
       await tester.pumpAndSettle();
@@ -328,11 +322,8 @@ void main() {
       await boot(tester);
       await openRoute(tester, AppRoutes.adminFamilyGroup(1));
 
-      await tester.scrollUntilVisible(
-        find.text(AppStrings.familyGroupDeleteAction),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await tester.ensureVisible(find.text(AppStrings.familyGroupDeleteAction));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.familyGroupDeleteAction));
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.cancelAction));

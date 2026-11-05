@@ -45,7 +45,7 @@ void main() {
     di.sl.unregister<ReportFileExporter>();
     di.sl.registerLazySingleton<ReportFileExporter>(() => exporter);
 
-    di.sl<AppRouter>().router.go(AppRoutes.adminPayments);
+    di.sl<AppRouter>().router.go(AppRoutes.adminMembers);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(AppStrings.reportTitle));
     await tester.pumpAndSettle();
@@ -125,7 +125,7 @@ void main() {
         signedInAs: UserRole.admin,
         features: withoutReceipts,
       );
-      di.sl<AppRouter>().router.go(AppRoutes.adminPayments);
+      di.sl<AppRouter>().router.go(AppRoutes.adminMembers);
       await tester.pumpAndSettle();
 
       expect(find.byTooltip(AppStrings.reportTitle), findsNothing);
@@ -147,7 +147,7 @@ void main() {
           .currentConfiguration
           .last
           .matchedLocation;
-      expect(location, AppRoutes.adminPayments);
+      expect(location, AppRoutes.adminMembers);
     });
   });
 }

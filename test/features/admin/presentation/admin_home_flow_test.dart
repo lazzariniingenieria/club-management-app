@@ -12,6 +12,7 @@ import 'package:club_management_app/features/members/data/models/member_model.da
 import 'package:club_management_app/features/members/domain/entities/member.dart';
 import 'package:club_management_app/features/members/domain/entities/member_collection_filter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/app_test_harness.dart';
@@ -99,7 +100,7 @@ void main() {
     expect(find.text('${MemberFakeDataSource.overdueMembers}'), findsOneWidget);
   });
 
-  testWidgets('the active members card opens Pagos on every member', (
+  testWidgets('the total members card opens Socios on every member', (
     tester,
   ) async {
     await bootHome(tester);
@@ -109,13 +110,13 @@ void main() {
 
     expect(
       currentUri(),
-      AppRoutes.adminPaymentsWithFilter(MemberCollectionFilter.all),
+      AppRoutes.adminMembersWithFilter(MemberCollectionFilter.all),
     );
     expect(
-        isChipSelected(tester, AppStrings.adminPaymentsFilterAll, 3), isTrue);
+        isChipSelected(tester, AppStrings.adminMembersFilterAll, 2), isTrue);
   });
 
-  testWidgets('the overdue members card opens Pagos already filtered by mora', (
+  testWidgets('the overdue members card opens Socios already filtered by mora', (
     tester,
   ) async {
     await bootHome(tester);
@@ -125,10 +126,10 @@ void main() {
 
     expect(
       currentUri(),
-      AppRoutes.adminPaymentsWithFilter(MemberCollectionFilter.overdue),
+      AppRoutes.adminMembersWithFilter(MemberCollectionFilter.overdue),
     );
     expect(
-      isChipSelected(tester, AppStrings.adminPaymentsFilterOverdue, 1),
+      isChipSelected(tester, AppStrings.adminMembersFilterOverdue, 1),
       isTrue,
     );
     expect(find.text('Juan Zárate'), findsOneWidget);
@@ -144,7 +145,7 @@ void main() {
     expect(currentLocation(), AppRoutes.adminMemberCreation);
   });
 
-  testWidgets('a card tap moves the bottom navigation onto Pagos', (
+  testWidgets('a card tap moves the bottom navigation onto Socios', (
     tester,
   ) async {
     await bootHome(tester);
@@ -171,7 +172,7 @@ void main() {
     await settleSession(tester);
 
     expect(
-        isChipSelected(tester, AppStrings.adminPaymentsFilterAll, 3), isTrue);
+        isChipSelected(tester, AppStrings.adminMembersFilterAll, 2), isTrue);
   });
 
   testWidgets('the register payment card asks first for the member', (
@@ -186,11 +187,11 @@ void main() {
     expect(find.text(AppStrings.paymentPickerQuestion), findsOneWidget);
   });
 
-  testWidgets('a member created from the home already shows up in Pagos', (
+  testWidgets('a member created from the home already shows up in Socios', (
     tester,
   ) async {
     await bootApp(tester, signedInAs: UserRole.admin);
-    await tapTab(tester, AppStrings.adminTabPayments);
+    await tapTab(tester, AppStrings.adminTabMembers);
     await tapTab(tester, AppStrings.adminTabHome);
 
     await tester.tap(find.text(AppStrings.adminHomeNewMemberAccess));
@@ -201,13 +202,13 @@ void main() {
     await tester.enterText(fields.at(2), '45999888');
     await tester.tap(find.text(AppStrings.memberFormSaveCreation));
     await tester.pumpAndSettle();
-    await tapTab(tester, AppStrings.adminTabPayments);
+    await tapTab(tester, AppStrings.adminTabMembers);
 
     expect(
       find.text(
         AppStrings.withCount(
-          AppStrings.adminPaymentsFilterAll,
-          MemberFakeDataSource.totalMembers + 1,
+          AppStrings.adminMembersFilterAll,
+          MemberFakeDataSource.activeMembers + 1,
         ),
       ),
       findsOneWidget,
@@ -246,10 +247,64 @@ void main() {
     final dataSource = GrowingClubDataSource();
     await bootHome(tester, summarySource: dataSource);
 
-    await tapTab(tester, AppStrings.adminTabPayments);
+    await tapTab(tester, AppStrings.adminTabMembers);
     await tapTab(tester, AppStrings.adminTabHome);
 
     expect(dataSource.calls, 2);
     expect(find.text('231'), findsOneWidget);
+  });
+
+  group('the system back button', () {
+    int selectedTab(WidgetTester tester) =>
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex;
+
+    testWidgets('on another tab goes to the home instead of leaving the app', (
+      tester,
+    ) async {
+      await bootHome(tester);
+      await tapTab(tester, AppStrings.adminTabProfile);
+
+      await tester.binding.handlePopRoute();
+      await settleSession(tester);
+
+      expect(currentLocation(), AppRoutes.adminHome);
+      expect(selectedTab(tester), 0);
+    });
+
+    testWidgets('on the home leaves the app', (tester) async {
+      final platformCalls = <String>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          platformCalls.add(call.method);
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger
+            .setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+      await bootHome(tester);
+
+      await tester.binding.handlePopRoute();
+      await settleSession(tester);
+
+      expect(platformCalls, contains('SystemNavigator.pop'));
+    });
+
+    testWidgets('on a pushed screen goes back to the tab it was opened from', (
+      tester,
+    ) async {
+      await bootHome(tester);
+      await tapTab(tester, AppStrings.adminTabMembers);
+      await tester.tap(find.text('Ana Álvarez'));
+      await settleSession(tester);
+
+      await tester.binding.handlePopRoute();
+      await settleSession(tester);
+
+      expect(currentLocation(), AppRoutes.adminMembers);
+      expect(selectedTab(tester), 1);
+    });
   });
 }

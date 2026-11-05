@@ -3,22 +3,22 @@ import 'package:equatable/equatable.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../../members/domain/entities/member_collection_filter.dart';
 
-sealed class AdminPaymentsState extends Equatable {
-  const AdminPaymentsState();
+sealed class MemberRosterState extends Equatable {
+  const MemberRosterState();
 
   @override
   List<Object?> get props => [];
 }
 
-class AdminPaymentsLoading extends AdminPaymentsState {
-  const AdminPaymentsLoading();
+class MemberRosterLoading extends MemberRosterState {
+  const MemberRosterLoading();
 }
 
-class AdminPaymentsReady extends AdminPaymentsState {
+class MemberRosterReady extends MemberRosterState {
   final List<Member> members;
   final String searchQuery;
 
-  const AdminPaymentsReady({required this.members, this.searchQuery = ''});
+  const MemberRosterReady({required this.members, this.searchQuery = ''});
 
   int countFor(MemberCollectionFilter filter) =>
       members.where(filter.matches).length;
@@ -32,8 +32,8 @@ class AdminPaymentsReady extends AdminPaymentsState {
 
   bool get hasSearchQuery => searchQuery.trim().isNotEmpty;
 
-  AdminPaymentsReady copyWith({String? searchQuery}) {
-    return AdminPaymentsReady(
+  MemberRosterReady copyWith({String? searchQuery}) {
+    return MemberRosterReady(
       members: members,
       searchQuery: searchQuery ?? this.searchQuery,
     );
@@ -43,22 +43,22 @@ class AdminPaymentsReady extends AdminPaymentsState {
   List<Object?> get props => [members, searchQuery];
 }
 
-class AdminPaymentsFailure extends AdminPaymentsState {
+class MemberRosterFailure extends MemberRosterState {
   final String message;
-  final AdminPaymentsReady? previous;
+  final MemberRosterReady? previous;
   final int attempt;
 
-  const AdminPaymentsFailure(
+  const MemberRosterFailure(
     this.message, {
     this.previous,
     this.attempt = 1,
   });
 
-  AdminPaymentsFailure withRoster(AdminPaymentsReady roster) =>
-      AdminPaymentsFailure(message, previous: roster, attempt: attempt);
+  MemberRosterFailure withRoster(MemberRosterReady roster) =>
+      MemberRosterFailure(message, previous: roster, attempt: attempt);
 
-  bool isNewerThan(AdminPaymentsState other) =>
-      other is! AdminPaymentsFailure || other.attempt != attempt;
+  bool isNewerThan(MemberRosterState other) =>
+      other is! MemberRosterFailure || other.attempt != attempt;
 
   @override
   List<Object?> get props => [message, previous, attempt];

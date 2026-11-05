@@ -26,17 +26,17 @@ void main() {
   Finder chip(String label, int count) =>
       find.text(AppStrings.withCount(label, count));
 
-  Future<void> openPaymentsTab(WidgetTester tester) async {
+  Future<void> openMembersTab(WidgetTester tester) async {
     await tester.tap(
       find.descendant(
         of: find.byType(NavigationBar),
-        matching: find.text(AppStrings.adminTabPayments),
+        matching: find.text(AppStrings.adminTabMembers),
       ),
     );
     await settleSession(tester);
   }
 
-  Future<void> bootPayments(
+  Future<void> bootMembers(
     WidgetTester tester, {
     List<MemberModel>? members,
   }) async {
@@ -45,7 +45,7 @@ void main() {
       signedInAs: UserRole.admin,
       memberSource: MemberRosterDataSource(members ?? roster),
     );
-    await openPaymentsTab(tester);
+    await openMembersTab(tester);
   }
 
   Future<void> tapChip(WidgetTester tester, String label, int count) async {
@@ -54,27 +54,36 @@ void main() {
   }
 
   group('roster', () {
-    testWidgets('lists every member with its status badge', (tester) async {
-      await bootPayments(tester);
+    testWidgets('opens on the members still in the club', (tester) async {
+      await bootMembers(tester);
 
-      expect(find.byType(MemberListTile), findsNWidgets(3));
+      expect(find.byType(MemberListTile), findsNWidgets(2));
       expect(find.text('Juan Zárate'), findsOneWidget);
-      expect(find.text(AppStrings.memberStatusActive), findsNWidgets(2));
-      expect(find.text(AppStrings.memberStatusInactive), findsOneWidget);
+      expect(find.text('Luis Gómez'), findsNothing);
     });
 
-    testWidgets('opens on the two filter chips with their counters', (
+    testWidgets('only flags what needs attention: en mora, never activo', (
       tester,
     ) async {
-      await bootPayments(tester);
+      await bootMembers(tester);
 
-      expect(chip(AppStrings.adminPaymentsFilterAll, 3), findsOneWidget);
-      expect(chip(AppStrings.adminPaymentsFilterOverdue, 1), findsOneWidget);
-      expect(find.byType(ChoiceChip), findsNWidgets(2));
+      expect(find.text(AppStrings.memberStatusOverdue), findsOneWidget);
+      expect(find.text('Activo'), findsNothing);
+    });
+
+    testWidgets('opens on the three filter chips with their counters', (
+      tester,
+    ) async {
+      await bootMembers(tester);
+
+      expect(chip(AppStrings.adminMembersFilterAll, 2), findsOneWidget);
+      expect(chip(AppStrings.adminMembersFilterOverdue, 1), findsOneWidget);
+      expect(chip(AppStrings.adminMembersFilterInactive, 1), findsOneWidget);
+      expect(find.byType(ChoiceChip), findsNWidgets(3));
     });
 
     testWidgets('a row offers editing and nothing else', (tester) async {
-      await bootPayments(tester, members: [roster[1]]);
+      await bootMembers(tester, members: [roster[1]]);
 
       expect(
         find.descendant(
@@ -88,13 +97,13 @@ void main() {
     testWidgets('orders the rows by last name ignoring accents', (
       tester,
     ) async {
-      await bootPayments(tester);
+      await bootMembers(tester);
 
       final names = tester
           .widgetList<MemberListTile>(find.byType(MemberListTile))
           .map((tile) => tile.member.lastName);
 
-      expect(names, ['Álvarez', 'Gómez', 'Zárate']);
+      expect(names, ['Álvarez', 'Zárate']);
     });
   });
 
@@ -102,22 +111,34 @@ void main() {
     testWidgets('en mora keeps only the members behind on the fee', (
       tester,
     ) async {
-      await bootPayments(tester);
+      await bootMembers(tester);
 
-      await tapChip(tester, AppStrings.adminPaymentsFilterOverdue, 1);
+      await tapChip(tester, AppStrings.adminMembersFilterOverdue, 1);
 
       expect(find.byType(MemberListTile), findsOneWidget);
       expect(find.text('Juan Zárate'), findsOneWidget);
     });
 
+    testWidgets('inactivos keeps only the members who were let go', (
+      tester,
+    ) async {
+      await bootMembers(tester);
+
+      await tapChip(tester, AppStrings.adminMembersFilterInactive, 1);
+
+      expect(find.byType(MemberListTile), findsOneWidget);
+      expect(find.text('Luis Gómez'), findsOneWidget);
+      expect(find.text(AppStrings.memberStatusInactive), findsOneWidget);
+    });
+
     testWidgets('en mora explains itself when every fee is paid', (
       tester,
     ) async {
-      await bootPayments(tester, members: [roster[1]]);
+      await bootMembers(tester, members: [roster[1]]);
 
-      await tapChip(tester, AppStrings.adminPaymentsFilterOverdue, 0);
+      await tapChip(tester, AppStrings.adminMembersFilterOverdue, 0);
 
-      expect(find.text(AppStrings.adminPaymentsEmptyOverdue), findsOneWidget);
+      expect(find.text(AppStrings.adminMembersEmptyOverdue), findsOneWidget);
     });
   });
 
@@ -125,7 +146,7 @@ void main() {
     testWidgets('narrows the roster by name typed without accents', (
       tester,
     ) async {
-      await bootPayments(tester);
+      await bootMembers(tester);
 
       await tester.enterText(find.byType(TextField), 'alvarez');
       await settleSession(tester);
@@ -135,44 +156,62 @@ void main() {
     });
 
     testWidgets('narrows the roster by dni', (tester) async {
-      await bootPayments(tester);
+      await bootMembers(tester);
 
-      await tester.enterText(find.byType(TextField), '30000003');
+      await tester.enterText(find.byType(TextField), '30000002');
+      await settleSession(tester);
+
+      expect(find.text('Ana Álvarez'), findsOneWidget);
+      expect(find.byType(MemberListTile), findsOneWidget);
+    });
+
+    testWidgets('points to Inactivos when only a member let go matches', (
+      tester,
+    ) async {
+      await bootMembers(tester);
+
+      await tester.enterText(find.byType(TextField), 'gomez');
+      await settleSession(tester);
+      await tester.tap(
+        find.text(
+          AppStrings.withCount(AppStrings.adminMembersSearchInactive, 1),
+        ),
+      );
       await settleSession(tester);
 
       expect(find.text('Luis Gómez'), findsOneWidget);
-      expect(find.byType(MemberListTile), findsOneWidget);
+      expect(find.text(AppStrings.memberStatusInactive), findsOneWidget);
     });
 
     testWidgets('a search without results offers to clear itself', (
       tester,
     ) async {
-      await bootPayments(tester);
+      await bootMembers(tester);
 
       await tester.enterText(find.byType(TextField), 'Rodríguez');
       await settleSession(tester);
 
-      expect(find.text(AppStrings.adminPaymentsEmptySearch), findsOneWidget);
+      expect(find.text(AppStrings.adminMembersEmptySearch), findsOneWidget);
 
-      await tester.tap(find.text(AppStrings.adminPaymentsClearSearch));
+      await tester.tap(find.text(AppStrings.adminMembersClearSearch));
       await settleSession(tester);
 
-      expect(find.byType(MemberListTile), findsNWidgets(3));
+      expect(find.byType(MemberListTile), findsNWidgets(2));
     });
 
     testWidgets('leaves the chip counters untouched', (tester) async {
-      await bootPayments(tester);
+      await bootMembers(tester);
 
       await tester.enterText(find.byType(TextField), 'alvarez');
       await settleSession(tester);
 
-      expect(chip(AppStrings.adminPaymentsFilterAll, 3), findsOneWidget);
+      expect(chip(AppStrings.adminMembersFilterAll, 2), findsOneWidget);
     });
   });
 
   group('the member form', () {
     testWidgets('creating a member opens the form', (tester) async {
-      await bootPayments(tester);
+      await bootMembers(tester);
 
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
@@ -183,7 +222,7 @@ void main() {
     testWidgets('editing a member opens the form on that member', (
       tester,
     ) async {
-      await bootPayments(tester);
+      await bootMembers(tester);
 
       await tester.tap(find.byIcon(Icons.edit_outlined).first);
       await tester.pumpAndSettle();
@@ -196,17 +235,17 @@ void main() {
     testWidgets('labels the selected chip in white, not in grey on navy', (
       tester,
     ) async {
-      await bootPayments(tester);
+      await bootMembers(tester);
 
       final selected = tester.widget<ChoiceChip>(
         find.ancestor(
-          of: chip(AppStrings.adminPaymentsFilterAll, 3),
+          of: chip(AppStrings.adminMembersFilterAll, 2),
           matching: find.byType(ChoiceChip),
         ),
       );
       final unselected = tester.widget<ChoiceChip>(
         find.ancestor(
-          of: chip(AppStrings.adminPaymentsFilterOverdue, 1),
+          of: chip(AppStrings.adminMembersFilterOverdue, 1),
           matching: find.byType(ChoiceChip),
         ),
       );
@@ -218,7 +257,7 @@ void main() {
     testWidgets('fades its edge so hidden chips announce themselves', (
       tester,
     ) async {
-      await bootPayments(tester);
+      await bootMembers(tester);
 
       expect(
         find.ancestor(
@@ -238,7 +277,7 @@ void main() {
       addTearDown(tester.view.reset);
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-      await bootPayments(tester);
+      await bootMembers(tester);
 
       final chipRow = find.ancestor(
         of: find.byType(ChoiceChip).first,
@@ -256,11 +295,11 @@ void main() {
 
   group('the create button', () {
     testWidgets('stays on screen on every chip', (tester) async {
-      await bootPayments(tester);
+      await bootMembers(tester);
 
       expect(find.byType(FloatingActionButton), findsOneWidget);
 
-      await tapChip(tester, AppStrings.adminPaymentsFilterOverdue, 1);
+      await tapChip(tester, AppStrings.adminMembersFilterOverdue, 1);
 
       expect(find.byType(FloatingActionButton), findsOneWidget);
     });
@@ -268,7 +307,7 @@ void main() {
     testWidgets('it clears the last row once the list is scrolled home', (
       tester,
     ) async {
-      await bootPayments(
+      await bootMembers(
         tester,
         members: [
           for (var id = 1; id <= 20; id++)
@@ -310,14 +349,14 @@ void main() {
         signedInAs: UserRole.admin,
         memberSource: source,
       );
-      await openPaymentsTab(tester);
+      await openMembersTab(tester);
 
       source.failsNext = true;
       await tester.fling(find.byType(ListView), const Offset(0, 400), 1000);
       await tester.pumpAndSettle();
 
-      expect(find.byType(MemberListTile), findsNWidgets(3));
-      expect(chip(AppStrings.adminPaymentsFilterAll, 3), findsOneWidget);
+      expect(find.byType(MemberListTile), findsNWidgets(2));
+      expect(chip(AppStrings.adminMembersFilterAll, 2), findsOneWidget);
       expect(find.text(AppStrings.loginNetworkError), findsOneWidget);
     });
 
@@ -330,7 +369,7 @@ void main() {
         signedInAs: UserRole.admin,
         memberSource: source,
       );
-      await openPaymentsTab(tester);
+      await openMembersTab(tester);
 
       source.failsNext = true;
       await tester.fling(find.byType(ListView), const Offset(0, 400), 1000);
@@ -351,7 +390,7 @@ void main() {
       addTearDown(tester.view.reset);
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-      await bootPayments(tester);
+      await bootMembers(tester);
     }
 
     testWidgets('renders on a phone at a 130% system text scale', (
@@ -360,7 +399,7 @@ void main() {
       await bootAtPhoneSize(tester, 1.3);
 
       expect(find.byType(MemberListTile), findsWidgets);
-      expect(chip(AppStrings.adminPaymentsFilterAll, 3), findsOneWidget);
+      expect(chip(AppStrings.adminMembersFilterAll, 2), findsOneWidget);
     });
 
     testWidgets('renders on a phone at a 200% system text scale', (
@@ -369,7 +408,7 @@ void main() {
       await bootAtPhoneSize(tester, 2);
 
       expect(find.byType(MemberListTile), findsWidgets);
-      expect(chip(AppStrings.adminPaymentsFilterAll, 3), findsOneWidget);
+      expect(chip(AppStrings.adminMembersFilterAll, 2), findsOneWidget);
     });
   });
 
@@ -377,9 +416,9 @@ void main() {
     testWidgets('an empty club explains itself instead of a blank list', (
       tester,
     ) async {
-      await bootPayments(tester, members: const []);
+      await bootMembers(tester, members: const []);
 
-      expect(find.text(AppStrings.adminPaymentsEmptyRoster), findsOneWidget);
+      expect(find.text(AppStrings.adminMembersEmptyRoster), findsOneWidget);
     });
 
     testWidgets('a network failure can be retried without leaving', (
@@ -390,9 +429,9 @@ void main() {
         signedInAs: UserRole.admin,
         memberSource: FailingMemberDataSource(NetworkException('offline')),
       );
-      await openPaymentsTab(tester);
+      await openMembersTab(tester);
 
-      expect(find.text(AppStrings.adminPaymentsErrorTitle), findsOneWidget);
+      expect(find.text(AppStrings.adminMembersErrorTitle), findsOneWidget);
       expect(find.text(AppStrings.loginNetworkError), findsOneWidget);
       expect(find.text(AppStrings.retryAction), findsOneWidget);
     });

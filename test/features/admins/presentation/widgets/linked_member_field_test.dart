@@ -99,11 +99,29 @@ void main() {
 
     await tester.enterText(find.byType(TextField), 'Beni');
     await tester.pump();
-    expect(find.text('Socio Acosta'), findsNothing);
-    expect(find.text('Socio Benítez'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, 'Socio Acosta'), findsNothing);
+    expect(find.widgetWithText(ListTile, 'Socio Benítez'), findsOneWidget);
 
     await tester.tap(find.text(AppStrings.adminFormNoMember));
     await tester.pumpAndSettle();
     expect(selected, isNull);
+  });
+
+  testWidgets('shows the DNI only to tell two members of the same name apart', (
+    tester,
+  ) async {
+    await pumpField(
+      tester,
+      members: [member(1, 'Acosta'), member(2, 'Acosta'), member(3, 'Benítez')],
+      selectedMemberId: 3,
+    );
+
+    expect(find.text('Socio Benítez'), findsOneWidget);
+
+    await openPicker(tester);
+
+    expect(find.text('DNI 30.000.001'), findsOneWidget);
+    expect(find.text('DNI 30.000.002'), findsOneWidget);
+    expect(find.text('DNI 30.000.003'), findsNothing);
   });
 }

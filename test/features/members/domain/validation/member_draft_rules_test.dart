@@ -56,6 +56,21 @@ void main() {
     test('ignores surrounding spaces, as the submitted draft is trimmed', () {
       expect(validate(MemberField.dni, ' 30111222 '), isNull);
     });
+
+    test('accepts the 6 digits of an old enrolment book', () {
+      expect(validate(MemberField.dni, '123456'), isNull);
+    });
+
+    test('rejects fewer than 6 or more than 8 digits', () {
+      expect(
+        validate(MemberField.dni, '12345'),
+        MemberFieldError.invalidDniLength,
+      );
+      expect(
+        validate(MemberField.dni, '301112223'),
+        MemberFieldError.invalidDniLength,
+      );
+    });
   });
 
   group('the optional fields', () {

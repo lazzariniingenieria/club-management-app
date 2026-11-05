@@ -75,7 +75,7 @@ import '../../features/payments/domain/usecases/register_family_payment_use_case
 import '../../features/payments/domain/usecases/register_payment_use_case.dart';
 import '../../features/payments/domain/usecases/void_payment_use_case.dart';
 import '../../features/payments/domain/usecases/watch_payment_changes_use_case.dart';
-import '../../features/payments/presentation/cubit/admin_payments_cubit.dart';
+import '../../features/payments/presentation/cubit/member_roster_cubit.dart';
 import '../../features/payments/presentation/cubit/member_ledger_cubit.dart';
 import '../../features/payments/presentation/cubit/register_payment_cubit.dart';
 import '../../features/reports/data/datasources/payment_report_fake_data_source.dart';
@@ -374,7 +374,7 @@ void _registerPresentation() {
     ),
   );
   sl.registerFactory(
-    () => AdminPaymentsCubit(
+    () => MemberRosterCubit(
       loadMembers: sl(),
       watchRosterChanges: sl(),
       watchPaymentChanges: sl(),
