@@ -67,6 +67,7 @@ class _ProfileBody extends StatelessWidget {
             const SizedBox(height: AppSpacing.xl),
             const _SectionTitle(AppStrings.profileClubSection),
             _ClubCard(user: user, state: state),
+            if (state.club?.courtsEnabled ?? false) const _CourtsAccess(),
             const SizedBox(height: AppSpacing.xl),
             const _SectionTitle(AppStrings.profileSecuritySection),
             _SecurityActions(user: user),
@@ -236,6 +237,22 @@ class _MonthlyFeeRow extends StatelessWidget {
             icon: const Icon(Icons.edit_outlined, color: AppColors.textSecondary),
           ),
       ],
+    );
+  }
+}
+
+class _CourtsAccess extends StatelessWidget {
+  const _CourtsAccess();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md),
+      child: _ProfileAction(
+        icon: Icons.sports_tennis_rounded,
+        label: AppStrings.adminCourtsTitle,
+        onTap: () => context.push(AppRoutes.adminCourts),
+      ),
     );
   }
 }

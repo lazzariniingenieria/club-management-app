@@ -4,6 +4,8 @@ Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, 
 
 **Verificado contra** [`club-management-api`](https://github.com/lazzariniingenieria/club-management-api) `develop`, commit `12abf91` — 2026-10-30. Incluye el PR #22 (reporte de cuotas cobradas) y el #23 (dependencias del Bloque 1 del admin). **`main` (producción) todavía no tiene ninguno de los dos** (§1).
 
+**Canchas** (`/api/courts` y `courtsEnabled` en `/api/clubs/me`, §5) viene del PR #25 (rama `feature/courts-management`), **todavía sin mergear en `develop`**.
+
 **Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/` (incluido `JwtAuthenticationFilter`), `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
 **Qué no va acá**: pantallas, flujos y entregas van en [app_flows.md](app_flows.md); reglas de código, en [CLAUDE.md](CLAUDE.md).
@@ -14,7 +16,7 @@ Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, 
 | [2. Convenciones](#2-convenciones) | [7. Cómo se calcula la mora](#7-cómo-se-calcula-la-mora) |
 | [3. Autenticación](#3-autenticación) | [8. Modelo de datos](#8-modelo-de-datos) |
 | [4. Autorización y errores](#4-autorización-y-errores) | [9. Trampas](#9-trampas) |
-| [5. Socios, grupos y admins](#5-socios-grupos-y-admins) | [10. Lo que no existe](#10-lo-que-no-existe) |
+| [5. Socios, grupos, admins y canchas](#5-socios-grupos-admins-y-canchas) | [10. Lo que no existe](#10-lo-que-no-existe) |
 
 ---
 
@@ -112,7 +114,7 @@ Cortan así todas las sesiones de una cuenta, y además le revocan los refresh t
 | `/api/auth/login`, `/api/auth/refresh` | público |
 | `PATCH /api/auth/me/password` | `ADMIN`, `SUPER_ADMIN` |
 | `/api/admins/**`, incluido `PATCH /api/admins/{id}/password` | **solo `SUPER_ADMIN`** |
-| `/api/members/**`, `/api/family-groups/**`, `/api/payments/**` | `ADMIN`, `SUPER_ADMIN` |
+| `/api/members/**`, `/api/family-groups/**`, `/api/payments/**`, `/api/courts/**` | `ADMIN`, `SUPER_ADMIN` |
 | `/api/clubs/me` (`GET` y `PATCH`) | `ADMIN`, `SUPER_ADMIN` |
 
 **Un token con `role = MEMBER` no entra a ningún endpoint implementado.** Puede autenticarse y nada más.
@@ -137,7 +139,7 @@ El envelope sale siempre como `application/json`, aunque el pedido haya mandado 
 
 ---
 
-## 5. Socios, grupos y admins
+## 5. Socios, grupos, admins y canchas
 
 ### Socios — `/api/members`
 
@@ -202,14 +204,37 @@ El envelope sale siempre como `application/json`, aunque el pedido haya mandado 
 
 **`PATCH /api/auth/me/password`** — cambio de contraseña **de la cuenta logueada**, para `ADMIN` y `SUPER_ADMIN` (`MEMBER` → `403`). Body `{ "newPassword": "..." }`, con las mismas reglas que la contraseña inicial y sin pedir la actual (decisión de producto). Responde **`204` sin body**. Registra `sessions_revoked_at` y revoca los refresh tokens: se cierran todas las sesiones de la cuenta, incluida la que hizo el cambio (§3).
 
+### Canchas — `/api/courts`
+
+`POST` (`201`), `GET` listado, `GET /{id}`, `PATCH /{id}`, `PATCH /{id}/deactivate` y `/reactivate`. `ADMIN` y `SUPER_ADMIN`.
+
+```json
+{ "id": 3, "name": "Cancha de Pádel 1", "type": "Pádel",
+  "openingTime": "08:00:00", "closingTime": "23:00:00", "active": true,
+  "createdAt": "...", "updatedAt": "...", "createdByUserId": 2, "updatedByUserId": 2 }
+```
+
+**`POST` y `PATCH`** reciben `name` (requerido, ≤ 100), `type` (opcional, ≤ 50, texto libre: "Pádel", "Tenis"), `openingTime` y `closingTime` (requeridos, `"HH:mm"` o `"HH:mm:ss"`). Los horarios **vuelven siempre con segundos**. `PATCH` es reemplazo completo: sin `type`, lo borra. Ninguno de los dos toca `active`.
+
+| Status | Cuándo |
+| :--- | :--- |
+| `400` | Validación, un horario ilegible (`"25:00"`), o `closingTime` que no es posterior a `openingTime` |
+| `404` | La cancha no es del club |
+| `409` | Otra cancha del club ya tiene ese nombre, **sin distinguir mayúsculas** |
+
+**El horario es de un solo día**: cierra después de abrir, sin cruzar la medianoche. Una cancha que cierra a las 24 se carga con `23:59`. El listado trae activas e inactivas, por nombre.
+
+**`courtsEnabled`** de `/api/clubs/me` no bloquea estos endpoints: es la señal para que la app muestre la gestión de canchas.
+
 ### Bajas lógicas
 
-Nunca hay borrado físico, y los dos modelos son reversibles con `/reactivate`:
+Nunca hay borrado físico, y los tres modelos son reversibles con `/reactivate`:
 
 | Entidad | En la respuesta |
 | :--- | :--- |
 | `member` | `status: "INACTIVE"` |
 | `user_account` (admin) | `active: false` |
+| `court` | `active: false` |
 
 Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistinguible de una contraseña incorrecta (§3).
 
@@ -218,11 +243,13 @@ Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistingui
 ### Club — `/api/clubs/me`
 
 ```json
-{ "id": 1, "name": "Club 1", "monthlyFeeAmount": 15000.00,
+{ "id": 1, "name": "Club 1", "monthlyFeeAmount": 15000.00, "courtsEnabled": false,
   "updatedAt": "...", "updatedByUserId": 1 }
 ```
 
 `GET` devuelve el club del token. `monthlyFeeAmount` es la **cuota de referencia** y es nullable: un club recién migrado no la tiene cargada. El `name` lo pone la migración como `"Club <id>"` hasta que se configure por entorno.
+
+`courtsEnabled` (PR #25) dice si el club tiene habilitada la etapa de canchas. Es `false` hasta que se prende en la base; no hay endpoint para cambiarlo. Una API sin el PR #25 no manda el campo: la app lo lee como `false`.
 
 `PATCH` (`ADMIN` y `SUPER_ADMIN`) recibe `{ "monthlyFeeAmount": 16000 }` (> 0, hasta 8 enteros y 2 decimales); mandarlo en `null` borra la cuota de referencia. Es solo una referencia: **no cambia ningún pago** ni la forma de calcular la mora, y `POST /api/payments` sigue exigiendo el `amount` explícito.
 
@@ -334,9 +361,11 @@ daysOverdue       = max(0, días entre coverageStart y hoy)
 
 ## 8. Modelo de datos
 
-**Seis tablas** (migraciones `V1`–`V13`): `user_account`, `member`, `family_group`, `refresh_token`, `payment` y `club`. El diseño de nueve tablas del `README` del backend es el plan, no el estado.
+**Seis tablas** (migraciones `V1`–`V13`): `user_account`, `member`, `family_group`, `refresh_token`, `payment` y `club`; con el PR #25, siete (`V14` crea `court`). El diseño de nueve tablas del `README` del backend es el plan, no el estado.
 
-**`club`** tiene `name`, `address`, `courts_enabled`, `member_app_enabled` y `monthly_fee_amount` (la cuota de referencia, nullable y > 0). `member.club_id` y `user_account.club_id` ya tienen FK a esa tabla; cada query sigue filtrando por el `clubId` del token, y las hojas quedan alcanzadas vía `member_id` / `user_account_id`. **Los flags `courts_enabled` y `member_app_enabled` existen en la tabla pero ningún endpoint los expone.**
+**`club`** tiene `name`, `address`, `courts_enabled`, `member_app_enabled` y `monthly_fee_amount` (la cuota de referencia, nullable y > 0). `member.club_id` y `user_account.club_id` ya tienen FK a esa tabla; cada query sigue filtrando por el `clubId` del token, y las hojas quedan alcanzadas vía `member_id` / `user_account_id`. **`courts_enabled` sale como `courtsEnabled` en `GET /api/clubs/me` desde el PR #25; `member_app_enabled` no lo expone ningún endpoint.**
+
+**`court`** (PR #25) tiene `club_id` (FK a `club`), `name`, `type` nullable, `opening_time`, `closing_time`, `active` y las cuatro columnas de auditoría.
 
 **`payment`** suma `voided_at`, `voided_by_user_id` y `void_reason` (≤ 150): los dos primeros van juntos o en `null`, y el motivo solo puede existir en un pago anulado. `user_account.member_id` tiene FK a `member` desde `V8`, y `user_account.sessions_revoked_at` (`V13`, nullable) guarda el último corte de sesiones de la cuenta (§3). No viaja en ninguna respuesta.
 
@@ -348,6 +377,7 @@ Constraints que el cliente ve como comportamiento HTTP:
 | `user_account UNIQUE (member_id)` | Un socio no puede tener dos cuentas — el segundo `409` de `/api/admins`. Varios `NULL` sí se permiten |
 | `CHECK (role <> 'SUPER_ADMIN' OR member_id IS NULL)` | El `memberId` del super admin es siempre `null` |
 | `CHECK (amount > 0)` en `payment` | Refuerza la validación del `POST` |
+| `court UNIQUE (club_id, LOWER(name))` · `CHECK (closing_time > opening_time)` (`V14`) | El `409` de nombre repetido aun con dos altas a la vez, y el `400` de horario como última defensa |
 | `UNIQUE (member_id, period_covered) WHERE voided_at IS NULL` (`V12`) | Un período tiene a lo sumo un pago vigente: el segundo da `409`, aun si los dos pedidos llegan a la vez. Anular libera el período |
 
 `user_account`, `member` y `family_group` llevan `created_at`, `updated_at`, `created_by_user_id` y `updated_by_user_id`, todas expuestas en las respuestas, por si hace falta mostrar "cargado por".
@@ -376,6 +406,7 @@ Lo que es fácil codear mal porque el contrato dice otra cosa de la que uno espe
 | El `clubId` no vuelve en el login | No se puede derivar de la sesión | 3 |
 | El máximo de una contraseña es en bytes UTF-8, no en caracteres | Una de 40 letras con tilde pasa un `maxLength` y vuelve `400` | 5 |
 | `POST /api/payments` no es transaccional entre socios | Un pago de varios socios con un `POST` por socio puede quedar a medias; para todo o nada está `/batch` | 6 |
+| Los horarios de cancha vuelven con segundos | Comparar `"08:00"` con `"08:00:00"` da distinto | 5 |
 
 ---
 
@@ -400,7 +431,7 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Asignar grupo en el alta y en la edición de forma pareja: `POST /api/members` acepta `familyGroupId` y `PATCH` no | Nada hoy: el grupo se arma desde las cuotas del socio (E6.5) |
 | Reset de contraseña de un **socio** por un ADMIN / SUPER_ADMIN | E11 — existe solo para cuentas de admin (§5) |
 | Flag de "debe cambiar la contraseña en el próximo ingreso" | Primer ingreso (E11) |
-| `court`, `court_block`, `recurring_slot`, `reservation` — ni tabla, ni endpoint | **E9 completa**, y "Próximos turnos" del Inicio |
+| `court_block`, `recurring_slot`, `reservation` — ni tabla, ni endpoint (`court` existe desde el PR #25) | **El resto de E9** (agenda, reservas, bloqueos y turnos fijos), y "Próximos turnos" del Inicio |
 | Cualquier endpoint que acepte un token `MEMBER` (§4) | **E12+ completa** |
 | `POST /api/auth/logout` con revocación | Nada: el logout es local, y el refresh descartado vence solo |
 | Listado de clubes y nombre real configurado | Selector de club. `GET /api/clubs/me` ya da el club del token, con un nombre provisorio |

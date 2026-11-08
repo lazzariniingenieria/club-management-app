@@ -572,8 +572,46 @@ class AppStrings {
       'Cobrado en $month: $amount';
 
   static const String adminCourtsTitle = 'Canchas';
-  static const String adminCourtsPending =
-      'La gestión de canchas se habilita junto con la agenda de reservas.';
+  static const String courtsNew = 'Nueva cancha';
+  static const String courtsEmptyTitle = 'Todavía no hay canchas';
+  static const String courtsEmptyHint =
+      'Cargá las canchas del club con su horario. Después se van a poder reservar.';
+  static const String courtsErrorTitle = 'No pudimos cargar las canchas';
+  static const String courtStatusInactive = 'Inactiva';
+  static const String courtReactivateShort = 'Reactivar';
+  static const String courtFormCreateTitle = 'Nueva cancha';
+  static const String courtFormEditTitle = 'Editar cancha';
+  static const String courtFormName = 'Nombre';
+  static const String courtFormType = 'Deporte (opcional)';
+  static const String courtFormTypeHelp =
+      'Por ejemplo: Pádel, Tenis, Fútbol 5';
+  static const String courtFormOpeningTime = 'Abre';
+  static const String courtFormClosingTime = 'Cierra';
+  static const String courtFormClosesBeforeOpening =
+      'Tiene que cerrar después de abrir';
+  static const String courtFormCreate = 'Crear cancha';
+  static const String courtFormSave = 'Guardar cambios';
+  static const String courtFormCreated = 'Cancha creada';
+  static const String courtFormUpdated = 'Cambios guardados';
+  static const String courtFormConflict =
+      'Ya hay una cancha con ese nombre. Elegí otro.';
+  static const String courtDeactivate = 'Dar de baja';
+  static const String courtReactivate = 'Reactivar cancha';
+  static const String courtDeactivateMessage =
+      'No se va a poder reservar hasta que la reactives.';
+  static const String courtReactivateMessage =
+      'Vuelve a estar disponible para reservar.';
+  static const String courtDeactivated = 'Cancha dada de baja';
+  static const String courtReactivated = 'Cancha reactivada';
+
+  static String courtDeactivateTitle(String name) => '¿Dar de baja «$name»?';
+
+  static String courtReactivateTitle(String name) => '¿Reactivar «$name»?';
+
+  static String courtHours(String opening, String closing) =>
+      'De $opening a $closing';
+
+  static String courtDetails(String type, String hours) => '$type · $hours';
 
   static const String adminAdminsTitle = 'Administradores';
   static const String adminsNew = 'Nuevo administrador';

@@ -81,7 +81,7 @@ Bottom navigation navy, 3 items con ícono **y** etiqueta. Badge `RoleBadge` ("A
 | :--- | :--- | :--- |
 | **Inicio** | `/admin` | Resumen General + Accesos Rápidos (§3.2.1) |
 | **Socios** | `/admin/members` | Dos pestañas: **Socios** (buscador y chips Todos / En mora / Inactivos) y **Grupos familiares** (`?view=groups`) (§3.2.2) |
-| **Perfil** | `/admin/profile` | Datos, cambiar contraseña, logout, y acceso a Administradores si `canManageAdmins` |
+| **Perfil** | `/admin/profile` | Datos, cambiar contraseña, logout, acceso a Canchas si el club tiene `courtsEnabled` y a Administradores si `canManageAdmins` |
 
 **Reservas entra como cuarto tab recién en E9**, cuando la agenda exista. Un tab que no hace nada, tocado varias veces por semana durante varios sprints, se lee como app rota, no como app simple: el costo de que la barra cambie de forma una vez es menor que el de sostener un tab muerto. Hasta entonces la agenda no tiene presencia en ninguna superficie: el `UpcomingSlotsCard` de §3.2.1 se diseñó y quedó **sin construir**, porque un card que no puede mostrar ni un turno real es un hueco anunciado, no una pista útil. Entra con la agenda.
 
@@ -95,14 +95,14 @@ Rutas push, fuera de los tabs:
 | Sumar integrante | `/admin/family-groups/:familyGroupId/add` | admin | E6.5 |
 | Reportes y métricas | `/admin/reports` | admin | Revisión 2026-10-31 |
 | Reporte de cuotas cobradas (PDF) | `/admin/reports/receipts` | admin | E10 |
-| Gestión de canchas | `/admin/courts` | admin | E9 |
+| Gestión de canchas | `/admin/courts` (+ `/new`, `/:courtId/edit`) | admin | E9a |
 | Gestión de administradores | `/admin/admins` (+ `/new`, `/:adminId/edit`) | **superAdmin** | E8 |
 
 **El listado de socios es un tab, no una pantalla aparte.** El diseño original lo tenía como ruta push en `/admin/members`, con un tab Pagos separado para las cuotas. Son la misma tarea: el admin abre la lista de socios *para cobrar*, y partirla en dos superficies obligaba a saltar entre ellas para resolver un solo trámite. Una pantalla menos, un tab que ahora hace algo, y el estado del listado lo preserva el `StatefulShellRoute` en lugar de reconstruirse en cada push.
 
 **El tab se llama Socios, no Pagos** (revisión en el celular, 2026-10-31): lo que se ve es el padrón, y los pagos se registran desde *Registrar pago* o desde la ficha de un socio. La ruta pasó de `/admin/payments` a `/admin/members`; *Elegir socio* y el reporte conservan `/admin/payments/new` y `/admin/payments/report` porque sí son pantallas de pagos.
 
-**Canchas sigue sin ser tab.** Es una tarea de sesión (entrás, resolvés, volvés); la barra inferior queda para lo que el admin mira varias veces por día.
+**Canchas sigue sin ser tab.** Es una tarea de sesión (entrás, resolvés, volvés); la barra inferior queda para lo que el admin mira varias veces por día. La gestión se abre desde el Perfil, y solo si el club tiene `courtsEnabled` (E9a).
 
 #### 3.2.1 Inicio del Administrador
 
@@ -487,7 +487,7 @@ GoRouter
 Una ruta con un `:familyGroupId` que no es un número vuelve a Socios, igual que con `:memberId`.
 │   ├── /admin/reports                               ← reportes y métricas
 │   │   └── receipts                                 ← PDF de cuotas cobradas (E10)
-│   ├── /admin/courts
+│   ├── /admin/courts   (+ /new, /:courtId/edit)       ← gestión de canchas (E9a)
 │   └── /admin/admins   (+ /new, /:adminId/edit)      ← solo superAdmin
 └── StatefulShellRoute (socio)      → E12+
     ├── branch: /home
@@ -573,7 +573,8 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar, eliminar y pagar por todo el grupo | No bloquea: usa los PR #22 y #23 de la API, ya en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) |
 | E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | No bloquea: usa el PR #23 de la API, ya en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) |
 | E8 | ABM de administradores (superAdmin) | No bloquea | 🚧 En revisión (PR #14) |
-| E9 | Agenda / Reservas + canchas + bloqueos | **Bloqueada** | — |
+| E9a | Gestión de canchas: listar, crear, editar, dar de baja y reactivar | No bloquea: usa el PR #25 de la API, todavía sin mergear | 🚧 En revisión |
+| E9 | Agenda / Reservas + bloqueos | **Bloqueada** | — |
 | E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
 | E11 | Recuperar contraseña (informativa) + primer ingreso | Primer ingreso: **Sí** | Recuperar contraseña 🚧 En revisión (PR #14); primer ingreso en el Bloque 2 |
 | E12+ | Superficie del socio completa | **Bloqueada** | — |
@@ -688,6 +689,19 @@ Las decisiones están en §4.3; el contrato, en [backend_api.md](backend_api.md)
 - Fake con un admin suelto, uno vinculado a un socio y uno dado de baja; da `409` a DNI o socio repetidos.
 
 **Terminado cuando**: el SUPER_ADMIN crea, edita (sin perder el vínculo), da de baja, reactiva y restablece la contraseña de un admin; un ADMIN no llega a la ruta; el `409` se muestra sin perder el formulario; hay tests del mapeo, del fake y del flujo de alta.
+
+### E9a — Gestión de canchas
+
+El primer paso de E9, el único que no necesita la agenda. El contrato está en [backend_api.md](backend_api.md) §5 (PR #25 de la API).
+
+- **Feature `courts`** con sus tres capas: listar, crear, editar, dar de baja y reactivar. Mismo patrón que E8 (listado, formulario, `409` sin perder lo cargado, baja con confirmación).
+- **Se entra desde el Perfil**, en la sección *Club*, debajo de la cuota de referencia, y **solo si `courtsEnabled` es `true`**. Es configuración del club, como la cuota, y se toca pocas veces: no gana un lugar en el Inicio ni en la barra (§3.2). El Perfil ya lee `/api/clubs/me`, así que mostrarlo no suma ningún pedido. Con la agenda (resto de E9), Reservas entra como tab y se revisa si canchas suma un acceso ahí.
+- **Los horarios se eligen de una lista, de media hora en media hora**, más `23:59` para cerrar. Es más simple que el selector de hora de Material, que sin localización configurada sale en inglés y con AM/PM. Una cancha cargada con otro horario (`08:15`) lo conserva en la lista. "Cierra" muestra el error en el momento si no es posterior a "Abre", y la app nunca manda ese pedido.
+- **El listado pone las activas primero**, cada grupo por nombre. Las inactivas dicen *Inactiva* y tienen *Reactivar* en la fila, como los admins.
+- `ClockTime` (hora y minuto) es del dominio y no depende de Flutter; se mueve a `shared` cuando lo usen las reservas.
+- Fake con dos canchas activas y una dada de baja. Da `409` a un nombre repetido sin distinguir mayúsculas, como la API.
+
+**Terminado cuando**: con `courtsEnabled`, el admin llega a *Canchas* desde el Perfil y crea, edita, da de baja y reactiva una cancha; sin el flag, el acceso no aparece; un nombre repetido se explica sin perder el formulario; un horario que cierra antes de abrir no se puede guardar; hay tests del mapeo, de las reglas, del orden, del fake y del flujo.
 
 ### E10 — Reporte de cuotas cobradas en PDF
 

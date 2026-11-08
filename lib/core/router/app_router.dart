@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/admin/presentation/screens/admin_home_screen.dart';
-import '../../features/admin/presentation/screens/admin_pending_screen.dart';
 import '../../features/admin/presentation/screens/admin_profile_screen.dart';
 import '../../features/admin/presentation/widgets/admin_shell.dart';
 import '../../features/admins/presentation/screens/admin_form_args.dart';
@@ -15,6 +14,9 @@ import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
+import '../../features/courts/domain/entities/court.dart';
+import '../../features/courts/presentation/screens/court_form_screen.dart';
+import '../../features/courts/presentation/screens/courts_screen.dart';
 import '../../features/dev/presentation/screens/component_gallery_screen.dart';
 import '../../features/family_groups/presentation/screens/family_group_picker_screen.dart';
 import '../../features/family_groups/presentation/screens/family_group_screen.dart';
@@ -31,7 +33,6 @@ import '../../features/payments/presentation/screens/register_payment_screen.dar
 import '../../features/reports/presentation/screens/club_metrics_screen.dart';
 import '../../features/reports/presentation/screens/payment_report_screen.dart';
 import '../config/app_features.dart';
-import '../constants/app_strings.dart';
 import 'app_routes.dart';
 import 'go_router_refresh_stream.dart';
 
@@ -208,11 +209,18 @@ class AppRouter {
     ),
     GoRoute(
       path: AppRoutes.adminCourts,
-      builder: (context, state) => const AdminPendingScreen(
-        title: AppStrings.adminCourtsTitle,
-        message: AppStrings.adminCourtsPending,
-        icon: Icons.sports_tennis_rounded,
-      ),
+      builder: (context, state) => const CourtsScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.adminCourtCreation,
+      builder: (context, state) => const CourtFormScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.adminCourtEditionPattern,
+      redirect: (context, state) =>
+          state.extra is Court ? null : AppRoutes.adminCourts,
+      builder: (context, state) =>
+          CourtFormScreen(court: state.extra as Court),
     ),
     GoRoute(
       path: AppRoutes.adminAdmins,
