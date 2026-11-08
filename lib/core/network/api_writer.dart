@@ -34,8 +34,9 @@ class ApiWriter {
   ) {
     return guardContract(
       () async {
-        final response =
-            await apiClient.dio.post<Map<String, dynamic>>(path, data: body);
+        final response = await apiClient.sendWrite(
+          () => apiClient.dio.post<Map<String, dynamic>>(path, data: body),
+        );
 
         return response.data ?? const {};
       },
@@ -46,7 +47,7 @@ class ApiWriter {
 
   Future<void> _send(Future<Response<dynamic>> Function() request) async {
     try {
-      await request();
+      await apiClient.sendWrite(request);
     } on DioException catch (error) {
       throw apiExceptionFrom(error, logger: logger, logContext: logContext);
     }

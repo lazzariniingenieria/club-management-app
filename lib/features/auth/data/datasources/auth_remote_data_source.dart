@@ -27,9 +27,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<AuthResponseModel> login(String dni, String password) async {
     try {
-      final response = await apiClient.dio.post<Map<String, dynamic>>(
-        ApiConstants.login,
-        data: {'clubId': clubId, 'dni': dni, 'password': password},
+      final response = await apiClient.sendWrite(
+        () => apiClient.dio.post<Map<String, dynamic>>(
+          ApiConstants.login,
+          data: {'clubId': clubId, 'dni': dni, 'password': password},
+        ),
       );
 
       return _parse(response.data);

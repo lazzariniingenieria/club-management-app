@@ -44,6 +44,7 @@ Dos entornos en Railway con su propio Postgres: **producción** (deploy desde `m
 | Montos | Número JSON con hasta 2 decimales. `NUMERIC(10,2)` en base, nunca parsear a `double` para operar |
 | Enums | Strings en `SCREAMING_SNAKE_CASE` |
 | Listados | Array JSON plano, sin envelope ni metadata. **Ningún endpoint pagina** |
+| Compresión | Desde `club-management-api#24`, las respuestas `application/json` de 2 KB o más llegan con `Content-Encoding: gzip` si el cliente lo pide. Dio lo pide y descomprime solo: no hay nada que hacer en la app. El PDF de `/payments/receipts` no se comprime |
 | Documento | El campo se llama `dni`, no `nationalId` |
 
 ---

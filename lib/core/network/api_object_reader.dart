@@ -19,7 +19,7 @@ class ApiObjectReader {
   }) {
     return guardContract(
       () async {
-        final response = await apiClient.dio.get<Map<String, dynamic>>(path);
+        final response = await apiClient.sharedGet<Map<String, dynamic>>(path);
 
         return build(response.data ?? const {});
       },

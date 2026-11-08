@@ -40,9 +40,11 @@ class ClubRemoteDataSourceImpl implements ClubRemoteDataSource {
     return guardContract(
       () async {
         final Response<Map<String, dynamic>> response =
-            await _apiClient.dio.patch<Map<String, dynamic>>(
-          ApiConstants.currentClub,
-          data: ClubModel.bodyForMonthlyFee(monthlyFeeCents),
+            await _apiClient.sendWrite(
+          () => _apiClient.dio.patch<Map<String, dynamic>>(
+            ApiConstants.currentClub,
+            data: ClubModel.bodyForMonthlyFee(monthlyFeeCents),
+          ),
         );
 
         return ClubModel.fromJson(response.data ?? const {});
