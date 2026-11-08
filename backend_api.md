@@ -45,6 +45,7 @@ Dos entornos en Railway con su propio Postgres: **producción** (deploy desde `m
 | Enums | Strings en `SCREAMING_SNAKE_CASE` |
 | Listados | Array JSON plano, sin envelope ni metadata. **Ningún endpoint pagina** |
 | Compresión | Desde `club-management-api#24`, las respuestas `application/json` de 2 KB o más llegan con `Content-Encoding: gzip` si el cliente lo pide. Dio lo pide y descomprime solo: no hay nada que hacer en la app. El PDF de `/payments/receipts` no se comprime |
+| ETag | Desde `club-management-api#24`, toda respuesta `GET` exitosa de `/api` trae `ETag`. Si el pedido manda `If-None-Match` con esa huella y la respuesta no cambió, vuelve `304` sin cuerpo. `Cache-Control` es `private, no-cache` (antes `no-store`). La app lo aprovecha en `RevalidatingGet` |
 | Documento | El campo se llama `dni`, no `nationalId` |
 
 ---

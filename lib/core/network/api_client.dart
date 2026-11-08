@@ -9,10 +9,12 @@ import '../storage/secure_storage_service.dart';
 import 'in_flight_gets.dart';
 import 'interceptors/auth_header_interceptor.dart';
 import 'interceptors/token_refresh_interceptor.dart';
+import 'revalidating_get.dart';
 
 class ApiClient {
   final Dio dio;
   final InFlightGets _inFlightGets = InFlightGets();
+  late final RevalidatingGet _revalidatingGet = RevalidatingGet(dio);
 
   ApiClient({
     required this.dio,
@@ -39,7 +41,7 @@ class ApiClient {
   }
 
   Future<Response<T>> sharedGet<T>(String path) =>
-      _inFlightGets.share(path, () => dio.get<T>(path));
+      _inFlightGets.share(path, () => _revalidatingGet.fetch<T>(path));
 
   Future<T> sendWrite<T>(Future<T> Function() send) async {
     _inFlightGets.forgetAll();
