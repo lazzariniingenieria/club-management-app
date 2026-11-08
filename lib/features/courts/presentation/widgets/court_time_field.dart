@@ -21,12 +21,19 @@ class CourtTimeField extends StatelessWidget {
 
   static const int _stepMinutes = 30;
   static const double _menuMaxHeight = 320;
+  static const ClockTime _midnight = ClockTime(0, 0);
 
   static List<ClockTime> openingOptions(ClockTime current) =>
       _withCurrent(_halfHours(), current);
 
-  static List<ClockTime> closingOptions(ClockTime current) =>
-      _withCurrent([..._halfHours(), ClockTime.lastMinuteOfDay], current);
+  static List<ClockTime> closingOptions(ClockTime current) {
+    final afterMidnight = _halfHours().where((time) => time != _midnight);
+
+    return _withCurrent(
+      [...afterMidnight, ClockTime.lastMinuteOfDay],
+      current,
+    );
+  }
 
   static List<ClockTime> _halfHours() => [
         for (var minutes = 0;

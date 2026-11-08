@@ -17,6 +17,13 @@ void main() {
     expect(options.last, ClockTime.lastMinuteOfDay);
   });
 
+  test('never offers to close at midnight, which is before any opening', () {
+    final options = CourtTimeField.closingOptions(const ClockTime(23, 0));
+
+    expect(options, isNot(contains(const ClockTime(0, 0))));
+    expect(options.first, const ClockTime(0, 30));
+  });
+
   test('keeps a stored time off the half hour, in order', () {
     final options = CourtTimeField.openingOptions(const ClockTime(8, 15));
 
