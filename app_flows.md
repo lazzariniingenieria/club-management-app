@@ -573,7 +573,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar, eliminar y pagar por todo el grupo | No bloquea: usa los PR #22 y #23 de la API, ya en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) |
 | E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | No bloquea: usa el PR #23 de la API, ya en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) |
 | E8 | ABM de administradores (superAdmin) | No bloquea | 🚧 En revisión (PR #14) |
-| E9a | Gestión de canchas: listar, crear, editar, dar de baja y reactivar | No bloquea: usa el PR #25 de la API, todavía sin mergear | 🚧 En revisión |
+| E9a | Gestión de canchas: listar, crear, editar, dar de baja y reactivar | No bloquea: usa el PR #25 de la API, todavía sin mergear | 🚧 En revisión (PR #22) |
 | E9 | Agenda / Reservas + bloqueos | **Bloqueada** | — |
 | E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
 | E11 | Recuperar contraseña (informativa) + primer ingreso | Primer ingreso: **Sí** | Recuperar contraseña 🚧 En revisión (PR #14); primer ingreso en el Bloque 2 |
