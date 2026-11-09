@@ -26,7 +26,12 @@ class SlotRules {
   const SlotRules({required this.agenda, required this.day, required this.now});
 
   static const int stepMinutes = 30;
-  static const List<int> durationsInMinutes = [60, 90, 120];
+  static const int defaultDurationMinutes = 60;
+  static const List<int> durationsInMinutes = [
+    defaultDurationMinutes,
+    90,
+    120,
+  ];
 
   static ClockTime endFor(ClockTime start, int durationMinutes) =>
       _clockTime(start.minutesOfDay + durationMinutes);

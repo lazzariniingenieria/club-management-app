@@ -67,7 +67,7 @@ class _ReservationFormState extends State<_ReservationForm> {
   late DateTime _day = widget.initialDay;
   Member? _member;
   int? _courtId;
-  int _durationMinutes = SlotRules.durationsInMinutes.first;
+  int _durationMinutes = SlotRules.defaultDurationMinutes;
   ClockTime? _start;
 
   static DateTime _dayOf(DateTime value) =>

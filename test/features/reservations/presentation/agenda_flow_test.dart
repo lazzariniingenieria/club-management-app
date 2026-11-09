@@ -64,6 +64,7 @@ void main() {
 
     await tester.tap(find.text(AppStrings.agendaNew));
     await tester.pumpAndSettle();
+    expect(find.text(AppStrings.reservationDuration(60)), findsOneWidget);
     await tester.tap(find.text(AppStrings.reservationFormMemberUnset));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'Juan Álvarez');

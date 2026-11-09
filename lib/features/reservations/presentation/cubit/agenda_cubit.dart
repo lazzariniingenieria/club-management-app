@@ -62,10 +62,6 @@ class AgendaCubit extends Cubit<AgendaState> {
     );
   }
 
-  Future<void> moveDays(int days) => showDay(
-        DateTime(state.day.year, state.day.month, state.day.day + days),
-      );
-
   Future<Failure?> cancel(Reservation reservation) async {
     final result = await _cancelReservation(reservation.id);
 

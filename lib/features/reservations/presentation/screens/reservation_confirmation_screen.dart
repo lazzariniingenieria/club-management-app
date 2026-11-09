@@ -42,7 +42,7 @@ class _ConfirmationBody extends StatelessWidget {
     switch (state) {
       case ReservationConfirmSaved():
         showAppSnackBar(context, AppStrings.reservationConfirmed);
-        context.go(AppRoutes.adminReservations);
+        context.go(AppRoutes.adminReservationsOn(args.draft.date));
       case ReservationConfirmFailure(:final message):
         showAppSnackBar(context, message, isError: true);
       case ReservationConfirmIdle():

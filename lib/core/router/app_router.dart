@@ -113,10 +113,7 @@ class AppRouter {
     branches: [
       _branch(AppRoutes.adminHome, (context, state) => const AdminHomeScreen()),
       _branch(AppRoutes.adminMembers, _buildPaymentsScreen),
-      _branch(
-        AppRoutes.adminReservations,
-        (context, state) => const AgendaScreen(),
-      ),
+      _branch(AppRoutes.adminReservations, _buildAgendaScreen),
       _branch(
         AppRoutes.adminProfile,
         (context, state) => const AdminProfileScreen(),
@@ -135,6 +132,12 @@ class AppRouter {
       showsFamilyGroups:
           query[AppRoutes.viewQueryParameter] == AppRoutes.familyGroupsView,
     );
+  }
+
+  static Widget _buildAgendaScreen(BuildContext context, GoRouterState state) {
+    final day = state.uri.queryParameters[AppRoutes.dayQueryParameter];
+
+    return AgendaScreen(requestedDay: DateTime.tryParse(day ?? ''));
   }
 
   static StatefulShellBranch _branch(

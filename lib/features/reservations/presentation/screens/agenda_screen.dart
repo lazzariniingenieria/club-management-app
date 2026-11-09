@@ -16,6 +16,7 @@ import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../../shared/widgets/status_message_view.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../courts/domain/entities/court_block.dart';
+import '../../../courts/domain/entities/court_block_draft.dart';
 import '../../../courts/presentation/formatting/court_block_formats.dart';
 import '../../domain/entities/day_agenda.dart';
 import '../../domain/entities/reservation.dart';
@@ -25,20 +26,53 @@ import '../formatting/reservation_formats.dart';
 import '../widgets/agenda_day_navigator.dart';
 
 class AgendaScreen extends StatelessWidget {
-  const AgendaScreen({super.key});
+  final DateTime? requestedDay;
+
+  const AgendaScreen({super.key, this.requestedDay});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<AgendaCubit>(
-      create: (_) => sl<AgendaCubit>()..load(),
-      child: const AdminScaffold(
-        title: AppStrings.agendaTitle,
-        showsRoleBadge: true,
-        floatingActionButton: _NewReservationButton(),
-        body: _AgendaBody(),
+      create: (_) =>
+          sl<AgendaCubit>()..showDay(requestedDay ?? DateTime.now()),
+      child: _FollowRequestedDay(
+        requestedDay: requestedDay,
+        child: const AdminScaffold(
+          title: AppStrings.agendaTitle,
+          showsRoleBadge: true,
+          floatingActionButton: _NewReservationButton(),
+          body: _AgendaBody(),
+        ),
       ),
     );
   }
+}
+
+class _FollowRequestedDay extends StatefulWidget {
+  final DateTime? requestedDay;
+  final Widget child;
+
+  const _FollowRequestedDay({
+    required this.requestedDay,
+    required this.child,
+  });
+
+  @override
+  State<_FollowRequestedDay> createState() => _FollowRequestedDayState();
+}
+
+class _FollowRequestedDayState extends State<_FollowRequestedDay> {
+  @override
+  void didUpdateWidget(_FollowRequestedDay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final requestedDay = widget.requestedDay;
+    if (requestedDay != null && requestedDay != oldWidget.requestedDay) {
+      context.read<AgendaCubit>().showDay(requestedDay);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _NewReservationButton extends StatelessWidget {
@@ -70,8 +104,6 @@ class _AgendaBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cubit = context.read<AgendaCubit>();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -79,7 +111,8 @@ class _AgendaBody extends StatelessWidget {
           buildWhen: (previous, current) => previous.day != current.day,
           builder: (context, state) => AgendaDayNavigator(
             day: state.day,
-            onDayChanged: cubit.showDay,
+            onDayChanged: (day) =>
+                context.go(AppRoutes.adminReservationsOn(day)),
           ),
         ),
         const Expanded(child: _AgendaContent()),
@@ -200,15 +233,27 @@ class _CourtDay extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         if (_isFree)
           Text(AppStrings.agendaFreeDay, style: AppTextStyles.bodyLargeMuted),
-        for (final block in courtAgenda.blocks) _BlockLine(block: block),
-        for (final reservation in courtAgenda.reservations)
+        ..._entriesByTime(),
+      ],
+    );
+  }
+
+  List<Widget> _entriesByTime() {
+    final entries = <(DateTime, Widget)>[
+      for (final block in courtAgenda.blocks)
+        (block.startsAt, _BlockLine(block: block)),
+      for (final reservation in courtAgenda.reservations)
+        (
+          CourtBlockDraft.at(reservation.date, reservation.startTime),
           _ReservationTile(
             reservation: reservation,
             courtName: courtAgenda.court.name,
             agenda: agenda,
           ),
-      ],
-    );
+        ),
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
+
+    return [for (final entry in entries) entry.$2];
   }
 }
 

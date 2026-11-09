@@ -12,6 +12,7 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
 
   final Duration latency;
   final List<ReservationModel> _reservations;
+  final Set<int> _cancelledIds = {};
 
   static const int seededReservationId = 1;
   static const int seededCourtId = 2;
@@ -58,10 +59,14 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
   @override
   Future<void> cancelReservation(int reservationId) async {
     await Future<void>.delayed(latency);
+    if (_cancelledIds.contains(reservationId)) {
+      throw ConflictException('Reservation already cancelled');
+    }
     final index = _reservations.indexWhere((each) => each.id == reservationId);
     if (index < 0) throw NotFoundException('Unknown reservation');
 
     _reservations.removeAt(index);
+    _cancelledIds.add(reservationId);
   }
 
   static ReservationModel _fromDraft(int id, ReservationDraft draft) {
