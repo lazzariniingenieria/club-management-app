@@ -35,6 +35,14 @@ class ReservationRepositoryImpl implements ReservationRepository {
   }
 
   @override
+  Future<Either<Failure, List<Reservation>>> loadUpcoming(int courtId) {
+    return _guard(
+      'loadUpcoming',
+      () => remoteDataSource.fetchUpcoming(courtId),
+    );
+  }
+
+  @override
   Future<Either<Failure, void>> createReservation(ReservationDraft draft) {
     return _guardChange(
       'createReservation',

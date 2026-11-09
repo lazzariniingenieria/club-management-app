@@ -10,6 +10,8 @@ import '../models/reservation_model.dart';
 abstract class ReservationRemoteDataSource {
   Future<List<ReservationModel>> fetchReservations(DateTime day);
 
+  Future<List<ReservationModel>> fetchUpcoming(int courtId);
+
   Future<void> createReservation(ReservationDraft draft);
 
   Future<void> cancelReservation(int reservationId);
@@ -37,6 +39,17 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
   Future<List<ReservationModel>> fetchReservations(DateTime day) {
     return _reader.readLists(
       paths: [ApiConstants.reservationsOf(CourtBlockModel.dayToJson(day))],
+      build: (responses) => [
+        for (final row in responses.single)
+          ReservationModel.fromJson(row as Map<String, dynamic>),
+      ],
+    );
+  }
+
+  @override
+  Future<List<ReservationModel>> fetchUpcoming(int courtId) {
+    return _reader.readLists(
+      paths: [ApiConstants.upcomingReservationsOf(courtId)],
       build: (responses) => [
         for (final row in responses.single)
           ReservationModel.fromJson(row as Map<String, dynamic>),

@@ -608,6 +608,12 @@ class AppStrings {
 
   static String courtReactivateTitle(String name) => '¿Reactivar «$name»?';
 
+  static String courtDeactivateCancels(int? count) => switch (count) {
+        null => 'También se cancelan las reservas que tenga desde ahora.',
+        1 => 'También se cancela la reserva que tiene desde ahora.',
+        _ => 'También se cancelan las $count reservas que tiene desde ahora.',
+      };
+
   static String courtHours(String opening, String closing) =>
       'De $opening a $closing';
 

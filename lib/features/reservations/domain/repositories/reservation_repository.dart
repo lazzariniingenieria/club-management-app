@@ -9,6 +9,8 @@ abstract class ReservationRepository {
 
   Future<Either<Failure, List<Reservation>>> loadReservations(DateTime day);
 
+  Future<Either<Failure, List<Reservation>>> loadUpcoming(int courtId);
+
   Future<Either<Failure, void>> createReservation(ReservationDraft draft);
 
   Future<Either<Failure, void>> cancelReservation(int reservationId);

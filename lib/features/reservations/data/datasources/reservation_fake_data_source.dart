@@ -8,9 +8,11 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
   ReservationFakeDataSource({
     this.latency = const Duration(milliseconds: 600),
     DateTime Function() clock = DateTime.now,
-  }) : _reservations = _seeded(clock());
+  }) : _clock = clock,
+        _reservations = _seeded(clock());
 
   final Duration latency;
+  final DateTime Function() _clock;
   final List<ReservationModel> _reservations;
   final Set<int> _cancelledIds = {};
 
@@ -41,6 +43,39 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
         if (_sameDay(reservation.date, day)) reservation,
     ];
   }
+
+  @override
+  Future<List<ReservationModel>> fetchUpcoming(int courtId) async {
+    await Future<void>.delayed(latency);
+
+    return _upcomingOf(courtId);
+  }
+
+  void cancelUpcomingOf(int courtId) {
+    for (final reservation in _upcomingOf(courtId)) {
+      _reservations.remove(reservation);
+      _cancelledIds.add(reservation.id);
+    }
+  }
+
+  List<ReservationModel> _upcomingOf(int courtId) {
+    final now = _clock();
+
+    return [
+      for (final reservation in _reservations)
+        if (reservation.courtId == courtId &&
+            _startOf(reservation).isAfter(now))
+          reservation,
+    ];
+  }
+
+  static DateTime _startOf(ReservationModel reservation) => DateTime(
+        reservation.date.year,
+        reservation.date.month,
+        reservation.date.day,
+        reservation.startTime.hour,
+        reservation.startTime.minute,
+      );
 
   @override
   Future<void> createReservation(ReservationDraft draft) async {

@@ -114,6 +114,7 @@ import '../../features/reservations/data/datasources/reservation_remote_data_sou
 import '../../features/reservations/data/repositories/reservation_repository_impl.dart';
 import '../../features/reservations/domain/repositories/reservation_repository.dart';
 import '../../features/reservations/domain/usecases/cancel_reservation_use_case.dart';
+import '../../features/reservations/domain/usecases/count_upcoming_reservations_use_case.dart';
 import '../../features/reservations/domain/usecases/create_reservation_use_case.dart';
 import '../../features/reservations/domain/usecases/load_day_agenda_use_case.dart';
 import '../../features/reservations/domain/usecases/watch_reservation_changes_use_case.dart';
@@ -367,7 +368,7 @@ void _registerAdmins() {
 void _registerCourts() {
   sl.registerLazySingleton<CourtRemoteDataSource>(
     () => AppEnvironment.usesFakeDataSources
-        ? CourtFakeDataSource()
+        ? CourtFakeDataSource(onDeactivated: _cancelFakeReservationsOf)
         : CourtRemoteDataSourceImpl(sl(), sl()),
   );
   sl.registerLazySingleton<CourtRepository>(
@@ -387,8 +388,19 @@ void _registerCourts() {
     ),
   );
   sl.registerFactory(
-    () => CourtFormCubit(saveCourt: sl(), setCourtActive: sl()),
+    () => CourtFormCubit(
+      saveCourt: sl(),
+      setCourtActive: sl(),
+      countUpcomingReservations: sl(),
+    ),
   );
+}
+
+void _cancelFakeReservationsOf(int courtId) {
+  final reservations = sl<ReservationRemoteDataSource>();
+  if (reservations is ReservationFakeDataSource) {
+    reservations.cancelUpcomingOf(courtId);
+  }
 }
 
 void _registerCourtBlocks() {
@@ -436,6 +448,7 @@ void _registerReservations() {
   );
   sl.registerLazySingleton(() => CreateReservationUseCase(sl()));
   sl.registerLazySingleton(() => CancelReservationUseCase(sl()));
+  sl.registerLazySingleton(() => CountUpcomingReservationsUseCase(sl()));
   sl.registerLazySingleton(() => WatchReservationChangesUseCase(sl()));
 
   sl.registerFactory(() => CourtsEnabledCubit(sl()));
@@ -445,6 +458,7 @@ void _registerReservations() {
       cancelReservation: sl(),
       watchReservations: sl(),
       watchBlocks: sl(),
+      watchCourts: sl(),
     ),
   );
   sl.registerFactory(() => ReservationFormCubit(sl()));

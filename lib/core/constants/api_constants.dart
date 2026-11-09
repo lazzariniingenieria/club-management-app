@@ -38,6 +38,9 @@ abstract final class ApiConstants {
 
   static String reservationsOf(String day) => '$reservations?date=$day';
 
+  static String upcomingReservationsOf(int courtId) =>
+      '$reservations/upcoming?courtId=$courtId';
+
   static String reservationCancellation(int reservationId) =>
       '$reservations/$reservationId/cancel';
 
