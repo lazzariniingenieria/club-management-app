@@ -182,7 +182,7 @@ void main() {
 
       await tester.enterText(find.byType(TextFormField).first, 'Ana');
       await tester.pumpAndSettle();
-      await tester.pageBack();
+      await tapBackButton(tester);
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.memberFormDiscardTitle), findsOneWidget);
@@ -198,7 +198,7 @@ void main() {
 
       await tester.enterText(find.byType(TextFormField).first, 'Ana');
       await tester.pump();
-      await tester.pageBack();
+      await tapBackButton(tester);
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.memberFormDiscardAction));
       await tester.pumpAndSettle();
@@ -212,7 +212,7 @@ void main() {
     ) async {
       await openCreationForm(tester);
 
-      await tester.pageBack();
+      await tapBackButton(tester);
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.memberFormDiscardTitle), findsNothing);
@@ -308,7 +308,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.edit_outlined));
       await tester.pumpAndSettle();
 
-      await tester.pageBack();
+      await tapBackButton(tester);
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.memberFormDiscardTitle), findsNothing);

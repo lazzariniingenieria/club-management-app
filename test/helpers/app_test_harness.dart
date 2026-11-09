@@ -25,6 +25,7 @@ import 'package:club_management_app/features/payments/presentation/cubit/member_
 import 'package:club_management_app/features/reports/data/datasources/payment_report_fake_data_source.dart';
 import 'package:club_management_app/features/reports/data/datasources/payment_report_remote_data_source.dart';
 import 'package:club_management_app/main.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'in_memory_secure_storage.dart';
@@ -150,6 +151,9 @@ PaymentFakeDataSource _instantPaymentSource() {
         members is MemberFakeDataSource ? members.setDaysOverdue : null,
   );
 }
+
+Future<void> tapBackButton(WidgetTester tester) =>
+    tester.tap(find.byType(BackButton));
 
 Future<void> settleSession(WidgetTester tester) async {
   for (var frame = 0; frame < 5; frame++) {
