@@ -15,6 +15,8 @@ import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/courts/domain/entities/court.dart';
+import '../../features/courts/presentation/screens/court_block_form_screen.dart';
+import '../../features/courts/presentation/screens/court_blocks_screen.dart';
 import '../../features/courts/presentation/screens/court_form_screen.dart';
 import '../../features/courts/presentation/screens/courts_screen.dart';
 import '../../features/dev/presentation/screens/component_gallery_screen.dart';
@@ -217,10 +219,21 @@ class AppRouter {
     ),
     GoRoute(
       path: AppRoutes.adminCourtEditionPattern,
-      redirect: (context, state) =>
-          state.extra is Court ? null : AppRoutes.adminCourts,
+      redirect: _requireCourt,
       builder: (context, state) =>
           CourtFormScreen(court: state.extra as Court),
+    ),
+    GoRoute(
+      path: AppRoutes.adminCourtBlocksPattern,
+      redirect: _requireCourt,
+      builder: (context, state) =>
+          CourtBlocksScreen(court: state.extra as Court),
+    ),
+    GoRoute(
+      path: AppRoutes.adminCourtBlockCreationPattern,
+      redirect: _requireCourt,
+      builder: (context, state) =>
+          CourtBlockFormScreen(court: state.extra as Court),
     ),
     GoRoute(
       path: AppRoutes.adminAdmins,
@@ -243,6 +256,9 @@ class AppRouter {
   static int? _memberIdOf(GoRouterState state) => int.tryParse(
         state.pathParameters[AppRoutes.memberIdPathParameter] ?? '',
       );
+
+  static String? _requireCourt(BuildContext context, GoRouterState state) =>
+      state.extra is Court ? null : AppRoutes.adminCourts;
 
   static String? _requireAdminFormArgs(
     BuildContext context,

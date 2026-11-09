@@ -613,6 +613,52 @@ class AppStrings {
 
   static String courtDetails(String type, String hours) => '$type · $hours';
 
+  static const String courtBlocksAction = 'Bloqueos';
+  static const String courtBlocksTitle = 'Bloqueos';
+  static const String courtBlocksNew = 'Bloquear';
+  static const String courtBlocksEmptyTitle = 'Esta cancha no tiene bloqueos';
+  static const String courtBlocksEmptyHint =
+      'Bloqueala por mantenimiento o por un evento, aunque dure varios días.';
+  static const String courtBlocksErrorTitle = 'No pudimos cargar los bloqueos';
+  static const String courtBlockNoReason = 'Sin motivo';
+  static const String courtBlockRemove = 'Quitar';
+  static const String courtBlockRemoveTitle = '¿Quitar este bloqueo?';
+  static const String courtBlockRemoveMessage =
+      'La cancha vuelve a estar disponible en ese horario.';
+  static const String courtBlockRemoved = 'Bloqueo quitado';
+  static const String courtBlockFormTitle = 'Bloquear cancha';
+  static const String courtBlockFormFromDay = 'Desde el día';
+  static const String courtBlockFormFromTime = 'Desde la hora';
+  static const String courtBlockFormToDay = 'Hasta el día';
+  static const String courtBlockFormToTime = 'Hasta la hora';
+  static const String courtBlockFormReason = 'Motivo (opcional)';
+  static const String courtBlockFormReasonHelp =
+      'Por ejemplo: Mantenimiento, Torneo';
+  static const String courtBlockFormEndsBeforeStart =
+      'Tiene que terminar después de empezar';
+  static const String courtBlockFormSave = 'Bloquear';
+  static const String courtBlockCreated = 'Cancha bloqueada';
+  static const String courtBlockDayPickerHelp = 'Elegí el día';
+
+  static String courtBlockSameDay(String day, String from, String to) =>
+      '$day, de $from a $to';
+
+  static String courtBlockFrom(String day, String time) =>
+      'Desde el $day, $time';
+
+  static String courtBlockUntil(String day, String time) =>
+      'Hasta el $day, $time';
+
+  static const List<String> weekdayAbbreviations = [
+    'lun',
+    'mar',
+    'mié',
+    'jue',
+    'vie',
+    'sáb',
+    'dom',
+  ];
+
   static const String adminAdminsTitle = 'Administradores';
   static const String adminsNew = 'Nuevo administrador';
   static const String adminsEmptyTitle = 'Todavía no hay administradores';
