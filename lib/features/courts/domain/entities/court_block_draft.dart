@@ -13,17 +13,6 @@ class CourtBlockDraft extends Equatable {
     this.reason = '',
   });
 
-  factory CourtBlockDraft.wholeDay(
-    DateTime day, {
-    required ClockTime opening,
-    required ClockTime closing,
-  }) {
-    return CourtBlockDraft(
-      startsAt: at(day, opening),
-      endsAt: at(day, closing),
-    );
-  }
-
   static DateTime at(DateTime day, ClockTime time) =>
       DateTime(day.year, day.month, day.day, time.hour, time.minute);
 

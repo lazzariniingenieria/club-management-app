@@ -48,6 +48,8 @@ class _CourtBlockFormState extends State<_CourtBlockForm> {
   final _formKey = GlobalKey<FormState>();
   final _reason = TextEditingController();
   late final DateTime _today = _dayOf(DateTime.now());
+  late final DateTime _lastDay =
+      DateTime(_today.year + _selectableYears, 12, 31);
   late DateTime _fromDay = _today;
   late DateTime _toDay = _today;
   late ClockTime _fromTime = widget.court.openingTime;
@@ -58,6 +60,8 @@ class _CourtBlockFormState extends State<_CourtBlockForm> {
         endsAt: CourtBlockDraft.at(_toDay, _toTime),
         reason: _reason.text,
       );
+
+  static const int _selectableYears = 2;
 
   static DateTime _dayOf(DateTime value) =>
       DateTime(value.year, value.month, value.day);
@@ -128,6 +132,7 @@ class _CourtBlockFormState extends State<_CourtBlockForm> {
         label: AppStrings.courtBlockFormFromDay,
         value: _fromDay,
         firstDay: _today,
+        lastDay: _lastDay,
         onChanged: _setFromDay,
       ),
       const SizedBox(height: AppSpacing.lg),
@@ -146,6 +151,7 @@ class _CourtBlockFormState extends State<_CourtBlockForm> {
         label: AppStrings.courtBlockFormToDay,
         value: _toDay,
         firstDay: _fromDay,
+        lastDay: _lastDay,
         onChanged: (day) => setState(() => _toDay = day),
       ),
       const SizedBox(height: AppSpacing.lg),

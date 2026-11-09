@@ -7,6 +7,7 @@ class CourtDateField extends StatelessWidget {
   final String label;
   final DateTime value;
   final DateTime firstDay;
+  final DateTime lastDay;
   final ValueChanged<DateTime> onChanged;
 
   const CourtDateField({
@@ -14,17 +15,16 @@ class CourtDateField extends StatelessWidget {
     required this.label,
     required this.value,
     required this.firstDay,
+    required this.lastDay,
     required this.onChanged,
   });
-
-  static const int _selectableYears = 2;
 
   Future<void> _pick(BuildContext context) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: value,
       firstDate: firstDay,
-      lastDate: DateTime(firstDay.year + _selectableYears, 12, 31),
+      lastDate: lastDay,
       helpText: AppStrings.courtBlockDayPickerHelp,
     );
     if (picked != null) onChanged(picked);
