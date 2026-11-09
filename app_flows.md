@@ -579,7 +579,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E8 | ABM de administradores (superAdmin) | No bloquea | 🚧 En revisión (PR #14) |
 | E9a | Gestión de canchas: listar, crear, editar, dar de baja y reactivar | No bloquea: usa el PR #25 de la API, todavía sin mergear | 🚧 En revisión (PR #22) |
 | E9b | Bloqueos de cancha: listar, bloquear y quitar | No bloquea: usa el PR #26 de la API, todavía sin mergear | 🚧 En revisión (PR #23) |
-| E9c | Agenda del día y reservas puntuales: reservar y cancelar | No bloquea: usa el PR #27 de la API, en draft | 🚧 Draft |
+| E9c | Agenda del día y reservas puntuales: reservar y cancelar | No bloquea: usa el PR #27 de la API, en draft | 🚧 Draft (PR #24) |
 | E9 | Turnos fijos y bloqueo con reservas afectadas | **Bloqueada** | — |
 | E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
 | E11 | Recuperar contraseña (informativa) + primer ingreso | Primer ingreso: **Sí** | Recuperar contraseña 🚧 En revisión (PR #14); primer ingreso en el Bloque 2 |
