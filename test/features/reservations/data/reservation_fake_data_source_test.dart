@@ -49,16 +49,6 @@ void main() {
     expect(await source.fetchReservations(DateTime(2026, 11, 9)), isEmpty);
   });
 
-  test('lists only the reservations of the court that start after now',
-      () async {
-    final upcoming = await source.fetchUpcoming(
-      ReservationFakeDataSource.seededCourtId,
-    );
-
-    expect(upcoming, hasLength(1));
-    expect(await source.fetchUpcoming(1), isEmpty);
-  });
-
   test('deactivating the court cancels its upcoming reservations', () async {
     source.cancelUpcomingOf(ReservationFakeDataSource.seededCourtId);
 

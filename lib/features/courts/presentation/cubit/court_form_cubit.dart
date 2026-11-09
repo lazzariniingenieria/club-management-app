@@ -3,7 +3,6 @@ import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/errors/failure_messages.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../reservations/domain/usecases/count_upcoming_reservations_use_case.dart';
 import '../../domain/entities/court_draft.dart';
 import '../../domain/usecases/save_court_use_case.dart';
 import '../../domain/usecases/set_court_active_use_case.dart';
@@ -13,22 +12,13 @@ class CourtFormCubit extends Cubit<CourtFormState> {
   final SaveCourtUseCase _saveCourt;
   final SetCourtActiveUseCase _setCourtActive;
   String? _unconfirmedName;
-  final CountUpcomingReservationsUseCase _countUpcomingReservations;
 
   CourtFormCubit({
     required SaveCourtUseCase saveCourt,
     required SetCourtActiveUseCase setCourtActive,
-    required CountUpcomingReservationsUseCase countUpcomingReservations,
   })  : _saveCourt = saveCourt,
         _setCourtActive = setCourtActive,
-        _countUpcomingReservations = countUpcomingReservations,
         super(const CourtFormEditing());
-
-  Future<int?> upcomingReservations(int courtId) async {
-    final result = await _countUpcomingReservations(courtId);
-
-    return result.getRight().toNullable();
-  }
 
   Future<void> create(CourtDraft draft) {
     return _submit(

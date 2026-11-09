@@ -22,17 +22,13 @@ class CourtStatusAction extends StatelessWidget {
   Future<void> _toggleActive(BuildContext context) async {
     final cubit = context.read<CourtFormCubit>();
     final deactivating = court.isActive;
-    final upcoming =
-        deactivating ? await cubit.upcomingReservations(court.id) : 0;
-    if (!context.mounted) return;
-
     final confirmed = await ConfirmationDialog.show(
       context,
       ConfirmationDialog(
         title: deactivating
             ? AppStrings.courtDeactivateTitle(court.name)
             : AppStrings.courtReactivateTitle(court.name),
-        message: _message(deactivating, upcoming),
+        message: _message(deactivating),
         confirmLabel: deactivating
             ? AppStrings.courtDeactivate
             : AppStrings.courtReactivateShort,
@@ -42,16 +38,14 @@ class CourtStatusAction extends StatelessWidget {
     if (confirmed) await cubit.setActive(court.id, isActive: !deactivating);
   }
 
-  String _message(bool deactivating, int? upcomingReservations) {
-    return [
-      if (deactivating)
-        AppStrings.courtDeactivateMessage
-      else
-        AppStrings.courtReactivateMessage,
-      if (deactivating && upcomingReservations != 0)
-        AppStrings.courtDeactivateCancels(upcomingReservations),
-      if (hasUnsavedChanges()) AppStrings.adminUnsavedChangesLost,
-    ].join(' ');
+  String _message(bool deactivating) {
+    final message = deactivating
+        ? AppStrings.courtDeactivateMessage
+        : AppStrings.courtReactivateMessage;
+
+    return hasUnsavedChanges()
+        ? '$message ${AppStrings.adminUnsavedChangesLost}'
+        : message;
   }
 
   @override

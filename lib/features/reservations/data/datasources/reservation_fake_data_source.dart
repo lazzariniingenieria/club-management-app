@@ -44,13 +44,6 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
     ];
   }
 
-  @override
-  Future<List<ReservationModel>> fetchUpcoming(int courtId) async {
-    await Future<void>.delayed(latency);
-
-    return _upcomingOf(courtId);
-  }
-
   void cancelUpcomingOf(int courtId) {
     for (final reservation in _upcomingOf(courtId)) {
       _reservations.remove(reservation);

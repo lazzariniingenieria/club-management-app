@@ -309,7 +309,7 @@ void main() {
     await tapVisible(tester, find.text(AppStrings.courtDeactivate));
 
     expect(
-      find.textContaining(AppStrings.courtDeactivateCancels(1)),
+      find.textContaining(AppStrings.courtDeactivateMessage),
       findsOneWidget,
     );
 
@@ -318,17 +318,5 @@ void main() {
 
     expect(find.text(AppStrings.courtDeactivated), findsOneWidget);
     expect(find.text(AppStrings.courtStatusInactive), findsNWidgets(2));
-  });
-
-  testWidgets('deactivating a court without reservations warns nothing more', (
-    tester,
-  ) async {
-    await openCourts(tester);
-
-    await tester.tap(find.text('Cancha de Pádel 1'));
-    await tester.pumpAndSettle();
-    await tapVisible(tester, find.text(AppStrings.courtDeactivate));
-
-    expect(find.textContaining('También se cancela'), findsNothing);
   });
 }

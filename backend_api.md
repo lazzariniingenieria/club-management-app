@@ -259,9 +259,7 @@ PR #27, **en draft** y apilado sobre el #26. `POST` (`201`), `GET ?date=yyyy-MM-
 
 **`PATCH /{id}/cancel`** pasa la reserva a `CANCELLED`, con `cancelledAt` y `cancelledByUserId`. Ya cancelada → `409`.
 
-**`GET /upcoming?courtId=3`** trae las reservas confirmadas de esa cancha que **empiezan después de ahora** (hora del club), por día y hora. `courtId` es obligatorio (`400` con `details`); de otro club → `404`.
-
-**Dar de baja una cancha** (`PATCH /api/courts/{id}/deactivate`) **cancela esas mismas reservas**, en la misma transacción y a nombre de quien la da de baja. Las que ya empezaron quedan como estaban. Reactivar la cancha no las recupera.
+**Dar de baja una cancha** (`PATCH /api/courts/{id}/deactivate`) **cancela las reservas confirmadas de esa cancha que empiezan después de ahora** (hora del club), en la misma transacción y a nombre de quien la da de baja. Las que ya empezaron quedan como estaban. Reactivar la cancha no las recupera.
 
 ### Bajas lógicas
 

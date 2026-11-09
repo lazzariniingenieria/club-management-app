@@ -598,7 +598,7 @@ class AppStrings {
   static const String courtDeactivate = 'Dar de baja';
   static const String courtReactivate = 'Reactivar cancha';
   static const String courtDeactivateMessage =
-      'No se va a poder reservar hasta que la reactives.';
+      'Se cancelan las reservas que tenga desde ahora y no se va a poder reservar hasta que la reactives.';
   static const String courtReactivateMessage =
       'Vuelve a estar disponible para reservar.';
   static const String courtDeactivated = 'Cancha dada de baja';
@@ -607,13 +607,6 @@ class AppStrings {
   static String courtDeactivateTitle(String name) => '¿Dar de baja «$name»?';
 
   static String courtReactivateTitle(String name) => '¿Reactivar «$name»?';
-
-  static String courtDeactivateCancels(int? count) => switch (count) {
-        null => 'También se cancelan las reservas que tenga desde ahora.',
-        1 => 'También se cancela la reserva que tiene desde ahora.',
-        _ => 'También se cancelan las $count reservas que tiene desde ahora.',
-      };
-
   static String courtHours(String opening, String closing) =>
       'De $opening a $closing';
 
