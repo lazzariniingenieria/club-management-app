@@ -8,6 +8,10 @@ abstract final class AppRoutes {
   static const String adminHome = '/admin';
   static const String adminMembers = '/admin/members';
   static const String adminProfile = '/admin/profile';
+  static const String adminReservations = '/admin/reservations';
+  static const String adminReservationCreation = '/admin/reservations/new';
+  static const String adminReservationConfirmation =
+      '/admin/reservations/new/confirm';
   static const String adminCourts = '/admin/courts';
   static const String adminCourtCreation = '/admin/courts/new';
   static const String adminCourtEditionPattern = '/admin/courts/:courtId/edit';

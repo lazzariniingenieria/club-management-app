@@ -10,6 +10,7 @@ import '../../features/admin/domain/usecases/load_admin_summary_use_case.dart';
 import '../../features/admin/presentation/cubit/admin_family_groups_cubit.dart';
 import '../../features/admin/presentation/cubit/admin_home_cubit.dart';
 import '../../features/admin/presentation/cubit/admin_profile_cubit.dart';
+import '../../features/admin/presentation/cubit/courts_enabled_cubit.dart';
 import '../../features/admins/data/datasources/admin_fake_data_source.dart';
 import '../../features/admins/data/datasources/admin_remote_data_source.dart';
 import '../../features/admins/data/repositories/admin_repository_impl.dart';
@@ -108,6 +109,17 @@ import '../../features/reports/domain/usecases/load_club_metrics_use_case.dart';
 import '../../features/reports/presentation/cubit/club_metrics_cubit.dart';
 import '../../features/reports/presentation/cubit/payment_report_cubit.dart';
 import '../../features/reports/presentation/export/report_file_exporter.dart';
+import '../../features/reservations/data/datasources/reservation_fake_data_source.dart';
+import '../../features/reservations/data/datasources/reservation_remote_data_source.dart';
+import '../../features/reservations/data/repositories/reservation_repository_impl.dart';
+import '../../features/reservations/domain/repositories/reservation_repository.dart';
+import '../../features/reservations/domain/usecases/cancel_reservation_use_case.dart';
+import '../../features/reservations/domain/usecases/create_reservation_use_case.dart';
+import '../../features/reservations/domain/usecases/load_day_agenda_use_case.dart';
+import '../../features/reservations/domain/usecases/watch_reservation_changes_use_case.dart';
+import '../../features/reservations/presentation/cubit/agenda_cubit.dart';
+import '../../features/reservations/presentation/cubit/reservation_confirm_cubit.dart';
+import '../../features/reservations/presentation/cubit/reservation_form_cubit.dart';
 import '../config/app_environment.dart';
 import '../config/app_features.dart';
 import '../logging/app_logger.dart';
@@ -133,6 +145,7 @@ Future<void> init() async {
   _registerAdmins();
   _registerCourts();
   _registerCourtBlocks();
+  _registerReservations();
   _registerReports();
   _registerPresentation();
 }
@@ -401,6 +414,41 @@ void _registerCourtBlocks() {
     ),
   );
   sl.registerFactory(() => CourtBlockFormCubit(sl()));
+}
+
+void _registerReservations() {
+  sl.registerLazySingleton<ReservationRemoteDataSource>(
+    () => AppEnvironment.usesFakeDataSources
+        ? ReservationFakeDataSource()
+        : ReservationRemoteDataSourceImpl(sl(), sl()),
+  );
+  sl.registerLazySingleton<ReservationRepository>(
+    () => ReservationRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+  );
+
+  sl.registerLazySingleton(
+    () => LoadDayAgendaUseCase(
+      courts: sl(),
+      blocks: sl(),
+      reservations: sl(),
+      members: sl(),
+    ),
+  );
+  sl.registerLazySingleton(() => CreateReservationUseCase(sl()));
+  sl.registerLazySingleton(() => CancelReservationUseCase(sl()));
+  sl.registerLazySingleton(() => WatchReservationChangesUseCase(sl()));
+
+  sl.registerFactory(() => CourtsEnabledCubit(sl()));
+  sl.registerFactory(
+    () => AgendaCubit(
+      loadAgenda: sl(),
+      cancelReservation: sl(),
+      watchReservations: sl(),
+      watchBlocks: sl(),
+    ),
+  );
+  sl.registerFactory(() => ReservationFormCubit(sl()));
+  sl.registerFactory(() => ReservationConfirmCubit(sl()));
 }
 
 void _registerReports() {

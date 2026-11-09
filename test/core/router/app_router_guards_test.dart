@@ -3,6 +3,7 @@ import 'package:club_management_app/core/di/injection_container.dart' as di;
 import 'package:club_management_app/core/router/app_router.dart';
 import 'package:club_management_app/core/router/app_routes.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
+import 'package:club_management_app/features/club/data/datasources/club_fake_data_source.dart';
 import 'package:club_management_app/features/members/domain/entities/member_collection_filter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -78,10 +79,35 @@ void main() {
       }
     });
 
-    testWidgets('has no placeholder tab for the agenda until E9', (
+    testWidgets('shows the agenda tab when the club has courts enabled', (
       tester,
     ) async {
       await bootApp(tester, signedInAs: UserRole.admin);
+
+      final navigationBar =
+          tester.widget<NavigationBar>(find.byType(NavigationBar));
+
+      expect(navigationBar.destinations, hasLength(4));
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text(AppStrings.adminTabReservations),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('has no agenda tab when the club has courts disabled', (
+      tester,
+    ) async {
+      await bootApp(
+        tester,
+        signedInAs: UserRole.admin,
+        clubSource: ClubFakeDataSource(
+          latency: Duration.zero,
+          courtsEnabled: false,
+        ),
+      );
 
       final navigationBar =
           tester.widget<NavigationBar>(find.byType(NavigationBar));
@@ -90,7 +116,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(NavigationBar),
-          matching: find.text('Reservas'),
+          matching: find.text(AppStrings.adminTabReservations),
         ),
         findsNothing,
       );

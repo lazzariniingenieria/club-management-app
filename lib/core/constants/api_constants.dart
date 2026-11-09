@@ -34,6 +34,13 @@ abstract final class ApiConstants {
   static String courtReactivation(int courtId) =>
       '${court(courtId)}/reactivate';
 
+  static const String reservations = '/reservations';
+
+  static String reservationsOf(String day) => '$reservations?date=$day';
+
+  static String reservationCancellation(int reservationId) =>
+      '$reservations/$reservationId/cancel';
+
   static String courtBlocks(int courtId) => '${court(courtId)}/blocks';
 
   static String courtBlocksFrom(int courtId, String fromDay) =>
