@@ -78,7 +78,16 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, '08:00'));
     await tester.pumpAndSettle();
     final next = find.text(AppStrings.reservationFormContinue);
-    await tester.ensureVisible(next);
+    await tester.scrollUntilVisible(
+      next,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.tap(next);
     await tester.pumpAndSettle();
 
