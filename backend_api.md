@@ -38,7 +38,7 @@ Dos entornos en Railway con su propio Postgres: **producción** (deploy desde `m
 
 | Convención | Valor real |
 | :--- | :--- |
-| Verbos | `GET`, `POST`, `PATCH` y **dos** `DELETE` (§5). No hay `PUT`: usarlo da **405** |
+| Verbos | `GET`, `POST`, `PATCH` y **tres** `DELETE` (§5). No hay `PUT`: usarlo da **405** |
 | `id` | **Números** JSON (`Long`), nunca strings. Parsear con `(json['id'] as num).toInt()` |
 | `PATCH` | **Reemplazo completo** de los campos del DTO, no un merge: omitir un campo lo escribe en `null` |
 | Fechas de día | `"2026-09-01"` — ISO, sin hora ni zona (`joinedAt`, `periodCovered`, `lastPeriodCovered`) |
@@ -245,7 +245,7 @@ PR #26, apilado sobre el #25 y **todavía sin mergear**. `POST` (`201`), `GET` l
 
 ### Bajas lógicas
 
-Nunca hay borrado físico, y los tres modelos son reversibles con `/reactivate`:
+Socios, admins y canchas nunca se borran físicamente, y los tres son reversibles con `/reactivate`. Lo único que se borra de verdad es un grupo familiar y un bloqueo de cancha (más arriba en esta sección):
 
 | Entidad | En la respuesta |
 | :--- | :--- |
