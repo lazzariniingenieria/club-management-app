@@ -32,6 +32,24 @@ class CreationsLost extends CourtBlockFakeDataSource {
       throw ResponseTimeoutException('no answer');
 }
 
+class AnswerLostAfterRemoving extends CourtBlockFakeDataSource {
+  AnswerLostAfterRemoving() : super(latency: Duration.zero);
+
+  @override
+  Future<void> removeBlock(int courtId, int blockId) async {
+    await super.removeBlock(courtId, blockId);
+    throw ResponseTimeoutException('no answer');
+  }
+}
+
+class RemovalsLost extends CourtBlockFakeDataSource {
+  RemovalsLost() : super(latency: Duration.zero);
+
+  @override
+  Future<void> removeBlock(int courtId, int blockId) async =>
+      throw ResponseTimeoutException('no answer');
+}
+
 class HeldRemovals extends CourtBlockFakeDataSource {
   HeldRemovals() : super(latency: Duration.zero);
 
@@ -192,12 +210,54 @@ void main() {
   testWidgets('a screen reader hears which block each remove action removes', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
     await openBlocksOf(tester, 'Cancha de Pádel 1');
 
     expect(
-      find.bySemanticsLabel(RegExp(r'^Quitar el bloqueo: .+ de 08:00 a 12:00$')),
-      findsOneWidget,
+      tester.getSemantics(
+        find.bySemanticsLabel(
+          RegExp(r'^Quitar el bloqueo: .+ de 08:00 a 12:00$'),
+        ),
+      ),
+      isSemantics(isButton: true, hasTapAction: true),
     );
+    semantics.dispose();
+  });
+
+  group('a removal the server did not answer in time', () {
+    Future<void> removeTheBlock(WidgetTester tester) async {
+      await tester.tap(find.text(AppStrings.courtBlockRemove));
+      await tester.pumpAndSettle();
+      await tester.tap(inDialog(AppStrings.courtBlockRemove));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a block removed during a timeout is gone without an error', (
+      tester,
+    ) async {
+      await openBlocksOf(
+        tester,
+        'Cancha de Pádel 1',
+        source: AnswerLostAfterRemoving(),
+      );
+
+      await removeTheBlock(tester);
+
+      expect(find.text(AppStrings.networkErrorMessage), findsNothing);
+      expect(find.text(AppStrings.courtBlocksEmptyTitle), findsOneWidget);
+    });
+
+    testWidgets('a block still listed after a timeout can be removed again', (
+      tester,
+    ) async {
+      await openBlocksOf(tester, 'Cancha de Pádel 1', source: RemovalsLost());
+
+      await removeTheBlock(tester);
+
+      expect(find.text(AppStrings.networkErrorMessage), findsOneWidget);
+      expect(find.text(CourtBlockFakeDataSource.seededReason), findsOneWidget);
+      expect(find.text(AppStrings.courtBlockRemove), findsOneWidget);
+    });
   });
 
   group('a block the server did not answer in time', () {

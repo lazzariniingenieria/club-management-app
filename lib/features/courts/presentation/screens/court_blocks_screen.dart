@@ -210,9 +210,8 @@ class _RemoveBlockAction extends StatefulWidget {
 class _RemoveBlockActionState extends State<_RemoveBlockAction> {
   bool _isRemoving = false;
 
-  Future<void> _remove() async {
-    final cubit = context.read<CourtBlocksCubit>();
-    final confirmed = await ConfirmationDialog.show(
+  Future<bool> _confirmRemoval() {
+    return ConfirmationDialog.show(
       context,
       const ConfirmationDialog(
         title: AppStrings.courtBlockRemoveTitle,
@@ -220,7 +219,11 @@ class _RemoveBlockActionState extends State<_RemoveBlockAction> {
         confirmLabel: AppStrings.courtBlockRemove,
       ),
     );
-    if (!confirmed || !mounted) return;
+  }
+
+  Future<void> _remove() async {
+    final cubit = context.read<CourtBlocksCubit>();
+    if (!await _confirmRemoval() || !mounted) return;
 
     setState(() => _isRemoving = true);
     final failure = await cubit.remove(widget.block);

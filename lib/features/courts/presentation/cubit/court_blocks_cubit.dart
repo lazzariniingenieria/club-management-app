@@ -54,7 +54,18 @@ class CourtBlocksCubit extends Cubit<CourtBlocksState> {
 
   Future<Failure?> remove(CourtBlock block) async {
     final result = await _removeBlock(block.courtId, block.id);
+    final failure = result.getLeft().toNullable();
+    if (failure is! ResponseTimeoutFailure) return failure;
 
-    return result.getLeft().toNullable();
+    await reload();
+
+    return _stillLists(block) ? failure : null;
+  }
+
+  bool _stillLists(CourtBlock block) {
+    final current = state;
+
+    return current is! CourtBlocksReady ||
+        current.blocks.any((listed) => listed.id == block.id);
   }
 }
