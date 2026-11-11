@@ -68,14 +68,14 @@ void main() {
       expect(result.getLeft().toNullable(), const ResponseTimeoutFailure());
     });
 
-    test('a repeated name after an unconfirmed creation counts as created',
+    test('a repeated name after an unconfirmed creation is the court sent',
         () async {
       creationAnswers(const ConflictFailure());
-      courtsAre(const Right([listedCourt]));
 
       final result = await saveCourt.create(draft, retriesUnconfirmed: true);
 
       expect(result.isRight(), isTrue);
+      verifyNever(() => repository.loadCourts());
     });
 
     test('a repeated name with nothing unconfirmed stays a conflict', () async {

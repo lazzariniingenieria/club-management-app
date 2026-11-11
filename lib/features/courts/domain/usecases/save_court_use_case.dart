@@ -17,9 +17,9 @@ class SaveCourtUseCase {
 
     final created = await repository.createCourt(draft.trimmed());
     final failure = created.getLeft().toNullable();
-    final mayBeCreated = failure is ResponseTimeoutFailure ||
-        (retriesUnconfirmed && failure is ConflictFailure);
-    if (!mayBeCreated) return created;
+    final isOwnCourt = retriesUnconfirmed && failure is ConflictFailure;
+    if (isOwnCourt) return const Right(null);
+    if (failure is! ResponseTimeoutFailure) return created;
 
     return await _isListed(draft) ? const Right(null) : created;
   }

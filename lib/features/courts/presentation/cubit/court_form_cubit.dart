@@ -21,10 +21,15 @@ class CourtFormCubit extends Cubit<CourtFormState> {
         super(const CourtFormEditing());
 
   Future<void> create(CourtDraft draft) {
-    return _submit(() => _createOnce(draft), CourtFormOutcome.created);
+    return _submit(
+      () => _createRememberingTimeout(draft),
+      CourtFormOutcome.created,
+    );
   }
 
-  Future<Either<Failure, void>> _createOnce(CourtDraft draft) async {
+  Future<Either<Failure, void>> _createRememberingTimeout(
+    CourtDraft draft,
+  ) async {
     final result = await _saveCourt.create(
       draft,
       retriesUnconfirmed: draft.nameAsCompared == _unconfirmedName,
