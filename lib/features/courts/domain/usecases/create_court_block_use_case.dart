@@ -10,13 +10,22 @@ class CreateCourtBlockUseCase {
 
   CreateCourtBlockUseCase(this.repository);
 
-  Future<Either<Failure, void>> call(int courtId, CourtBlockDraft draft) {
+  Future<Either<Failure, void>> call(int courtId, CourtBlockDraft draft) async {
     if (!draft.endsAfterStarts || !CourtBlockRules.reasonFits(draft.reason)) {
-      return Future.value(
-        const Left(ValidationFailure('Invalid court block')),
-      );
+      return const Left(ValidationFailure('Invalid court block'));
     }
 
-    return repository.createBlock(courtId, draft.trimmed());
+    final block = draft.trimmed();
+    final created = await repository.createBlock(courtId, block);
+    final timedOut = created.getLeft().toNullable() is ResponseTimeoutFailure;
+    if (!timedOut) return created;
+
+    return await _isListed(courtId, block) ? const Right(null) : created;
+  }
+
+  Future<bool> _isListed(int courtId, CourtBlockDraft block) async {
+    final blocks = await repository.loadBlocks(courtId, from: block.firstDay);
+
+    return blocks.fold((_) => false, (listed) => listed.any(block.describes));
   }
 }

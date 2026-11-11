@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'clock_time.dart';
+import 'court_block.dart';
 
 class CourtBlockDraft extends Equatable {
   final DateTime startsAt;
@@ -17,6 +18,14 @@ class CourtBlockDraft extends Equatable {
       DateTime(day.year, day.month, day.day, time.hour, time.minute);
 
   bool get endsAfterStarts => endsAt.isAfter(startsAt);
+
+  DateTime get firstDay =>
+      DateTime(startsAt.year, startsAt.month, startsAt.day);
+
+  bool describes(CourtBlock block) =>
+      block.startsAt.isAtSameMomentAs(startsAt) &&
+      block.endsAt.isAtSameMomentAs(endsAt) &&
+      (block.reason ?? '') == reason;
 
   CourtBlockDraft trimmed() => CourtBlockDraft(
         startsAt: startsAt,

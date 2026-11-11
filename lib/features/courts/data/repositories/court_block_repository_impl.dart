@@ -61,10 +61,17 @@ class CourtBlockRepositoryImpl implements CourtBlockRepository {
     Future<void> Function() run,
   ) async {
     final result = await _guard(operation, run);
-    final missing = result.getLeft().toNullable() is NotFoundFailure;
-    if (result.isRight() || missing) _blockChanges.add(null);
+    if (_mayHaveChangedBlocks(result)) _blockChanges.add(null);
 
     return result;
+  }
+
+  static bool _mayHaveChangedBlocks(Either<Failure, void> result) {
+    return result.fold(
+      (failure) =>
+          failure is ResponseTimeoutFailure || failure is NotFoundFailure,
+      (_) => true,
+    );
   }
 
   Future<Either<Failure, T>> _guard<T>(

@@ -134,7 +134,10 @@ class _BlockList extends StatelessWidget {
         ),
         itemCount: blocks.length,
         separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-        itemBuilder: (_, index) => _BlockTile(block: blocks[index]),
+        itemBuilder: (_, index) => _BlockTile(
+          key: ValueKey(blocks[index].id),
+          block: blocks[index],
+        ),
       ),
     );
   }
@@ -143,7 +146,7 @@ class _BlockList extends StatelessWidget {
 class _BlockTile extends StatelessWidget {
   final CourtBlock block;
 
-  const _BlockTile({required this.block});
+  const _BlockTile({super.key, required this.block});
 
   @override
   Widget build(BuildContext context) {
@@ -195,12 +198,19 @@ class _BlockDetails extends StatelessWidget {
   }
 }
 
-class _RemoveBlockAction extends StatelessWidget {
+class _RemoveBlockAction extends StatefulWidget {
   final CourtBlock block;
 
   const _RemoveBlockAction({required this.block});
 
-  Future<void> _remove(BuildContext context) async {
+  @override
+  State<_RemoveBlockAction> createState() => _RemoveBlockActionState();
+}
+
+class _RemoveBlockActionState extends State<_RemoveBlockAction> {
+  bool _isRemoving = false;
+
+  Future<void> _remove() async {
     final cubit = context.read<CourtBlocksCubit>();
     final confirmed = await ConfirmationDialog.show(
       context,
@@ -210,11 +220,13 @@ class _RemoveBlockAction extends StatelessWidget {
         confirmLabel: AppStrings.courtBlockRemove,
       ),
     );
-    if (!confirmed) return;
+    if (!confirmed || !mounted) return;
 
-    final failure = await cubit.remove(block);
-    if (!context.mounted) return;
+    setState(() => _isRemoving = true);
+    final failure = await cubit.remove(widget.block);
+    if (!mounted) return;
 
+    if (failure != null) setState(() => _isRemoving = false);
     showAppSnackBar(
       context,
       failure?.userMessage ?? AppStrings.courtBlockRemoved,
@@ -224,9 +236,33 @@ class _RemoveBlockAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final range = CourtBlockFormats.range(widget.block).join(', ');
+
     return TextButton(
-      onPressed: () => _remove(context),
-      child: const Text(AppStrings.courtBlockRemove),
+      onPressed: _isRemoving ? null : _remove,
+      child: _isRemoving
+          ? const _RemovingIndicator()
+          : Text(
+              AppStrings.courtBlockRemove,
+              semanticsLabel: AppStrings.courtBlockRemoveSemantics(range),
+            ),
+    );
+  }
+}
+
+class _RemovingIndicator extends StatelessWidget {
+  const _RemovingIndicator();
+
+  static const double _size = 18;
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox.square(
+      dimension: _size,
+      child: CircularProgressIndicator(
+        strokeWidth: 2,
+        semanticsLabel: AppStrings.courtBlockRemoving,
+      ),
     );
   }
 }

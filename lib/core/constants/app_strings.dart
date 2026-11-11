@@ -626,6 +626,7 @@ class AppStrings {
   static const String courtBlockRemoveMessage =
       'La cancha vuelve a estar disponible en ese horario.';
   static const String courtBlockRemoved = 'Bloqueo quitado';
+  static const String courtBlockRemoving = 'Quitando el bloqueo';
   static const String courtBlockFormTitle = 'Bloquear cancha';
   static const String courtBlockFormFromDay = 'Desde el día';
   static const String courtBlockFormFromTime = 'Desde la hora';
@@ -638,7 +639,12 @@ class AppStrings {
       'Tiene que terminar después de empezar';
   static const String courtBlockFormSave = 'Bloquear';
   static const String courtBlockCreated = 'Cancha bloqueada';
+  static const String courtBlockUnconfirmed =
+      'No sabemos si el bloqueo se guardó. Revisá la lista antes de volver a bloquear.';
   static const String courtBlockDayPickerHelp = 'Elegí el día';
+
+  static String courtBlockRemoveSemantics(String range) =>
+      'Quitar el bloqueo: $range';
 
   static String courtBlockSameDay(String day, String from, String to) =>
       '$day, de $from a $to';
