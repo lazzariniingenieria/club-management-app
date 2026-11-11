@@ -59,9 +59,17 @@ class CourtRepositoryImpl implements CourtRepository {
     Future<void> Function() run,
   ) async {
     final result = await _guard(operation, run);
-    if (result.isRight()) _courtChanges.add(null);
+    if (_mayHaveChangedCourts(result)) _courtChanges.add(null);
 
     return result;
+  }
+
+  static bool _mayHaveChangedCourts(Either<Failure, void> result) {
+    return result.fold(
+      (failure) =>
+          failure is ResponseTimeoutFailure || failure is ConflictFailure,
+      (_) => true,
+    );
   }
 
   Future<Either<Failure, T>> _guard<T>(

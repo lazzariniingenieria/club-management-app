@@ -1,5 +1,6 @@
 import 'package:club_management_app/core/errors/failures.dart';
 import 'package:club_management_app/features/courts/domain/entities/clock_time.dart';
+import 'package:club_management_app/features/courts/domain/entities/court.dart';
 import 'package:club_management_app/features/courts/domain/entities/court_draft.dart';
 import 'package:club_management_app/features/courts/domain/repositories/court_repository.dart';
 import 'package:club_management_app/features/courts/domain/usecases/save_court_use_case.dart';
@@ -18,6 +19,73 @@ void main() {
   setUp(() {
     repository = MockCourtRepository();
     saveCourt = SaveCourtUseCase(repository);
+  });
+
+  group('a creation that got no answer or a repeated name', () {
+    const draft = CourtDraft(name: 'Cancha 1');
+    const listedCourt = Court(
+      id: 7,
+      name: 'CANCHA 1',
+      openingTime: ClockTime(8, 0),
+      closingTime: ClockTime(23, 0),
+      isActive: true,
+    );
+
+    void creationAnswers(Failure failure) {
+      when(() => repository.createCourt(draft))
+          .thenAnswer((_) async => Left(failure));
+    }
+
+    void courtsAre(Either<Failure, List<Court>> courts) {
+      when(() => repository.loadCourts()).thenAnswer((_) async => courts);
+    }
+
+    test('a timeout whose court went through counts as created', () async {
+      creationAnswers(const ResponseTimeoutFailure());
+      courtsAre(const Right([listedCourt]));
+
+      final result = await saveCourt.create(draft);
+
+      expect(result.isRight(), isTrue);
+      verify(() => repository.createCourt(draft)).called(1);
+    });
+
+    test('a timeout whose court did not go through is reported', () async {
+      creationAnswers(const ResponseTimeoutFailure());
+      courtsAre(const Right([]));
+
+      final result = await saveCourt.create(draft);
+
+      expect(result.getLeft().toNullable(), const ResponseTimeoutFailure());
+    });
+
+    test('a timeout that could not be checked is reported', () async {
+      creationAnswers(const ResponseTimeoutFailure());
+      courtsAre(const Left(NetworkFailure()));
+
+      final result = await saveCourt.create(draft);
+
+      expect(result.getLeft().toNullable(), const ResponseTimeoutFailure());
+    });
+
+    test('a repeated name after an unconfirmed creation counts as created',
+        () async {
+      creationAnswers(const ConflictFailure());
+      courtsAre(const Right([listedCourt]));
+
+      final result = await saveCourt.create(draft, retriesUnconfirmed: true);
+
+      expect(result.isRight(), isTrue);
+    });
+
+    test('a repeated name with nothing unconfirmed stays a conflict', () async {
+      creationAnswers(const ConflictFailure());
+
+      final result = await saveCourt.create(draft);
+
+      expect(result.getLeft().toNullable(), const ConflictFailure());
+      verifyNever(() => repository.loadCourts());
+    });
   });
 
   test('trims the name and the sport before creating', () async {

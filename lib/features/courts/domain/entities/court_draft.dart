@@ -28,6 +28,8 @@ class CourtDraft extends Equatable {
 
   bool get closesAfterOpening => closingTime.isAfter(openingTime);
 
+  String get nameAsCompared => name.trim().toLowerCase();
+
   CourtDraft trimmed() => CourtDraft(
         name: name.trim(),
         type: type.trim(),
