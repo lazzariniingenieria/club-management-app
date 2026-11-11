@@ -57,10 +57,11 @@ void main() {
   test('a failure reaches every waiter and the next get retries', () async {
     final first = inFlightGets.share('/members', trackedGet);
     final second = inFlightGets.share('/members', trackedGet);
+    final firstFails = expectLater(first, throwsStateError);
+    final secondFails = expectLater(second, throwsStateError);
     completer.completeError(StateError('offline'));
-
-    await expectLater(first, throwsStateError);
-    await expectLater(second, throwsStateError);
+    await firstFails;
+    await secondFails;
 
     final retry = inFlightGets.share('/members', trackedGet);
     completer.complete('roster');

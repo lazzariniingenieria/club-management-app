@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:club_management_app/core/constants/api_constants.dart';
 import 'package:club_management_app/core/logging/app_logger.dart';
 import 'package:club_management_app/core/network/api_client.dart';
@@ -69,5 +71,74 @@ void main() {
     expect(second.data, [
       {'call': 2},
     ]);
+  });
+
+  group('around a write', () {
+    late Completer<ResponseBody> heldRead;
+    late Completer<ResponseBody> heldWrite;
+
+    Future<Response<List<dynamic>>> readMembers() =>
+        apiClient.sharedGet<List<dynamic>>(ApiConstants.members);
+
+    Future<void> writePayment() => apiClient.sendWrite(
+          () => apiClient.dio.post<dynamic>(
+            ApiConstants.payments,
+            data: const <String, dynamic>{},
+          ),
+        );
+
+    ResponseBody membersOfCall(int callCount) => jsonListResponse(200, [
+          {'call': callCount},
+        ]);
+
+    setUp(() {
+      heldRead = Completer<ResponseBody>();
+      heldWrite = Completer<ResponseBody>();
+      adapter = ScriptedHttpAdapter((options, callCount) {
+        if (options.method == 'POST') return heldWrite.future;
+        if (callCount == 1) return heldRead.future;
+
+        return membersOfCall(callCount);
+      });
+      apiClient.dio.httpClientAdapter = adapter;
+    });
+
+    test('a read after a write never joins a request started before it',
+        () async {
+      final write = writePayment();
+      final duringWrite = readMembers();
+      heldWrite.complete(emptyResponse(201));
+      await write;
+
+      final afterWrite = readMembers();
+      heldRead.complete(membersOfCall(1));
+
+      expect((await afterWrite).data, [
+        {'call': 2},
+      ]);
+      expect((await duringWrite).data, [
+        {'call': 1},
+      ]);
+      expect(adapter.callsTo(ApiConstants.members), 2);
+    });
+
+    test('a read during a write never joins a request started before it',
+        () async {
+      final beforeWrite = readMembers();
+      final write = writePayment();
+
+      final duringWrite = readMembers();
+      heldRead.complete(membersOfCall(1));
+
+      expect((await duringWrite).data, [
+        {'call': 2},
+      ]);
+      expect((await beforeWrite).data, [
+        {'call': 1},
+      ]);
+      expect(adapter.callsTo(ApiConstants.members), 2);
+      heldWrite.complete(emptyResponse(201));
+      await write;
+    });
   });
 }
