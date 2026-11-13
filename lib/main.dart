@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/config/app_environment.dart';
 import 'core/di/injection_container.dart' as di;
@@ -21,6 +22,8 @@ void main() async {
 class ClubManagementApp extends StatelessWidget {
   const ClubManagementApp({super.key});
 
+  static const Locale clubLocale = Locale('es', 'AR');
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider<AuthBloc>.value(
@@ -30,6 +33,9 @@ class ClubManagementApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         routerConfig: di.sl<AppRouter>().router,
         debugShowCheckedModeBanner: false,
+        locale: clubLocale,
+        supportedLocales: const [clubLocale],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
       ),
     );
   }

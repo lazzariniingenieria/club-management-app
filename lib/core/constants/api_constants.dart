@@ -34,6 +34,14 @@ abstract final class ApiConstants {
   static String courtReactivation(int courtId) =>
       '${court(courtId)}/reactivate';
 
+  static String courtBlocks(int courtId) => '${court(courtId)}/blocks';
+
+  static String courtBlocksFrom(int courtId, String fromDay) =>
+      '${courtBlocks(courtId)}?from=$fromDay';
+
+  static String courtBlock(int courtId, int blockId) =>
+      '${courtBlocks(courtId)}/$blockId';
+
   static String familyGroup(int familyGroupId) =>
       '$familyGroups/$familyGroupId';
 

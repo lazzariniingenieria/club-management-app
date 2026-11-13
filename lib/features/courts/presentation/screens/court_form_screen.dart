@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_notice.dart';
+import '../../../../shared/widgets/app_secondary_button.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/confirmation_dialog.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
@@ -163,6 +165,14 @@ class _CourtFormState extends State<_CourtForm> {
       ),
       if (court != null) ...[
         const SizedBox(height: AppSpacing.xl),
+        AppSecondaryButton(
+          label: AppStrings.courtBlocksAction,
+          onPressed: () => context.push(
+            AppRoutes.adminCourtBlocks(court.id),
+            extra: court,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
         CourtStatusAction(
           court: court,
           enabled: state is! CourtFormSubmitting,

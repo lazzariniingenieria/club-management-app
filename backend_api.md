@@ -4,7 +4,7 @@ Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, 
 
 **Verificado contra** [`club-management-api`](https://github.com/lazzariniingenieria/club-management-api) `develop`, commit `12abf91` — 2026-10-30. Incluye el PR #22 (reporte de cuotas cobradas) y el #23 (dependencias del Bloque 1 del admin). **`main` (producción) todavía no tiene ninguno de los dos** (§1).
 
-**Canchas** (`/api/courts` y `courtsEnabled` en `/api/clubs/me`, §5) viene del PR #25 (rama `feature/courts-management`), **todavía sin mergear en `develop`**.
+**Canchas** (`/api/courts` y `courtsEnabled` en `/api/clubs/me`, §5) viene del PR #25 (rama `feature/courts-management`), y los **bloqueos** (`/api/courts/{courtId}/blocks`) del PR #26, apilado sobre el #25. **Ninguno de los dos está mergeado en `develop`.**
 
 **Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/` (incluido `JwtAuthenticationFilter`), `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
@@ -38,7 +38,7 @@ Dos entornos en Railway con su propio Postgres: **producción** (deploy desde `m
 
 | Convención | Valor real |
 | :--- | :--- |
-| Verbos | `GET`, `POST`, `PATCH` y **dos** `DELETE` (§5). No hay `PUT`: usarlo da **405** |
+| Verbos | `GET`, `POST`, `PATCH` y **tres** `DELETE` (§5). No hay `PUT`: usarlo da **405** |
 | `id` | **Números** JSON (`Long`), nunca strings. Parsear con `(json['id'] as num).toInt()` |
 | `PATCH` | **Reemplazo completo** de los campos del DTO, no un merge: omitir un campo lo escribe en `null` |
 | Fechas de día | `"2026-09-01"` — ISO, sin hora ni zona (`joinedAt`, `periodCovered`, `lastPeriodCovered`) |
@@ -228,9 +228,24 @@ El envelope sale siempre como `application/json`, aunque el pedido haya mandado 
 
 **`courtsEnabled`** de `/api/clubs/me` no bloquea estos endpoints: es la señal para que la app muestre la gestión de canchas.
 
+### Bloqueos de cancha — `/api/courts/{courtId}/blocks`
+
+PR #26, apilado sobre el #25 y **todavía sin mergear**. `POST` (`201`), `GET` listado y `DELETE /{courtBlockId}` (`204`). `ADMIN` y `SUPER_ADMIN`.
+
+```json
+{ "id": 8, "courtId": 3, "startsAt": "2026-08-03T08:00:00", "endsAt": "2026-08-05T23:59:00",
+  "reason": "Mantenimiento de superficie", "createdAt": "2026-07-30T12:00:00Z", "createdByUserId": 2 }
+```
+
+**`startsAt` y `endsAt` son hora local del club, sin zona** (`TIMESTAMP`): se leen y se mandan como `"yyyy-MM-ddTHH:mm[:ss]"`, nunca como instante UTC. `createdAt` sí es UTC, como en el resto de la API. `reason` es opcional (≤ 150). `endsAt` tiene que ser posterior a `startsAt` → si no, `400`. Un bloqueo puede durar varios días, solaparse con otro y caer en una cancha dada de baja.
+
+**`GET`** acepta `from` y `to` opcionales (`yyyy-MM-dd`) y devuelve **los bloqueos que tocan ese rango**, por inicio: `from` deja los que terminan después de que empieza ese día; `to`, los que empiezan antes de que termine. Sin parámetros, todos los de la cancha. `from` > `to` → `400`; una fecha ilegible → `400` con `details: ["from: invalid value"]`.
+
+**`DELETE`** borra la fila: la tabla no tiene estado. `404` si la cancha no es del club o el bloqueo no es de esa cancha.
+
 ### Bajas lógicas
 
-Nunca hay borrado físico, y los tres modelos son reversibles con `/reactivate`:
+Socios, admins y canchas nunca se borran físicamente, y los tres son reversibles con `/reactivate`. Lo único que se borra de verdad es un grupo familiar y un bloqueo de cancha (más arriba en esta sección):
 
 | Entidad | En la respuesta |
 | :--- | :--- |
@@ -363,7 +378,7 @@ daysOverdue       = max(0, días entre coverageStart y hoy)
 
 ## 8. Modelo de datos
 
-**Seis tablas** (migraciones `V1`–`V13`): `user_account`, `member`, `family_group`, `refresh_token`, `payment` y `club`; con el PR #25, siete (`V14` crea `court`). El diseño de nueve tablas del `README` del backend es el plan, no el estado.
+**Seis tablas** (migraciones `V1`–`V13`): `user_account`, `member`, `family_group`, `refresh_token`, `payment` y `club`; con el PR #25, siete (`V14` crea `court`), y con el #26, ocho (`V15` crea `court_block`). El diseño de nueve tablas del `README` del backend es el plan, no el estado.
 
 **`club`** tiene `name`, `address`, `courts_enabled`, `member_app_enabled` y `monthly_fee_amount` (la cuota de referencia, nullable y > 0). `member.club_id` y `user_account.club_id` ya tienen FK a esa tabla; cada query sigue filtrando por el `clubId` del token, y las hojas quedan alcanzadas vía `member_id` / `user_account_id`. **`courts_enabled` sale como `courtsEnabled` en `GET /api/clubs/me` desde el PR #25; `member_app_enabled` no lo expone ningún endpoint.**
 
@@ -380,6 +395,7 @@ Constraints que el cliente ve como comportamiento HTTP:
 | `CHECK (role <> 'SUPER_ADMIN' OR member_id IS NULL)` | El `memberId` del super admin es siempre `null` |
 | `CHECK (amount > 0)` en `payment` | Refuerza la validación del `POST` |
 | `court UNIQUE (club_id, LOWER(name))` · `CHECK (closing_time > opening_time)` (`V14`) | El `409` de nombre repetido aun con dos altas a la vez, y el `400` de horario como última defensa |
+| `court_block CHECK (ends_at > starts_at)` (`V15`) | El `400` de un bloqueo que no termina después de empezar, como última defensa |
 | `UNIQUE (member_id, period_covered) WHERE voided_at IS NULL` (`V12`) | Un período tiene a lo sumo un pago vigente: el segundo da `409`, aun si los dos pedidos llegan a la vez. Anular libera el período |
 
 `user_account`, `member` y `family_group` llevan `created_at`, `updated_at`, `created_by_user_id` y `updated_by_user_id`, todas expuestas en las respuestas, por si hace falta mostrar "cargado por".
@@ -409,6 +425,7 @@ Lo que es fácil codear mal porque el contrato dice otra cosa de la que uno espe
 | El máximo de una contraseña es en bytes UTF-8, no en caracteres | Una de 40 letras con tilde pasa un `maxLength` y vuelve `400` | 5 |
 | `POST /api/payments` no es transaccional entre socios | Un pago de varios socios con un `POST` por socio puede quedar a medias; para todo o nada está `/batch` | 6 |
 | Los horarios de cancha vuelven con segundos | Comparar `"08:00"` con `"08:00:00"` da distinto | 5 |
+| Los bloqueos son hora local del club, sin zona | Mandar `toUtc().toIso8601String()` corre el bloqueo tres horas | 5 |
 
 ---
 
@@ -433,7 +450,7 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Asignar grupo en el alta y en la edición de forma pareja: `POST /api/members` acepta `familyGroupId` y `PATCH` no | Nada hoy: el grupo se arma desde las cuotas del socio (E6.5) |
 | Reset de contraseña de un **socio** por un ADMIN / SUPER_ADMIN | E11 — existe solo para cuentas de admin (§5) |
 | Flag de "debe cambiar la contraseña en el próximo ingreso" | Primer ingreso (E11) |
-| `court_block`, `recurring_slot`, `reservation` — ni tabla, ni endpoint (`court` existe desde el PR #25) | **El resto de E9** (agenda, reservas, bloqueos y turnos fijos), y "Próximos turnos" del Inicio |
+| `recurring_slot`, `reservation` — ni tabla, ni endpoint (`court` existe desde el PR #25 y `court_block` desde el #26) | **El resto de E9** (agenda, reservas y turnos fijos), y "Próximos turnos" del Inicio |
 | Cualquier endpoint que acepte un token `MEMBER` (§4) | **E12+ completa** |
 | `POST /api/auth/logout` con revocación | Nada: el logout es local, y el refresh descartado vence solo |
 | Listado de clubes y nombre real configurado | Selector de club. `GET /api/clubs/me` ya da el club del token, con un nombre provisorio |
