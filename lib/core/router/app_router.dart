@@ -34,6 +34,10 @@ import '../../features/payments/presentation/screens/payment_member_picker_scree
 import '../../features/payments/presentation/screens/register_payment_screen.dart';
 import '../../features/reports/presentation/screens/club_metrics_screen.dart';
 import '../../features/reports/presentation/screens/payment_report_screen.dart';
+import '../../features/reservations/presentation/screens/agenda_screen.dart';
+import '../../features/reservations/presentation/screens/reservation_confirmation_args.dart';
+import '../../features/reservations/presentation/screens/reservation_confirmation_screen.dart';
+import '../../features/reservations/presentation/screens/reservation_form_screen.dart';
 import '../config/app_features.dart';
 import 'app_routes.dart';
 import 'go_router_refresh_stream.dart';
@@ -109,6 +113,7 @@ class AppRouter {
     branches: [
       _branch(AppRoutes.adminHome, (context, state) => const AdminHomeScreen()),
       _branch(AppRoutes.adminMembers, _buildPaymentsScreen),
+      _branch(AppRoutes.adminReservations, _buildAgendaScreen),
       _branch(
         AppRoutes.adminProfile,
         (context, state) => const AdminProfileScreen(),
@@ -127,6 +132,12 @@ class AppRouter {
       showsFamilyGroups:
           query[AppRoutes.viewQueryParameter] == AppRoutes.familyGroupsView,
     );
+  }
+
+  static Widget _buildAgendaScreen(BuildContext context, GoRouterState state) {
+    final day = state.uri.queryParameters[AppRoutes.dayQueryParameter];
+
+    return AgendaScreen(requestedDay: DateTime.tryParse(day ?? ''));
   }
 
   static StatefulShellBranch _branch(
@@ -234,6 +245,23 @@ class AppRouter {
       redirect: _requireCourt,
       builder: (context, state) =>
           CourtBlockFormScreen(court: state.extra as Court),
+    ),
+    GoRoute(
+      path: AppRoutes.adminReservationCreation,
+      builder: (context, state) => ReservationFormScreen(
+        initialDay: state.extra is DateTime
+            ? state.extra as DateTime
+            : DateTime.now(),
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.adminReservationConfirmation,
+      redirect: (context, state) => state.extra is ReservationConfirmationArgs
+          ? null
+          : AppRoutes.adminReservations,
+      builder: (context, state) => ReservationConfirmationScreen(
+        args: state.extra as ReservationConfirmationArgs,
+      ),
     ),
     GoRoute(
       path: AppRoutes.adminAdmins,

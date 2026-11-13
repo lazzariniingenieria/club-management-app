@@ -307,6 +307,12 @@ void main() {
     await tester.tap(find.text('Cancha de Tenis 1'));
     await tester.pumpAndSettle();
     await tapVisible(tester, find.text(AppStrings.courtDeactivate));
+
+    expect(
+      find.textContaining(AppStrings.courtDeactivateMessage),
+      findsOneWidget,
+    );
+
     await tester.tap(inDialog(AppStrings.courtDeactivate));
     await tester.pumpAndSettle();
 

@@ -8,6 +8,7 @@ class ConfirmationDialog extends StatelessWidget {
   final String message;
   final String confirmLabel;
   final bool isDestructive;
+  final String dismissLabel;
 
   const ConfirmationDialog({
     super.key,
@@ -15,6 +16,7 @@ class ConfirmationDialog extends StatelessWidget {
     required this.message,
     required this.confirmLabel,
     this.isDestructive = false,
+    this.dismissLabel = AppStrings.cancelAction,
   });
 
   static Future<bool> show(BuildContext context, ConfirmationDialog dialog) {
@@ -30,7 +32,7 @@ class ConfirmationDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text(AppStrings.cancelAction),
+          child: Text(dismissLabel),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(true),

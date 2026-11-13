@@ -5,10 +5,13 @@ import '../models/court_model.dart';
 import 'court_remote_data_source.dart';
 
 class CourtFakeDataSource implements CourtRemoteDataSource {
-  CourtFakeDataSource({this.latency = const Duration(milliseconds: 600)})
-      : _courts = [...seeded];
+  CourtFakeDataSource({
+    this.latency = const Duration(milliseconds: 600),
+    this.onDeactivated,
+  }) : _courts = [...seeded];
 
   final Duration latency;
+  final void Function(int courtId)? onDeactivated;
   final List<CourtModel> _courts;
 
   static const List<CourtModel> seeded = [
@@ -72,6 +75,7 @@ class CourtFakeDataSource implements CourtRemoteDataSource {
       CourtDraft.fromCourt(_courts[index]),
       isActive: isActive,
     );
+    if (!isActive) onDeactivated?.call(courtId);
   }
 
   static CourtModel _fromDraft(

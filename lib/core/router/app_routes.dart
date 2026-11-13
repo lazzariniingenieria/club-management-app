@@ -8,6 +8,10 @@ abstract final class AppRoutes {
   static const String adminHome = '/admin';
   static const String adminMembers = '/admin/members';
   static const String adminProfile = '/admin/profile';
+  static const String adminReservations = '/admin/reservations';
+  static const String adminReservationCreation = '/admin/reservations/new';
+  static const String adminReservationConfirmation =
+      '/admin/reservations/new/confirm';
   static const String adminCourts = '/admin/courts';
   static const String adminCourtCreation = '/admin/courts/new';
   static const String adminCourtEditionPattern = '/admin/courts/:courtId/edit';
@@ -47,6 +51,7 @@ abstract final class AppRoutes {
   static const String viewQueryParameter = 'view';
   static const String familyGroupsView = 'groups';
   static const String forFamilyQueryParameter = 'family';
+  static const String dayQueryParameter = 'day';
 
   static const String adminFamilyGroups =
       '$adminMembers?$viewQueryParameter=$familyGroupsView';
@@ -68,6 +73,16 @@ abstract final class AppRoutes {
 
   static String adminAdminEdition(int adminId) =>
       '/admin/admins/$adminId/edit';
+
+  static String adminReservationsOn(DateTime day) =>
+      '$adminReservations?$dayQueryParameter=${_isoDay(day)}';
+
+  static String _isoDay(DateTime day) {
+    final month = day.month.toString().padLeft(2, '0');
+    final dayOfMonth = day.day.toString().padLeft(2, '0');
+
+    return '${day.year}-$month-$dayOfMonth';
+  }
 
   static String adminCourtEdition(int courtId) =>
       '/admin/courts/$courtId/edit';

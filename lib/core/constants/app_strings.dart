@@ -598,7 +598,7 @@ class AppStrings {
   static const String courtDeactivate = 'Dar de baja';
   static const String courtReactivate = 'Reactivar cancha';
   static const String courtDeactivateMessage =
-      'No se va a poder reservar hasta que la reactives.';
+      'Se cancelan las reservas que tenga desde ahora y no se va a poder reservar hasta que la reactives.';
   static const String courtReactivateMessage =
       'Vuelve a estar disponible para reservar.';
   static const String courtDeactivated = 'Cancha dada de baja';
@@ -607,7 +607,6 @@ class AppStrings {
   static String courtDeactivateTitle(String name) => '¿Dar de baja «$name»?';
 
   static String courtReactivateTitle(String name) => '¿Reactivar «$name»?';
-
   static String courtHours(String opening, String closing) =>
       'De $opening a $closing';
 
@@ -654,6 +653,69 @@ class AppStrings {
 
   static String courtBlockUntil(String day, String time) =>
       'Hasta el $day, $time';
+
+  static const String adminTabReservations = 'Reservas';
+  static const String agendaTitle = 'Reservas';
+  static const String agendaToday = 'Hoy';
+  static const String agendaPreviousDay = 'Día anterior';
+  static const String agendaNextDay = 'Día siguiente';
+  static const String agendaPickDay = 'Elegir día';
+  static const String agendaNew = 'Nueva reserva';
+  static const String agendaErrorTitle = 'No pudimos cargar las reservas';
+  static const String agendaNoCourtsTitle = 'No hay canchas activas';
+  static const String agendaNoCourtsHint =
+      'Cargá las canchas desde Perfil → Canchas.';
+  static const String agendaFreeDay = 'Libre todo el día';
+  static const String reservationActivity = 'Actividad del club';
+  static const String reservationCancel = 'Cancelar';
+  static const String reservationCancelConfirm = 'Cancelar reserva';
+  static const String reservationCancelled = 'Reserva cancelada';
+  static const String reservationFormTitle = 'Nueva reserva';
+  static const String reservationFormMember = 'Socio';
+  static const String reservationFormMemberUnset = 'Elegí el socio';
+  static const String reservationFormMemberSearch = 'Buscar por nombre o DNI';
+  static const String reservationFormCourt = 'Cancha';
+  static const String reservationFormDay = 'Día';
+  static const String reservationFormDuration = 'Duración';
+  static const String reservationFormStart = 'Horario';
+  static const String reservationFormNoSlots =
+      'Ese día no quedan horarios con esa duración en esta cancha.';
+  static const String reservationFormContinue = 'Continuar';
+  static const String slotPast = 'Ya pasó';
+  static const String slotReserved = 'Ocupado';
+  static const String slotBlocked = 'Bloqueada';
+  static const String reservationConfirmTitle = 'Revisá la reserva';
+  static const String reservationConfirmAction = 'Confirmar reserva';
+  static const String reservationConfirmed = 'Reserva confirmada';
+  static const String reservationSlotTaken =
+      'Ese horario se ocupó recién. Volvé y elegí otro.';
+
+  static String agendaBlocked(String hours, String reason) =>
+      'Bloqueada $hours · $reason';
+
+  static String reservationHours(String from, String to) => '$from a $to';
+
+  static String reservationCancelTitle(String name) =>
+      '¿Cancelar la reserva de $name?';
+
+  static String reservationCancelMessage(String court, String when) =>
+      '$court, $when. El horario queda libre.';
+
+  static String reservationFormMemberEmpty(String query) =>
+      'No encontramos socios activos con «$query»';
+
+  static String reservationDuration(int minutes) => switch (minutes) {
+        60 => '1 hora',
+        90 => '1 hora y media',
+        120 => '2 horas',
+        _ => '$minutes minutos',
+      };
+
+  static String slotUnavailable(String time, String reason) =>
+      '$time · $reason';
+
+  static String reservationOverdueWarning(String name, int days) =>
+      '$name tiene $days días de mora. Podés reservar igual.';
 
   static const List<String> weekdayAbbreviations = [
     'lun',

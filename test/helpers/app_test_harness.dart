@@ -24,6 +24,8 @@ import 'package:club_management_app/features/payments/data/datasources/payment_r
 import 'package:club_management_app/features/payments/presentation/cubit/member_roster_cubit.dart';
 import 'package:club_management_app/features/reports/data/datasources/payment_report_fake_data_source.dart';
 import 'package:club_management_app/features/reports/data/datasources/payment_report_remote_data_source.dart';
+import 'package:club_management_app/features/reservations/data/datasources/reservation_fake_data_source.dart';
+import 'package:club_management_app/features/reservations/data/datasources/reservation_remote_data_source.dart';
 import 'package:club_management_app/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,6 +44,7 @@ Future<InMemorySecureStorage> bootApp(
   PaymentReportRemoteDataSource? reportSource,
   CourtRemoteDataSource? courtSource,
   CourtBlockRemoteDataSource? courtBlockSource,
+  ReservationRemoteDataSource? reservationSource,
   AppFeatures? features,
 }) async {
   final storage = InMemorySecureStorage();
@@ -107,6 +110,12 @@ Future<InMemorySecureStorage> bootApp(
   di.sl.unregister<CourtBlockRemoteDataSource>();
   di.sl.registerLazySingleton<CourtBlockRemoteDataSource>(
     () => courtBlockSource ?? CourtBlockFakeDataSource(latency: Duration.zero),
+  );
+
+  di.sl.unregister<ReservationRemoteDataSource>();
+  di.sl.registerLazySingleton<ReservationRemoteDataSource>(
+    () =>
+        reservationSource ?? ReservationFakeDataSource(latency: Duration.zero),
   );
 
   di.sl.unregister<MemberRosterCubit>();
