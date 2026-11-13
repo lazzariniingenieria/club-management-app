@@ -468,8 +468,8 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Mostrar a un ADMIN quién cargó o anuló un pago: `recordedByUserId` y `voidedByUserId` no se pueden traducir a una persona (`GET /api/admins` es solo para SUPER_ADMIN y un admin no tiene nombre) | "Quién lo cargó" en el detalle del pago |
 | Datos de contacto del club en `GET /api/clubs/me` | El canal de contacto de Recuperar contraseña (E11) |
 | Asignar grupo en el alta y en la edición de forma pareja: `POST /api/members` acepta `familyGroupId` y `PATCH` no | Nada hoy: el grupo se arma desde las cuotas del socio (E6.5) |
-| Reset de contraseña de un **socio** por un ADMIN / SUPER_ADMIN | E11 — existe solo para cuentas de admin (§5) |
-| Flag de "debe cambiar la contraseña en el próximo ingreso" | Primer ingreso (E11) |
+| Reset de contraseña de un **socio** por un ADMIN / SUPER_ADMIN | E12+ — existe solo para cuentas de admin (§5); un socio todavía no tiene cuenta |
+| Registro del socio con DNI, emparejado con el socio que ya cargó el admin (documento técnico V6, Etapa 3) | Registro del socio en `/login/activate` (E12+) |
 | `recurring_slot` — ni tabla, ni endpoint (`court`, `court_block` y `reservation` existen desde los PR #25, #26 y #27) | **Turnos fijos** (resto de E9), y "Próximos turnos" del Inicio |
 | Preview de las reservas que pisa un bloqueo nuevo | El flujo §4.5 de la app (listarlas antes de confirmar el bloqueo) |
 | Cualquier endpoint que acepte un token `MEMBER` (§4) | **E12+ completa** |

@@ -137,7 +137,7 @@ class _FirstTimeUserLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO(E11): navigate to /login/activate once the flow exists.
+    // TODO(E12): navigate to /login/activate once member sign-up exists.
     return Center(
       child: TextButton(
         onPressed: null,
