@@ -745,7 +745,7 @@ El flujo §4.4 sobre `/api/reservations` (PR #27 de la API). Los turnos fijos y 
 
 ### E9d — Turnos fijos y bloqueo sobre reservas
 
-Lo que queda de E9. Espera al backend: `recurring_slot` y el preview del bloqueo ([backend_api.md](backend_api.md) §10). El modelo es el del documento técnico V6 §04: un turno fijo es de un socio **o** de una actividad del club sin socio (clases, escuela), vale como mucho un año, y al crearlo se generan todas sus fechas como reservas en la misma operación; si una sola choca, no se crea ninguna.
+Lo que queda de E9. Los turnos fijos están en el PR #28 de la API, todavía abierto ([backend_api.md](backend_api.md) §5); la vista previa del bloqueo y la cancelación de lo que pisa siguen faltando (§10). El modelo es el del documento técnico V6 §04: un turno fijo es de un socio **o** de una actividad del club sin socio (clases, escuela), vale como mucho un año, y al crearlo se generan todas sus fechas como reservas en la misma operación; si una sola choca, no se crea ninguna.
 
 **Decidido el 2026-11-13:**
 

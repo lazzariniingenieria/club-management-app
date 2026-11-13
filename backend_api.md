@@ -4,7 +4,7 @@ Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, 
 
 **Verificado contra** [`club-management-api`](https://github.com/lazzariniingenieria/club-management-api) `develop`, commit `12abf91` — 2026-10-30. Incluye el PR #22 (reporte de cuotas cobradas) y el #23 (dependencias del Bloque 1 del admin). **`main` (producción) todavía no tiene ninguno de los dos** (§1).
 
-**Canchas** (`/api/courts` y `courtsEnabled` en `/api/clubs/me`, §5) viene del PR #25, los **bloqueos** (`/api/courts/{courtId}/blocks`) del PR #26 y las **reservas** (`/api/reservations`) del PR #27. **Los tres están en `develop` (test) desde el 2026-11-11, y todavía no en `main` (producción).**
+**Canchas** (`/api/courts` y `courtsEnabled` en `/api/clubs/me`, §5) viene del PR #25, los **bloqueos** (`/api/courts/{courtId}/blocks`) del PR #26 y las **reservas** (`/api/reservations`) del PR #27. **Los tres están en `develop` (test) desde el 2026-11-11, y todavía no en `main` (producción).** Los **turnos fijos** (`/api/recurring-slots`) vienen del **PR #28, todavía abierto** (verificado contra su commit `a92d08b`, 2026-11-13): no están ni en `develop`.
 
 **Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/` (incluido `JwtAuthenticationFilter`), `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
@@ -116,7 +116,7 @@ Cortan así todas las sesiones de una cuenta, y además le revocan los refresh t
 | `/api/auth/login`, `/api/auth/refresh` | público |
 | `PATCH /api/auth/me/password` | `ADMIN`, `SUPER_ADMIN` |
 | `/api/admins/**`, incluido `PATCH /api/admins/{id}/password` | **solo `SUPER_ADMIN`** |
-| `/api/members/**`, `/api/family-groups/**`, `/api/payments/**`, `/api/courts/**`, `/api/reservations/**` | `ADMIN`, `SUPER_ADMIN` |
+| `/api/members/**`, `/api/family-groups/**`, `/api/payments/**`, `/api/courts/**`, `/api/reservations/**`, `/api/recurring-slots/**` | `ADMIN`, `SUPER_ADMIN` |
 | `/api/clubs/me` (`GET` y `PATCH`) | `ADMIN`, `SUPER_ADMIN` |
 
 **Un token con `role = MEMBER` no entra a ningún endpoint implementado.** Puede autenticarse y nada más.
@@ -248,28 +248,86 @@ PR #26, en `develop` y todavía no en `main`. `POST` (`201`), `GET` listado y `D
 PR #27, en `develop` y todavía no en `main`. `POST` (`201`), `GET ?date=yyyy-MM-dd[&courtId=]` y `PATCH /{id}/cancel`. `ADMIN` y `SUPER_ADMIN`.
 
 ```json
-{ "id": 20, "courtId": 3, "memberId": 10, "source": "MEMBER", "date": "2026-11-09",
-  "startTime": "22:00:00", "endTime": "23:00:00", "status": "CONFIRMED",
-  "createdAt": "...", "createdByUserId": 2, "cancelledAt": null, "cancelledByUserId": null }
+{ "id": 20, "courtId": 3, "memberId": 10, "source": "MEMBER", "recurringSlotId": null,
+  "description": null, "date": "2026-11-09", "startTime": "22:00:00", "endTime": "23:00:00",
+  "status": "CONFIRMED", "createdAt": "...", "createdByUserId": 2,
+  "cancelledAt": null, "cancelledByUserId": null }
 ```
+
+**`source`** dice de dónde sale la reserva: `MEMBER` (suelta), `RECURRING` (una fecha del turno fijo de un socio) o `ACTIVITY` (una fecha de una actividad del club, sin socio). `recurringSlotId` y `description` llegan con el PR #28: `recurringSlotId` viene en `RECURRING` y `ACTIVITY` y es `null` en `MEMBER`; `description` es la de la actividad y solo viene en `ACTIVITY`. **`memberId` es `null` solo en `ACTIVITY`.** Antes del PR #28 todas las reservas son `MEMBER`.
 
 **`POST`** recibe `courtId`, `memberId`, `date`, `startTime` y `endTime` (todos requeridos; horarios `HH:mm`, en hora del club). Valida en este orden: club con `courtsEnabled`, cancha y socio del club y activos, que termine después de empezar y entre en el horario de la cancha, y que no empiece en el pasado (con la hora del club, no la del servidor) → `400` o `404`. Que no caiga en un bloqueo ni se superponga con otra reserva confirmada → **`409`**. Dos reservas consecutivas (una termina 22:00 y la otra empieza 22:00) no se superponen. **No fija duración**: la app ofrece 60, 90 o 120 minutos. Un socio moroso reserva igual; el aviso lo da la app.
 
-**`GET`** trae solo las **confirmadas** de ese día, de todas las canchas del club o de una, por hora de inicio. `date` es obligatorio (`400` con `details: ["date: date is required"]`).
+**`GET`** trae solo las **confirmadas** de ese día, de todas las canchas del club o de una, por hora de inicio, **de cualquier origen**: con el PR #28 incluye las fechas de turnos fijos y de actividades. `date` es obligatorio (`400` con `details: ["date: date is required"]`).
 
-**`PATCH /{id}/cancel`** pasa la reserva a `CANCELLED`, con `cancelledAt` y `cancelledByUserId`. Ya cancelada → `409`.
+**`PATCH /{id}/cancel`** pasa la reserva a `CANCELLED`, con `cancelledAt` y `cancelledByUserId`. Ya cancelada → `409`. Sirve también para **saltear una fecha** de un turno fijo o de una actividad: el turno sigue las demás semanas.
 
-**Dar de baja una cancha** (`PATCH /api/courts/{id}/deactivate`) **cancela las reservas confirmadas de esa cancha que empiezan después de ahora** (hora del club), en la misma transacción y a nombre de quien la da de baja. Las que ya empezaron quedan como estaban. Reactivar la cancha no las recupera.
+**Dar de baja una cancha** (`PATCH /api/courts/{id}/deactivate`) **cancela las reservas confirmadas de esa cancha que empiezan después de ahora** (hora del club), en la misma transacción y a nombre de quien la da de baja. Las que ya empezaron quedan como estaban. Con el PR #28, además **da de baja los turnos fijos de la cancha**, incluidos los de actividades. Reactivar la cancha no recupera ni las reservas ni los turnos.
+
+**Dar de baja un socio** (`PATCH /api/members/{id}/deactivate`), con el PR #28, **cancela todas sus reservas que todavía no empezaron** (sueltas y de turnos fijos, en cualquier cancha) **y da de baja sus turnos fijos**, en una transacción. Reactivarlo no los recupera.
+
+### Turnos fijos — `/api/recurring-slots`
+
+**PR #28, todavía abierto.** `ADMIN` y `SUPER_ADMIN`.
+
+| Verbo | Ruta | Respuesta |
+| :--- | :--- | :--- |
+| `POST` | `/api/recurring-slots` | `201` · `400` · `404` · `409` |
+| `GET` | `/api/recurring-slots?courtId=&memberId=&state=` | `200` · `400` (`state` inválido) · `404` (cancha o socio de otro club) |
+| `GET` | `/api/recurring-slots/{id}` | `200` · `404` |
+| `PATCH` | `/api/recurring-slots/{id}/deactivate` | `200` · `404` · `409` (ya estaba dado de baja) |
+| `POST` | `/api/recurring-slots/{id}/renew` | `201` con el turno **nuevo** · `400` · `404` · `409` |
+
+```json
+{ "id": 4, "courtId": 3, "memberId": 10, "description": null, "dayOfWeek": "TUESDAY",
+  "startTime": "18:00:00", "endTime": "19:00:00", "validFrom": "2026-11-17", "validUntil": "2027-03-30",
+  "active": true, "state": "CURRENT", "createdAt": "...", "createdByUserId": 2,
+  "deactivatedAt": null, "deactivatedByUserId": null }
+```
+
+Un turno es **de un socio** (`memberId`) **o de una actividad del club** (`description`, ≤ 100): exactamente uno de los dos. Una descripción en blanco cuenta como ausente. `dayOfWeek` va de `MONDAY` a `SUNDAY` (en base es el número ISO, 1 a 7). Los horarios vuelven con segundos, como en las canchas.
+
+**`state`** lo calcula el servidor con la fecha del club: `CURRENT` (activo y vigente), `EXPIRED` (activo con `validUntil` anterior a hoy) o `INACTIVE` (dado de baja). El listado va por día, hora de inicio e id; sin `state` trae todos.
+
+**`POST`** recibe `courtId`, `memberId` o `description`, `dayOfWeek`, `startTime` y `endTime` (`HH:mm`), `validFrom` y `validUntil`. **Genera todas las fechas como reservas en la misma transacción**: desde el primer `dayOfWeek` a partir de `validFrom`, cada 7 días hasta `validUntil` incluido; si la primera fecha es hoy y ya empezó, se omite.
+
+| Condición | Error |
+| :--- | :--- |
+| El club no tiene canchas habilitadas | `400` |
+| La cancha no es del club / está inactiva | `404` / `400` |
+| No viene exactamente uno de socio o descripción | `400` |
+| El socio no es del club / está inactivo. **Estar en mora no lo impide** | `404` / `400` |
+| El horario no entra en el de la cancha o termina antes de empezar | `400` |
+| `validFrom` anterior a hoy | `400` |
+| `validUntil` no posterior a `validFrom`, o a más de un año | `400` |
+| No queda ninguna fecha futura | `400` |
+| **Alguna fecha choca con una reserva o un bloqueo: se rechaza todo** | `409` |
+
+El `409` por choques lista las fechas en `details`:
+
+```json
+{ "message": "recurring slot conflicts with existing reservations or court blocks",
+  "details": ["2026-12-01: court already reserved", "2026-12-08: court blocked"] }
+```
+
+Si dos pedidos chocan entre sí al mismo tiempo, el `409` es el genérico de constraint, **sin `details`**.
+
+**No se edita**: para cambiar un turno se da de baja y se crea otro.
+
+**`PATCH /{id}/deactivate`** cancela las fechas que todavía no empezaron (hora del club); las pasadas quedan. **No hay `/reactivate`.**
+
+**`POST /{id}/renew`** recibe `{ "validFrom", "validUntil" }` y crea un turno nuevo copiando cancha, socio o descripción, día y horario, con las mismas reglas que el alta. **No da de baja el original** y funciona con cualquier `state`. Si la vigencia nueva se superpone con la del original, las fechas comunes salen como choques en el `409`: la nueva tiene que empezar después del `validUntil` del original.
 
 ### Bajas lógicas
 
-Socios, admins y canchas nunca se borran físicamente, y los tres son reversibles con `/reactivate`. Lo único que se borra de verdad es un grupo familiar y un bloqueo de cancha (más arriba en esta sección):
+Socios, admins y canchas nunca se borran físicamente, y los tres son reversibles con `/reactivate`. Los turnos fijos tampoco se borran, pero su baja **no se revierte**: se crea uno nuevo o se renueva. Lo único que se borra de verdad es un grupo familiar y un bloqueo de cancha (más arriba en esta sección):
 
 | Entidad | En la respuesta |
 | :--- | :--- |
 | `member` | `status: "INACTIVE"` |
 | `user_account` (admin) | `active: false` |
 | `court` | `active: false` |
+| `recurring_slot` | `active: false`, `state: "INACTIVE"`, con `deactivatedAt` |
 
 Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistinguible de una contraseña incorrecta (§3).
 
@@ -396,11 +454,13 @@ daysOverdue       = max(0, días entre coverageStart y hoy)
 
 ## 8. Modelo de datos
 
-**Seis tablas** (migraciones `V1`–`V13`): `user_account`, `member`, `family_group`, `refresh_token`, `payment` y `club`; con el PR #25, siete (`V14` crea `court`), y con el #26, ocho (`V15` crea `court_block`), y con el #27, nueve (`V16` crea `reservation` y habilita `btree_gist`). El diseño de nueve tablas del `README` del backend es el plan, no el estado.
+**Seis tablas** (migraciones `V1`–`V13`): `user_account`, `member`, `family_group`, `refresh_token`, `payment` y `club`; con el PR #25, siete (`V14` crea `court`), y con el #26, ocho (`V15` crea `court_block`), con el #27, nueve (`V16` crea `reservation` y habilita `btree_gist`), y con el #28 (abierto), diez (`V17` crea `recurring_slot` y suma `reservation.recurring_slot_id`). El diseño de nueve tablas del `README` del backend es el plan, no el estado.
 
 **`club`** tiene `name`, `address`, `courts_enabled`, `member_app_enabled` y `monthly_fee_amount` (la cuota de referencia, nullable y > 0). `member.club_id` y `user_account.club_id` ya tienen FK a esa tabla; cada query sigue filtrando por el `clubId` del token, y las hojas quedan alcanzadas vía `member_id` / `user_account_id`. **`courts_enabled` sale como `courtsEnabled` en `GET /api/clubs/me` desde el PR #25; `member_app_enabled` no lo expone ningún endpoint.**
 
 **`court`** (PR #25) tiene `club_id` (FK a `club`), `name`, `type` nullable, `opening_time`, `closing_time`, `active` y las cuatro columnas de auditoría.
+
+**`recurring_slot`** (PR #28) tiene `court_id`, `member_id` o `description`, `day_of_week` (ISO, 1 a 7), `start_time`, `end_time`, `valid_from`, `valid_until`, `active`, `created_at`, `created_by_user_id`, `deactivated_at` y `deactivated_by_user_id`. Sin `club_id`: queda en el club por su cancha.
 
 **`payment`** suma `voided_at`, `voided_by_user_id` y `void_reason` (≤ 150): los dos primeros van juntos o en `null`, y el motivo solo puede existir en un pago anulado. `user_account.member_id` tiene FK a `member` desde `V8`, y `user_account.sessions_revoked_at` (`V13`, nullable) guarda el último corte de sesiones de la cuenta (§3). No viaja en ninguna respuesta.
 
@@ -415,6 +475,8 @@ Constraints que el cliente ve como comportamiento HTTP:
 | `court UNIQUE (club_id, LOWER(name))` · `CHECK (closing_time > opening_time)` (`V14`) | El `409` de nombre repetido aun con dos altas a la vez, y el `400` de horario como última defensa |
 | `court_block CHECK (ends_at > starts_at)` (`V15`) | El `400` de un bloqueo que no termina después de empezar, como última defensa |
 | `reservation EXCLUDE USING gist` (`V16`), por cancha y rango, solo entre confirmadas | Dos reservas superpuestas en la misma cancha son imposibles aun si llegan a la vez: la segunda da el `409` genérico de constraint |
+| `recurring_slot CHECK ((member_id IS NULL) <> (description IS NULL))` · tope de un año · `active = (deactivated_at IS NULL)` (`V17`) | Socio o actividad, nunca los dos ni ninguno; la vigencia no pasa de un año; un turno dado de baja siempre trae `deactivatedAt` |
+| `reservation CHECK ((member_id IS NULL) = (source = 'ACTIVITY'))` · `CHECK ((recurring_slot_id IS NULL) = (source = 'MEMBER'))` (`V17`) | `memberId` es `null` si y solo si es una actividad; `recurringSlotId` es `null` si y solo si es suelta |
 | `UNIQUE (member_id, period_covered) WHERE voided_at IS NULL` (`V12`) | Un período tiene a lo sumo un pago vigente: el segundo da `409`, aun si los dos pedidos llegan a la vez. Anular libera el período |
 
 `user_account`, `member` y `family_group` llevan `created_at`, `updated_at`, `created_by_user_id` y `updated_by_user_id`, todas expuestas en las respuestas, por si hace falta mostrar "cargado por".
@@ -445,6 +507,9 @@ Lo que es fácil codear mal porque el contrato dice otra cosa de la que uno espe
 | `POST /api/payments` no es transaccional entre socios | Un pago de varios socios con un `POST` por socio puede quedar a medias; para todo o nada está `/batch` | 6 |
 | Los horarios de cancha vuelven con segundos | Comparar `"08:00"` con `"08:00:00"` da distinto | 5 |
 | Los bloqueos son hora local del club, sin zona | Mandar `toUtc().toIso8601String()` corre el bloqueo tres horas | 5 |
+| `memberId` de una reserva es `null` en las actividades | Asumir que toda reserva tiene socio revienta la agenda con la primera clase de tenis | 5 |
+| Renovar no da de baja el turno original, y una vigencia superpuesta da `409` | Renovar "desde hoy" un turno vigente choca consigo mismo | 5 |
+| El `409` de un turno fijo puede venir sin `details` | Si llegan dos altas a la vez no hay fechas para mostrar: hace falta un mensaje genérico | 5 |
 | Cancelar una reserva ya cancelada da `409` | Mostrar un error cuando otro admin ya la había cancelado. La app la toma como cancelada | 5 |
 
 ---
@@ -470,8 +535,8 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Asignar grupo en el alta y en la edición de forma pareja: `POST /api/members` acepta `familyGroupId` y `PATCH` no | Nada hoy: el grupo se arma desde las cuotas del socio (E6.5) |
 | Reset de contraseña de un **socio** por un ADMIN / SUPER_ADMIN | E12+ — existe solo para cuentas de admin (§5); un socio todavía no tiene cuenta |
 | Registro del socio con DNI, emparejado con el socio que ya cargó el admin (documento técnico V6, Etapa 3) | Registro del socio en `/login/activate` (E12+) |
-| `recurring_slot` — ni tabla, ni endpoint (`court`, `court_block` y `reservation` existen desde los PR #25, #26 y #27) | **Turnos fijos** (resto de E9), y "Próximos turnos" del Inicio |
-| Preview de las reservas que pisa un bloqueo nuevo | El flujo §4.5 de la app (listarlas antes de confirmar el bloqueo) |
+| Turnos fijos en `develop`: están en el PR #28, todavía abierto | **Turnos fijos** (E9d) |
+| Preview de las reservas que pisa un bloqueo nuevo, y que crear el bloqueo las cancele (decidido en club-management-api#26). Hoy un bloqueo no mira las reservas | El flujo §4.5 de la app (listarlas antes de confirmar el bloqueo), E9d |
 | Cualquier endpoint que acepte un token `MEMBER` (§4) | **E12+ completa** |
 | `POST /api/auth/logout` con revocación | Nada: el logout es local, y el refresh descartado vence solo |
 | Listado de clubes y nombre real configurado | Selector de club. `GET /api/clubs/me` ya da el club del token, con un nombre provisorio |
