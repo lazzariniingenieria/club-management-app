@@ -103,9 +103,22 @@ class _ReservationFormState extends State<_ReservationForm> {
     );
   }
 
+  void _dropUnavailableStart(BuildContext context, AgendaState state) {
+    final start = _start;
+    if (state is! AgendaReady || start == null) return;
+
+    final courtAgenda = state.agenda.agendaOf(_courtId ?? -1);
+    final stillFree = courtAgenda != null &&
+        _optionsFor(courtAgenda).any(
+          (option) => option.start == start && option.isAvailable,
+        );
+    if (!stillFree) setState(() => _start = null);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ReservationFormCubit, AgendaState>(
+    return BlocConsumer<ReservationFormCubit, AgendaState>(
+      listener: _dropUnavailableStart,
       builder: (context, state) => ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
@@ -130,7 +143,7 @@ class _ReservationFormState extends State<_ReservationForm> {
           InlineErrorCard(
             title: AppStrings.agendaErrorTitle,
             message: AppStrings.networkErrorMessage,
-            onRetry: context.read<ReservationFormCubit>().reload,
+            onRetry: context.read<ReservationFormCubit>().load,
           ),
         ],
       AgendaReady(:final agenda) => _choices(agenda),

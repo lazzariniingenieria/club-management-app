@@ -577,9 +577,9 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar, eliminar y pagar por todo el grupo | No bloquea: usa los PR #22 y #23 de la API, ya en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) |
 | E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | No bloquea: usa el PR #23 de la API, ya en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) |
 | E8 | ABM de administradores (superAdmin) | No bloquea | 🚧 En revisión (PR #14) |
-| E9a | Gestión de canchas: listar, crear, editar, dar de baja y reactivar | No bloquea: usa el PR #25 de la API, todavía sin mergear | 🚧 En revisión (PR #22) |
-| E9b | Bloqueos de cancha: listar, bloquear y quitar | No bloquea: usa el PR #26 de la API, todavía sin mergear | 🚧 En revisión (PR #23) |
-| E9c | Agenda del día y reservas puntuales: reservar y cancelar | No bloquea: usa el PR #27 de la API, en draft | 🚧 Draft (PR #24) |
+| E9a | Gestión de canchas: listar, crear, editar, dar de baja y reactivar | No bloquea: usa el PR #25 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #22) |
+| E9b | Bloqueos de cancha: listar, bloquear y quitar | No bloquea: usa el PR #26 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #23) |
+| E9c | Agenda del día y reservas puntuales: reservar y cancelar | No bloquea: usa el PR #27 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #24) |
 | E9 | Turnos fijos y bloqueo con reservas afectadas | **Bloqueada** | — |
 | E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
 | E11 | Recuperar contraseña (informativa) + primer ingreso | Primer ingreso: **Sí** | Recuperar contraseña 🚧 En revisión (PR #14); primer ingreso en el Bloque 2 |
@@ -728,13 +728,13 @@ Lo puntual que saca una cancha de uso: mantenimiento o un evento, aunque dure va
 
 ### E9c — Agenda y reservas puntuales
 
-El flujo §4.4 sobre `/api/reservations` (PR #27 de la API, en draft). Los turnos fijos y el bloqueo con reservas afectadas van en entregas aparte.
+El flujo §4.4 sobre `/api/reservations` (PR #27 de la API). Los turnos fijos y el bloqueo con reservas afectadas van en entregas aparte.
 
 - **Tab Reservas** (solo con `courtsEnabled`): la agenda de un día, con *‹ día anterior*, el día (tocándolo se elige otro) y *día siguiente ›*. Por cada cancha activa: sus bloqueos del día ("Bloqueada 08:00 a 12:00 · motivo"), sus reservas ("19:00 a 20:00" y el socio) con *Cancelar*, o *Libre todo el día*.
 - **Nueva reserva** arranca en el día que se está mirando: *Día*, *Socio* (hoja con búsqueda por nombre o DNI, solo activos), *Cancha*, *Duración* (**propuesta**: 1 hora, 1 hora y media o 2 horas) y *Horario*: un chip por cada inicio, cada 30 minutos, dentro del horario de la cancha. **Los ocupados se ven deshabilitados con el motivo** ("09:00 · Ocupado", "08:00 · Bloqueada", "07:30 · Ya pasó"), no se ocultan.
-- **La confirmación es una pantalla** (*Revisá la reserva*) con el resumen. Si el socio está en mora, lo avisa y deja reservar igual, como dice el documento V6. Si el horario se ocupó entre medio (`409`), lo explica y no deja confirmar: hay que volver y elegir otro.
+- **La confirmación es una pantalla** (*Revisá la reserva*) con el resumen. Si el socio está en mora, lo avisa y deja reservar igual, como dice el documento V6. Si el horario se ocupó entre medio (`409`), lo explica y no deja confirmar: hay que volver y elegir otro. Al volver, el formulario ya se recargó: el horario aparece como ocupado y deja de estar elegido. **Un timeout o un `409` no se dan por fallo sin releer**: si la reserva de ese socio, cancha y horario ya figura en el día, cuenta como confirmada (un reintento después de un timeout que sí entró da `409` contra la propia reserva).
 - **Cancelar** pide confirmación con *Volver* y *Cancelar reserva* (el diálogo compartido suma un texto opcional para el botón de salir, porque "Cancelar" y "Cancelar reserva" juntos confunden). Si otro admin ya la había cancelado, cuenta como cancelada.
-- La disponibilidad (`SlotRules`) se calcula en el dominio con las reservas y los bloqueos del día; la API vuelve a validar todo. La agenda se recarga sola con cualquier cambio de reservas o de bloqueos.
+- La disponibilidad (`SlotRules`) se calcula en el dominio con las reservas y los bloqueos del día; la API vuelve a validar todo. La agenda se recarga sola con cualquier cambio de reservas o de bloqueos, y **reutiliza el padrón entre recargas**: lo vuelve a pedir solo al deslizar para refrescar o cuando cambia el padrón.
 - Fake con una reserva de mañana en la *Cancha de Tenis 1*, relativa al reloj, así se ve junto al bloqueo de la *Cancha de Pádel 1*.
 
 - **Dar de baja una cancha cancela sus reservas desde ahora** (decisión de producto). No suma texto a ninguna pantalla: el aviso va solo en el diálogo de confirmación que ya existía, con una frase fija ("Se cancelan las reservas que tenga desde ahora y no se va a poder reservar hasta que la reactives"). No se muestra cuántas son. La agenda se recarga sola cuando cambia una cancha.

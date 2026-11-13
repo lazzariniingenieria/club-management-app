@@ -189,7 +189,7 @@ class _AgendaList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: context.read<AgendaCubit>().load,
+      onRefresh: context.read<AgendaCubit>().refresh,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(

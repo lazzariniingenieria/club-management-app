@@ -453,9 +453,16 @@ void _registerReservations() {
       watchReservations: sl(),
       watchBlocks: sl(),
       watchCourts: sl(),
+      watchRoster: sl(),
     ),
   );
-  sl.registerFactory(() => ReservationFormCubit(sl()));
+  sl.registerFactory(
+    () => ReservationFormCubit(
+      loadAgenda: sl(),
+      watchReservations: sl(),
+      watchRoster: sl(),
+    ),
+  );
   sl.registerFactory(() => ReservationConfirmCubit(sl()));
 }
 

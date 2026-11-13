@@ -4,7 +4,7 @@ Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, 
 
 **Verificado contra** [`club-management-api`](https://github.com/lazzariniingenieria/club-management-api) `develop`, commit `12abf91` — 2026-10-30. Incluye el PR #22 (reporte de cuotas cobradas) y el #23 (dependencias del Bloque 1 del admin). **`main` (producción) todavía no tiene ninguno de los dos** (§1).
 
-**Canchas** (`/api/courts` y `courtsEnabled` en `/api/clubs/me`, §5) viene del PR #25 (rama `feature/courts-management`), y los **bloqueos** (`/api/courts/{courtId}/blocks`) del PR #26, apilado sobre el #25, y las **reservas** (`/api/reservations`) del PR #27, en draft y apilado sobre el #26. **Ninguno de los tres está mergeado en `develop`.**
+**Canchas** (`/api/courts` y `courtsEnabled` en `/api/clubs/me`, §5) viene del PR #25, los **bloqueos** (`/api/courts/{courtId}/blocks`) del PR #26 y las **reservas** (`/api/reservations`) del PR #27. **Los tres están en `develop` (test) desde el 2026-11-11, y todavía no en `main` (producción).**
 
 **Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/` (incluido `JwtAuthenticationFilter`), `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
@@ -230,7 +230,7 @@ El envelope sale siempre como `application/json`, aunque el pedido haya mandado 
 
 ### Bloqueos de cancha — `/api/courts/{courtId}/blocks`
 
-PR #26, apilado sobre el #25 y **todavía sin mergear**. `POST` (`201`), `GET` listado y `DELETE /{courtBlockId}` (`204`). `ADMIN` y `SUPER_ADMIN`.
+PR #26, en `develop` y todavía no en `main`. `POST` (`201`), `GET` listado y `DELETE /{courtBlockId}` (`204`). `ADMIN` y `SUPER_ADMIN`.
 
 ```json
 { "id": 8, "courtId": 3, "startsAt": "2026-08-03T08:00:00", "endsAt": "2026-08-05T23:59:00",
@@ -245,7 +245,7 @@ PR #26, apilado sobre el #25 y **todavía sin mergear**. `POST` (`201`), `GET` l
 
 ### Reservas — `/api/reservations`
 
-PR #27, **en draft** y apilado sobre el #26. `POST` (`201`), `GET ?date=yyyy-MM-dd[&courtId=]` y `PATCH /{id}/cancel`. `ADMIN` y `SUPER_ADMIN`.
+PR #27, en `develop` y todavía no en `main`. `POST` (`201`), `GET ?date=yyyy-MM-dd[&courtId=]` y `PATCH /{id}/cancel`. `ADMIN` y `SUPER_ADMIN`.
 
 ```json
 { "id": 20, "courtId": 3, "memberId": 10, "source": "MEMBER", "date": "2026-11-09",

@@ -24,11 +24,14 @@ class LoadDayAgendaUseCase {
     required this.members,
   });
 
-  Future<Either<Failure, DayAgenda>> call(DateTime day) async {
+  Future<Either<Failure, DayAgenda>> call(
+    DateTime day, {
+    List<Member>? knownMembers,
+  }) async {
     final results = await Future.wait<Object>([
       courts.loadCourts(),
       reservations.loadReservations(day),
-      members.loadMembers(),
+      _rosterOf(knownMembers),
     ]);
     final courtList = results[0] as Either<Failure, List<Court>>;
     final reservationList = results[1] as Either<Failure, List<Reservation>>;
@@ -54,6 +57,12 @@ class LoadDayAgendaUseCase {
         ),
       ),
     );
+  }
+
+  Future<Either<Failure, List<Member>>> _rosterOf(List<Member>? knownMembers) {
+    if (knownMembers == null) return members.loadMembers();
+
+    return Future.value(Right(knownMembers));
   }
 
   Future<Either<Failure, List<CourtBlock>>> _blocksOfDay(

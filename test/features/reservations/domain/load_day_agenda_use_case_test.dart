@@ -115,4 +115,15 @@ void main() {
 
     expect(result.getLeft().toNullable(), isA<NetworkFailure>());
   });
+
+  test('reuses the known members instead of reloading the roster', () async {
+    when(() => courts.loadCourts()).thenAnswer((_) async => const Right([]));
+    when(() => reservations.loadReservations(day))
+        .thenAnswer((_) async => const Right([]));
+
+    final agenda = await loadAgenda(day, knownMembers: const []);
+
+    expect(agenda.isRight(), isTrue);
+    verifyNever(() => members.loadMembers());
+  });
 }

@@ -56,8 +56,10 @@ class ReservationRepositoryImpl implements ReservationRepository {
   ) async {
     final result = await _guard(operation, run);
     final failure = result.getLeft().toNullable();
-    final settled = failure is ConflictFailure || failure is NotFoundFailure;
-    if (result.isRight() || settled) _reservationChanges.add(null);
+    final mayHaveChanged = failure is ConflictFailure ||
+        failure is NotFoundFailure ||
+        failure is ResponseTimeoutFailure;
+    if (result.isRight() || mayHaveChanged) _reservationChanges.add(null);
 
     return result;
   }

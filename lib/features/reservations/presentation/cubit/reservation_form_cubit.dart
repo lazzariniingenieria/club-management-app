@@ -1,27 +1,35 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/errors/failures.dart';
+import '../../../members/domain/usecases/watch_roster_changes_use_case.dart';
 import '../../domain/usecases/load_day_agenda_use_case.dart';
+import '../../domain/usecases/watch_reservation_changes_use_case.dart';
 import 'agenda_state.dart';
+import 'day_agenda_loader.dart';
 
-class ReservationFormCubit extends Cubit<AgendaState> {
-  final LoadDayAgendaUseCase _loadAgenda;
+class ReservationFormCubit extends Cubit<AgendaState> with DayAgendaLoader {
+  @override
+  final LoadDayAgendaUseCase loadAgenda;
+  late final List<StreamSubscription<void>> _changes;
 
-  ReservationFormCubit(this._loadAgenda) : super(AgendaLoading(DateTime.now()));
-
-  Future<void> showDay(DateTime day) async {
-    emit(AgendaLoading(day));
-
-    final result = await _loadAgenda(day);
-    if (isClosed || state.day != day) return;
-
-    emit(
-      result.fold<AgendaState>(
-        (failure) => AgendaFailure(day, isOffline: failure is NetworkFailure),
-        AgendaReady.new,
-      ),
-    );
+  ReservationFormCubit({
+    required this.loadAgenda,
+    required WatchReservationChangesUseCase watchReservations,
+    required WatchRosterChangesUseCase watchRoster,
+  }) : super(AgendaLoading(DayAgendaLoader.dayOf(DateTime.now()))) {
+    _changes = [
+      watchReservations().listen((_) => load()),
+      watchRoster().listen((_) => refresh()),
+    ];
   }
 
-  Future<void> reload() => showDay(state.day);
+  @override
+  Future<void> close() async {
+    for (final subscription in _changes) {
+      await subscription.cancel();
+    }
+
+    return super.close();
+  }
 }
