@@ -59,6 +59,13 @@ class AppStrings {
   static const String adminHomeSummaryErrorTitle =
       'No pudimos cargar el resumen del club';
   static const String adminHomeQuickAccessTitle = 'Accesos rápidos';
+  static const String upcomingReservationsTitle = 'Próximos turnos';
+  static const String upcomingReservationsSeeAgenda = 'Ver agenda';
+  static const String upcomingReservationsOpenAgenda =
+      'Próximos turnos de hoy. Ver agenda';
+  static const String upcomingReservationsNoneLeft = 'No hay más turnos hoy.';
+  static const String upcomingReservationsErrorTitle =
+      'No pudimos cargar los turnos de hoy';
   static const String adminHomeNewMemberAccess = 'Nuevo socio';
   static const String adminHomeRegisterPaymentAccess = 'Registrar pago';
 
@@ -130,7 +137,7 @@ class AppStrings {
   static const String memberDeactivated = 'Socio dado de baja';
   static const String memberReactivated = 'Socio reactivado';
   static const String memberDeactivateConfirmMessage =
-      'Deja de contar como socio activo y su cuota deja de figurar. Podés reactivarlo cuando quieras.';
+      'Deja de contar como socio activo y su cuota deja de figurar. Se cancelan sus reservas desde ahora y sus turnos fijos. Podés reactivarlo cuando quieras, pero eso no las recupera.';
   static const String memberReactivateConfirmMessage =
       'Vuelve a contar como socio activo y su cuota vuelve a figurar.';
 
@@ -684,6 +691,11 @@ class AppStrings {
   static const String slotPast = 'Ya pasó';
   static const String slotReserved = 'Ocupado';
   static const String slotBlocked = 'Bloqueada';
+  static const String slotRecurring = 'Turno fijo';
+  static const String slotActivity = 'Actividad';
+  static const String reservationSkip = 'Saltear';
+  static const String reservationSkipConfirm = 'Saltear fecha';
+  static const String reservationSkipped = 'Fecha salteada';
   static const String reservationConfirmTitle = 'Revisá la reserva';
   static const String reservationConfirmAction = 'Confirmar reserva';
   static const String reservationConfirmed = 'Reserva confirmada';
@@ -700,6 +712,23 @@ class AppStrings {
 
   static String reservationCancelMessage(String court, String when) =>
       '$court, $when. El horario queda libre.';
+
+  static String reservationSkipTitle(String holder) =>
+      '¿Saltear esta fecha de $holder?';
+
+  static String reservationSkipMessage(String court, String when) =>
+      '$court, $when. Se cancela solo esta fecha: las demás semanas siguen igual.';
+
+  static String reservationSkipSemantics(String hours, String holder) =>
+      'Saltear $hours, $holder';
+
+  static String reservationCancelSemantics(String hours, String holder) =>
+      'Cancelar $hours, $holder';
+
+  static String reservationRecurringHolder(String name) => '$name · Turno fijo';
+
+  static String reservationActivityHolder(String description) =>
+      '$description · Actividad';
 
   static String reservationFormMemberEmpty(String query) =>
       'No encontramos socios activos con «$query»';

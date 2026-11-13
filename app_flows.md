@@ -115,7 +115,7 @@ Rutas push, fuera de los tabs:
 | `ActiveMembersCard` | "TOTAL DE SOCIOS" + contador de activos | Card navy sólida, texto blanco | → tab **Socios** con el chip **Todos** |
 | `OverdueMembersCard` | "SOCIOS EN MORA" + contador | Card azul claro, contador en rojo | → tab **Socios** con el chip **En mora** |
 | `ReportsAccessCard` | "REPORTES Y MÉTRICAS" + chevron | Card blanca con borde, ícono de barras | → Reportes y métricas (§4.7). Va fuera del bloque de contadores, así sigue a mano aunque el resumen no cargue |
-| `UpcomingSlotsCard` **(E9, sin construir)** | "PRÓXIMOS TURNOS" + cancha / horario | Card azul claro, horario en azul a la derecha | → agenda |
+| `UpcomingReservationsCard` (E9d, solo con `courtsEnabled`) | "PRÓXIMOS TURNOS" + los 3 próximos de hoy que no terminaron: socio o actividad, cancha y horario. Sin ninguno, "No hay más turnos hoy." | Card azul claro, horario en azul a la derecha. **Va al final, debajo de los accesos rápidos**: arriba empujaba *Nuevo socio* y *Registrar pago* fuera de la pantalla en un celular chico | → agenda |
 
 **Accesos Rápidos** — dos cards lado a lado, cada una una **acción**, no un destino que ya está en otro lado: *Nuevo socio* (navy) → alta de socio (`/admin/members/new`), *Registrar pago* (verde) → elegir socio → registro de pago (§4.2). Hasta E6 estuvo dibujada en gris.
 
@@ -748,6 +748,14 @@ El flujo §4.4 sobre `/api/reservations` (PR #27 de la API). Los turnos fijos y 
 Lo que queda de E9. Los turnos fijos están en el PR #28 de la API, todavía abierto ([backend_api.md](backend_api.md) §5); la vista previa del bloqueo y la cancelación de lo que pisa siguen faltando (§10). El modelo es el del documento técnico V6 §04: un turno fijo es de un socio **o** de una actividad del club sin socio (clases, escuela), vale como mucho un año, y al crearlo se generan todas sus fechas como reservas en la misma operación; si una sola choca, no se crea ninguna.
 
 **Decidido el 2026-11-13:**
+
+- **En la agenda**, una fecha de turno fijo dice "Marcos Gómez · Turno fijo" y una de actividad "Clases de tenis · Actividad". El botón es *Saltear* en lugar de *Cancelar*, y el diálogo aclara que se cancela solo esa fecha y las demás semanas siguen igual.
+- **En Nueva reserva**, un horario ocupado por un turno fijo dice "18:00 · Turno fijo", y uno de actividad, "17:00 · Actividad".
+- **Dar de baja a un socio** lo avisa en el diálogo: se cancelan sus reservas desde ahora y sus turnos fijos, y reactivarlo no los recupera.
+- **Lista de turnos fijos**: se abre con *Turnos fijos* en la barra de la agenda. Chips *Vigentes* (por defecto), *Vencidos* y *Dados de baja*, agrupada por día de la semana. Tocar uno abre su detalle con *Renovar* y *Dar de baja*.
+- **Nuevo turno fijo**: *De un socio* o *Actividad del club* (con descripción), cancha, día de la semana, duración y horario. Los horarios son chips dentro del horario de la cancha, **sin marcar ocupados**: saberlo pediría la agenda de cada semana. Si alguna fecha choca, la API la rechaza y la confirmación lista cuáles. **Vigencia**: *Desde* arranca hoy; *Hasta* con atajos 3 meses · 6 meses (preelegido) · 1 año, o una fecha exacta.
+- **La confirmación es una pantalla** (*Revisá el turno fijo*): quién, cancha, "todos los martes, 18:00 a 19:00", la vigencia y cuántas fechas se reservan, el aviso de mora y, si la API rechaza, las fechas que chocan.
+- **Renovar** propone *Desde* el día siguiente al vencimiento (u hoy si ya venció) y los mismos atajos para *Hasta*.
 
 - **Saltear una fecha** (un feriado) es cancelar esa reserva, como cualquier otra.
 - **No se edita**: para cambiar día, horario o cancha se da de baja y se crea otro.

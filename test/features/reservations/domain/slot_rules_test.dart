@@ -99,4 +99,36 @@ void main() {
       const ClockTime(23, 0),
     );
   });
+
+  test('says a slot is taken by a fixed slot or by an activity', () {
+    final options = rules(
+      reservations: [
+        Reservation(
+          id: 30,
+          courtId: 2,
+          memberId: 1,
+          source: ReservationSource.recurring,
+          recurringSlotId: 1,
+          date: day,
+          startTime: const ClockTime(8, 0),
+          endTime: const ClockTime(9, 0),
+        ),
+        Reservation(
+          id: 31,
+          courtId: 2,
+          source: ReservationSource.activity,
+          recurringSlotId: 2,
+          description: 'Clases de tenis',
+          date: day,
+          startTime: const ClockTime(9, 0),
+          endTime: const ClockTime(10, 0),
+        ),
+      ],
+      now: yesterday,
+    ).startOptions(60);
+
+    expect(options[0].unavailability, SlotUnavailability.recurring);
+    expect(options[2].unavailability, SlotUnavailability.activity);
+    expect(options.last.isAvailable, isTrue);
+  });
 }
