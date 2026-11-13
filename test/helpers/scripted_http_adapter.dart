@@ -1,9 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
-typedef Responder = ResponseBody Function(
+typedef Responder = FutureOr<ResponseBody> Function(
     RequestOptions options, int callCount);
 
 class ScriptedHttpAdapter implements HttpClientAdapter {

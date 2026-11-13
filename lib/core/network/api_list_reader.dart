@@ -25,7 +25,7 @@ class ApiListReader {
   }
 
   Future<List<dynamic>> _fetchList(String path) async {
-    final response = await apiClient.dio.get<List<dynamic>>(path);
+    final response = await apiClient.sharedGet<List<dynamic>>(path);
 
     return response.data ?? const [];
   }

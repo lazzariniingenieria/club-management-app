@@ -45,6 +45,8 @@ abstract final class ApiConstants {
 
   static const String acceptHeader = 'Accept';
   static const String pdfMediaType = 'application/pdf';
+  static const String eTagHeader = 'ETag';
+  static const String ifNoneMatchHeader = 'If-None-Match';
 
   static const Map<String, String> defaultHeaders = {
     'Content-Type': 'application/json',

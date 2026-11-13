@@ -6,11 +6,15 @@ import '../constants/api_constants.dart';
 import '../logging/app_logger.dart';
 import '../session/session_expiry_notifier.dart';
 import '../storage/secure_storage_service.dart';
+import 'in_flight_gets.dart';
 import 'interceptors/auth_header_interceptor.dart';
 import 'interceptors/token_refresh_interceptor.dart';
+import 'revalidating_get.dart';
 
 class ApiClient {
   final Dio dio;
+  final InFlightGets _inFlightGets = InFlightGets();
+  late final RevalidatingGet _revalidatingGet = RevalidatingGet(dio);
 
   ApiClient({
     required this.dio,
@@ -34,6 +38,18 @@ class ApiClient {
     );
 
     if (kDebugMode) dio.interceptors.add(LogInterceptor(responseBody: true));
+  }
+
+  Future<Response<T>> sharedGet<T>(String path) =>
+      _inFlightGets.share(path, () => _revalidatingGet.fetch<T>(path));
+
+  Future<T> sendWrite<T>(Future<T> Function() send) async {
+    _inFlightGets.forgetAll();
+    try {
+      return await send();
+    } finally {
+      _inFlightGets.forgetAll();
+    }
   }
 
   static void _applyOptions(Dio client, String baseUrl) {

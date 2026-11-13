@@ -44,6 +44,8 @@ Dos entornos en Railway con su propio Postgres: **producción** (deploy desde `m
 | Montos | Número JSON con hasta 2 decimales. `NUMERIC(10,2)` en base, nunca parsear a `double` para operar |
 | Enums | Strings en `SCREAMING_SNAKE_CASE` |
 | Listados | Array JSON plano, sin envelope ni metadata. **Ningún endpoint pagina** |
+| Compresión | Desde `club-management-api#24`, las respuestas `application/json` de 2 KB o más llegan con `Content-Encoding: gzip` si el cliente lo pide. Dio lo pide y descomprime solo: no hay nada que hacer en la app. El PDF de `/payments/receipts` no se comprime |
+| ETag | Desde `club-management-api#24`, toda respuesta `GET` exitosa de `/api` trae un `ETag` **débil** (`W/"0f3a…"`; con uno fuerte Tomcat no comprimiría la respuesta). Si el pedido manda `If-None-Match` con esa huella, tal cual llegó, y la respuesta no cambió, vuelve `304` sin cuerpo. `Cache-Control` sigue siendo el de Spring Security (`no-cache, no-store, max-age=0, must-revalidate`): el navegador no guarda nada por su cuenta. La app lo aprovecha en `RevalidatingGet` |
 | Documento | El campo se llama `dni`, no `nationalId` |
 
 ---
