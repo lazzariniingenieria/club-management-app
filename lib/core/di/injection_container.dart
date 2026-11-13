@@ -38,6 +38,16 @@ import '../../features/club/data/repositories/club_repository_impl.dart';
 import '../../features/club/domain/repositories/club_repository.dart';
 import '../../features/club/domain/usecases/load_club_use_case.dart';
 import '../../features/club/domain/usecases/update_monthly_fee_use_case.dart';
+import '../../features/courts/data/datasources/court_fake_data_source.dart';
+import '../../features/courts/data/datasources/court_remote_data_source.dart';
+import '../../features/courts/data/repositories/court_repository_impl.dart';
+import '../../features/courts/domain/repositories/court_repository.dart';
+import '../../features/courts/domain/usecases/load_courts_use_case.dart';
+import '../../features/courts/domain/usecases/save_court_use_case.dart';
+import '../../features/courts/domain/usecases/set_court_active_use_case.dart';
+import '../../features/courts/domain/usecases/watch_court_changes_use_case.dart';
+import '../../features/courts/presentation/cubit/court_form_cubit.dart';
+import '../../features/courts/presentation/cubit/courts_cubit.dart';
 import '../../features/family_groups/data/datasources/family_group_fake_data_source.dart';
 import '../../features/family_groups/data/datasources/family_group_remote_data_source.dart';
 import '../../features/family_groups/data/repositories/family_group_repository_impl.dart';
@@ -111,6 +121,7 @@ Future<void> init() async {
   _registerFamilyGroups();
   _registerClub();
   _registerAdmins();
+  _registerCourts();
   _registerReports();
   _registerPresentation();
 }
@@ -326,6 +337,33 @@ void _registerAdmins() {
       setAdminActive: sl(),
       resetPassword: sl(),
     ),
+  );
+}
+
+void _registerCourts() {
+  sl.registerLazySingleton<CourtRemoteDataSource>(
+    () => AppEnvironment.usesFakeDataSources
+        ? CourtFakeDataSource()
+        : CourtRemoteDataSourceImpl(sl(), sl()),
+  );
+  sl.registerLazySingleton<CourtRepository>(
+    () => CourtRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+  );
+
+  sl.registerLazySingleton(() => LoadCourtsUseCase(sl()));
+  sl.registerLazySingleton(() => SaveCourtUseCase(sl()));
+  sl.registerLazySingleton(() => SetCourtActiveUseCase(sl()));
+  sl.registerLazySingleton(() => WatchCourtChangesUseCase(sl()));
+
+  sl.registerFactory(
+    () => CourtsCubit(
+      loadCourts: sl(),
+      setCourtActive: sl(),
+      watchChanges: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => CourtFormCubit(saveCourt: sl(), setCourtActive: sl()),
   );
 }
 

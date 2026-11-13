@@ -11,6 +11,7 @@ abstract final class ApiConstants {
   static const String currentClub = '/clubs/me';
   static const String familyGroups = '/family-groups';
   static const String admins = '/admins';
+  static const String courts = '/courts';
 
   static String member(int memberId) => '$members/$memberId';
 
@@ -24,6 +25,14 @@ abstract final class ApiConstants {
   static String adminDeactivation(int adminId) => '${admin(adminId)}/deactivate';
 
   static String adminReactivation(int adminId) => '${admin(adminId)}/reactivate';
+
+  static String court(int courtId) => '$courts/$courtId';
+
+  static String courtDeactivation(int courtId) =>
+      '${court(courtId)}/deactivate';
+
+  static String courtReactivation(int courtId) =>
+      '${court(courtId)}/reactivate';
 
   static String familyGroup(int familyGroupId) =>
       '$familyGroups/$familyGroupId';

@@ -23,6 +23,27 @@ void main() {
     expect(club.hasMonthlyFee, isFalse);
   });
 
+  test('reads whether the club has courts enabled', () {
+    final club = ClubModel.fromJson(const {
+      'id': 1,
+      'name': 'Club 1',
+      'monthlyFeeAmount': null,
+      'courtsEnabled': true,
+    });
+
+    expect(club.courtsEnabled, isTrue);
+  });
+
+  test('an API without the courts flag hides courts', () {
+    final club = ClubModel.fromJson(const {
+      'id': 1,
+      'name': 'Club 1',
+      'monthlyFeeAmount': null,
+    });
+
+    expect(club.courtsEnabled, isFalse);
+  });
+
   test('sends whole pesos without decimals and null to clear', () {
     expect(ClubModel.bodyForMonthlyFee(1600000), {'monthlyFeeAmount': 16000});
     expect(ClubModel.bodyForMonthlyFee(1600050), {'monthlyFeeAmount': 16000.5});

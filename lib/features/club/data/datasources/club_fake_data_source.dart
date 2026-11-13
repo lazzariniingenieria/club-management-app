@@ -2,9 +2,13 @@ import '../models/club_model.dart';
 import 'club_remote_data_source.dart';
 
 class ClubFakeDataSource implements ClubRemoteDataSource {
-  ClubFakeDataSource({this.latency = const Duration(milliseconds: 600)});
+  ClubFakeDataSource({
+    this.latency = const Duration(milliseconds: 600),
+    this.courtsEnabled = true,
+  });
 
   final Duration latency;
+  final bool courtsEnabled;
   int? _monthlyFeeCents = 1500000;
 
   static const int clubId = 1;
@@ -29,5 +33,6 @@ class ClubFakeDataSource implements ClubRemoteDataSource {
         id: clubId,
         name: clubName,
         monthlyFeeCents: _monthlyFeeCents,
+        courtsEnabled: courtsEnabled,
       );
 }
