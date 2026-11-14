@@ -605,7 +605,7 @@ class AppStrings {
   static const String courtDeactivate = 'Dar de baja';
   static const String courtReactivate = 'Reactivar cancha';
   static const String courtDeactivateMessage =
-      'Se cancelan las reservas que tenga desde ahora y no se va a poder reservar hasta que la reactives.';
+      'Se cancelan las reservas que tenga desde ahora y se dan de baja sus turnos fijos. No se va a poder reservar hasta que la reactives.';
   static const String courtReactivateMessage =
       'Vuelve a estar disponible para reservar.';
   static const String courtDeactivated = 'Cancha dada de baja';

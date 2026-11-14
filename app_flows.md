@@ -739,7 +739,7 @@ El flujo §4.4 sobre `/api/reservations` (PR #27 de la API). Los turnos fijos y 
 - La disponibilidad (`SlotRules`) se calcula en el dominio con las reservas y los bloqueos del día; la API vuelve a validar todo. La agenda se recarga sola con cualquier cambio de reservas o de bloqueos, y **reutiliza el padrón entre recargas**: lo vuelve a pedir solo al deslizar para refrescar o cuando cambia el padrón.
 - Fake con una reserva de mañana en la *Cancha de Tenis 1*, relativa al reloj, así se ve junto al bloqueo de la *Cancha de Pádel 1*.
 
-- **Dar de baja una cancha cancela sus reservas desde ahora** (decisión de producto). No suma texto a ninguna pantalla: el aviso va solo en el diálogo de confirmación que ya existía, con una frase fija ("Se cancelan las reservas que tenga desde ahora y no se va a poder reservar hasta que la reactives"). No se muestra cuántas son. La agenda se recarga sola cuando cambia una cancha.
+- **Dar de baja una cancha cancela sus reservas desde ahora** (decisión de producto). No suma texto a ninguna pantalla: el aviso va solo en el diálogo de confirmación que ya existía, con una frase fija ("Se cancelan las reservas que tenga desde ahora y se dan de baja sus turnos fijos. No se va a poder reservar hasta que la reactives"; la mención de los turnos fijos se sumó en E9d). No se muestra cuántas son. La agenda se recarga sola cuando cambia una cancha.
 
 **Pendiente**: el card "Próximos turnos" del Inicio (§3.2.1); bloquear sobre reservas existentes (§4.5).
 
