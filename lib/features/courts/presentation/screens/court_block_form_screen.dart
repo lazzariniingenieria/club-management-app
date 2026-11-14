@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_button.dart';
@@ -17,6 +18,7 @@ import '../cubit/court_block_form_cubit.dart';
 import '../cubit/court_block_form_state.dart';
 import '../widgets/court_date_field.dart';
 import '../widgets/court_time_field.dart';
+import 'court_block_review_args.dart';
 
 class CourtBlockFormScreen extends StatelessWidget {
   final Court court;
@@ -92,9 +94,31 @@ class _CourtBlockFormState extends State<_CourtBlockForm> {
         context.pop();
       case CourtBlockFormFailure(:final message):
         showAppSnackBar(context, message, isError: true);
+      case CourtBlockFormNeedsReview():
+        _review(state);
       case CourtBlockFormEditing():
       case CourtBlockFormSubmitting():
         break;
+    }
+  }
+
+  Future<void> _review(CourtBlockFormNeedsReview state) async {
+    final cubit = context.read<CourtBlockFormCubit>();
+    final created = await context.push<bool>(
+      AppRoutes.adminCourtBlockReview(widget.court.id),
+      extra: CourtBlockReviewArgs(
+        court: widget.court,
+        draft: state.draft,
+        impact: state.impact,
+        hasChanged: state.hasChanged,
+      ),
+    );
+    if (!mounted) return;
+
+    if (created == true) {
+      context.pop();
+    } else {
+      cubit.backToEditing();
     }
   }
 

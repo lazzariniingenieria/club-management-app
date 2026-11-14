@@ -15,6 +15,7 @@ class CourtBlockModel extends CourtBlock {
   static const String _startsAtKey = 'startsAt';
   static const String _endsAtKey = 'endsAt';
   static const String _reasonKey = 'reason';
+  static const String _reservationIdsToCancelKey = 'reservationIdsToCancel';
 
   factory CourtBlockModel.fromJson(Map<String, dynamic> json) {
     return CourtBlockModel(
@@ -31,6 +32,7 @@ class CourtBlockModel extends CourtBlock {
       _startsAtKey: localDateTimeToJson(draft.startsAt),
       _endsAtKey: localDateTimeToJson(draft.endsAt),
       _reasonKey: draft.reason.isEmpty ? null : draft.reason,
+      _reservationIdsToCancelKey: draft.reservationIdsToCancel,
     };
   }
 

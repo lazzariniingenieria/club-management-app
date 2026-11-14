@@ -4,11 +4,17 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_list_reader.dart';
 import '../../../../core/network/api_writer.dart';
 import '../../../courts/data/models/court_block_model.dart';
+import '../../../courts/domain/entities/court_block_draft.dart';
 import '../../domain/entities/reservation_draft.dart';
 import '../models/reservation_model.dart';
 
 abstract class ReservationRemoteDataSource {
   Future<List<ReservationModel>> fetchReservations(DateTime day);
+
+  Future<List<ReservationModel>> fetchAffectedByBlock(
+    int courtId,
+    CourtBlockDraft block,
+  );
 
   Future<void> createReservation(ReservationDraft draft);
 
@@ -37,6 +43,26 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
   Future<List<ReservationModel>> fetchReservations(DateTime day) {
     return _reader.readLists(
       paths: [ApiConstants.reservationsOf(CourtBlockModel.dayToJson(day))],
+      build: (responses) => [
+        for (final row in responses.single)
+          ReservationModel.fromJson(row as Map<String, dynamic>),
+      ],
+    );
+  }
+
+  @override
+  Future<List<ReservationModel>> fetchAffectedByBlock(
+    int courtId,
+    CourtBlockDraft block,
+  ) {
+    final path = ApiConstants.courtBlockAffectedReservations(
+      courtId,
+      startsAt: CourtBlockModel.localDateTimeToJson(block.startsAt),
+      endsAt: CourtBlockModel.localDateTimeToJson(block.endsAt),
+    );
+
+    return _reader.readLists(
+      paths: [path],
       build: (responses) => [
         for (final row in responses.single)
           ReservationModel.fromJson(row as Map<String, dynamic>),
