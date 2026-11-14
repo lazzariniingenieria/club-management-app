@@ -7,11 +7,13 @@ class CourtBlockDraft extends Equatable {
   final DateTime startsAt;
   final DateTime endsAt;
   final String reason;
+  final List<int> reservationIdsToCancel;
 
   const CourtBlockDraft({
     required this.startsAt,
     required this.endsAt,
     this.reason = '',
+    this.reservationIdsToCancel = const [],
   });
 
   static DateTime at(DateTime day, ClockTime time) =>
@@ -31,8 +33,19 @@ class CourtBlockDraft extends Equatable {
         startsAt: startsAt,
         endsAt: endsAt,
         reason: reason.trim(),
+        reservationIdsToCancel: reservationIdsToCancel,
       );
 
+  CourtBlockDraft cancelling(List<int> reservationIds) => CourtBlockDraft(
+        startsAt: startsAt,
+        endsAt: endsAt,
+        reason: reason,
+        reservationIdsToCancel: reservationIds,
+      );
+
+  bool overlaps(DateTime start, DateTime end) =>
+      start.isBefore(endsAt) && end.isAfter(startsAt);
+
   @override
-  List<Object?> get props => [startsAt, endsAt, reason];
+  List<Object?> get props => [startsAt, endsAt, reason, reservationIdsToCancel];
 }

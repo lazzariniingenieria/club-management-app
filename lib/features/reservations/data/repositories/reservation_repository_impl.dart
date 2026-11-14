@@ -5,6 +5,7 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/errors/failure_mapper.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/logging/app_logger.dart';
+import '../../../courts/domain/entities/court_block_draft.dart';
 import '../../domain/entities/reservation.dart';
 import '../../domain/entities/reservation_draft.dart';
 import '../../domain/repositories/reservation_repository.dart';
@@ -17,9 +18,11 @@ class ReservationRepositoryImpl implements ReservationRepository {
   ReservationRepositoryImpl({
     required this.remoteDataSource,
     required this.logger,
-    Stream<void>? relatedChanges,
+    List<Stream<void>> relatedChanges = const [],
   }) {
-    relatedChanges?.listen(_reservationChanges.add);
+    for (final changes in relatedChanges) {
+      changes.listen(_reservationChanges.add);
+    }
   }
 
   static const String _logContext = 'ReservationRepository';
@@ -34,6 +37,17 @@ class ReservationRepositoryImpl implements ReservationRepository {
     return _guard(
       'loadReservations',
       () => remoteDataSource.fetchReservations(day),
+    );
+  }
+
+  @override
+  Future<Either<Failure, List<Reservation>>> loadAffectedByBlock(
+    int courtId,
+    CourtBlockDraft block,
+  ) {
+    return _guard(
+      'loadAffectedByBlock',
+      () => remoteDataSource.fetchAffectedByBlock(courtId, block),
     );
   }
 

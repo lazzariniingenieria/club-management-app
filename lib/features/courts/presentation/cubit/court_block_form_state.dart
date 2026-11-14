@@ -1,5 +1,8 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../reservations/domain/entities/block_impact.dart';
+import '../../domain/entities/court_block_draft.dart';
+
 sealed class CourtBlockFormState extends Equatable {
   const CourtBlockFormState();
 
@@ -17,6 +20,21 @@ class CourtBlockFormSubmitting extends CourtBlockFormState {
 
 class CourtBlockFormSaved extends CourtBlockFormState {
   const CourtBlockFormSaved();
+}
+
+class CourtBlockFormNeedsReview extends CourtBlockFormState {
+  final CourtBlockDraft draft;
+  final BlockImpact impact;
+  final bool hasChanged;
+
+  const CourtBlockFormNeedsReview({
+    required this.draft,
+    required this.impact,
+    this.hasChanged = false,
+  });
+
+  @override
+  List<Object?> get props => [draft, impact, hasChanged];
 }
 
 class CourtBlockFormFailure extends CourtBlockFormState {

@@ -112,7 +112,12 @@ Future<InMemorySecureStorage> bootApp(
 
   di.sl.unregister<CourtBlockRemoteDataSource>();
   di.sl.registerLazySingleton<CourtBlockRemoteDataSource>(
-    () => courtBlockSource ?? CourtBlockFakeDataSource(latency: Duration.zero),
+    () =>
+        courtBlockSource ??
+        CourtBlockFakeDataSource(
+          latency: Duration.zero,
+          reservations: _fakeReservations(),
+        ),
   );
 
   di.sl.unregister<ReservationRemoteDataSource>();
