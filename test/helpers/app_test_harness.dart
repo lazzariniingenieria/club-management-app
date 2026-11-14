@@ -24,6 +24,8 @@ import 'package:club_management_app/features/payments/data/datasources/payment_r
 import 'package:club_management_app/features/payments/presentation/cubit/member_roster_cubit.dart';
 import 'package:club_management_app/features/reports/data/datasources/payment_report_fake_data_source.dart';
 import 'package:club_management_app/features/reports/data/datasources/payment_report_remote_data_source.dart';
+import 'package:club_management_app/features/recurring_slots/data/datasources/recurring_slot_fake_data_source.dart';
+import 'package:club_management_app/features/recurring_slots/data/datasources/recurring_slot_remote_data_source.dart';
 import 'package:club_management_app/features/reservations/data/datasources/reservation_fake_data_source.dart';
 import 'package:club_management_app/features/reservations/data/datasources/reservation_remote_data_source.dart';
 import 'package:club_management_app/main.dart';
@@ -45,6 +47,7 @@ Future<InMemorySecureStorage> bootApp(
   CourtRemoteDataSource? courtSource,
   CourtBlockRemoteDataSource? courtBlockSource,
   ReservationRemoteDataSource? reservationSource,
+  RecurringSlotRemoteDataSource? recurringSlotSource,
   AppFeatures? features,
 }) async {
   final storage = InMemorySecureStorage();
@@ -118,6 +121,16 @@ Future<InMemorySecureStorage> bootApp(
         reservationSource ?? ReservationFakeDataSource(latency: Duration.zero),
   );
 
+  di.sl.unregister<RecurringSlotRemoteDataSource>();
+  di.sl.registerLazySingleton<RecurringSlotRemoteDataSource>(
+    () =>
+        recurringSlotSource ??
+        RecurringSlotFakeDataSource(
+          latency: Duration.zero,
+          reservations: _fakeReservations(),
+        ),
+  );
+
   di.sl.unregister<MemberRosterCubit>();
   di.sl.registerFactory(
     () => MemberRosterCubit(
@@ -148,6 +161,12 @@ Future<InMemorySecureStorage> bootApp(
   await settleSession(tester);
 
   return storage;
+}
+
+ReservationFakeDataSource? _fakeReservations() {
+  final reservations = di.sl<ReservationRemoteDataSource>();
+
+  return reservations is ReservationFakeDataSource ? reservations : null;
 }
 
 PaymentFakeDataSource _instantPaymentSource() {

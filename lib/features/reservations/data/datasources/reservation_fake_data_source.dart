@@ -71,6 +71,46 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
     ];
   }
 
+  List<DateTime> takenDates({
+    required int courtId,
+    required List<DateTime> dates,
+    required ClockTime start,
+    required ClockTime end,
+  }) {
+    return [
+      for (final date in dates)
+        if (_reservations.any(
+          (each) =>
+              each.courtId == courtId &&
+              _sameDay(each.date, date) &&
+              each.overlaps(start, end),
+        ))
+          date,
+    ];
+  }
+
+  void addOccurrences(ReservationModel template, List<DateTime> dates) {
+    for (final date in dates) {
+      _reservations.add(
+        ReservationModel(
+          id: _nextId(),
+          courtId: template.courtId,
+          memberId: template.memberId,
+          source: template.source,
+          recurringSlotId: template.recurringSlotId,
+          description: template.description,
+          date: date,
+          startTime: template.startTime,
+          endTime: template.endTime,
+        ),
+      );
+    }
+  }
+
+  void cancelUpcomingOfRecurringSlot(int recurringSlotId) => _cancelUpcoming(
+        (reservation) => reservation.recurringSlotId == recurringSlotId,
+      );
+
   void cancelUpcomingOf(int courtId) =>
       _cancelUpcoming((reservation) => reservation.courtId == courtId);
 

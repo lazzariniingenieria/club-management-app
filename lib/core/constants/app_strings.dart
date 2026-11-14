@@ -746,6 +746,126 @@ class AppStrings {
   static String reservationOverdueWarning(String name, int days) =>
       '$name tiene $days días de mora. Podés reservar igual.';
 
+  static const List<String> weekdayNames = [
+    'lunes',
+    'martes',
+    'miércoles',
+    'jueves',
+    'viernes',
+    'sábado',
+    'domingo',
+  ];
+
+  static const List<String> weekdayPlurals = [
+    'lunes',
+    'martes',
+    'miércoles',
+    'jueves',
+    'viernes',
+    'sábados',
+    'domingos',
+  ];
+
+  static const String recurringSlotStateCurrent = 'Vigente';
+  static const String recurringSlotStateExpired = 'Vencido';
+  static const String recurringSlotStateInactive = 'Dado de baja';
+  static const String recurringSlotsAction = 'Turnos fijos';
+  static const String recurringSlotsTitle = 'Turnos fijos';
+  static const String recurringSlotsNew = 'Nuevo turno fijo';
+  static const String recurringSlotsCurrent = 'Vigentes';
+  static const String recurringSlotsExpired = 'Vencidos';
+  static const String recurringSlotsInactive = 'Dados de baja';
+  static const String recurringSlotsErrorTitle =
+      'No pudimos cargar los turnos fijos';
+  static const String recurringSlotsEmptyCurrent =
+      'No hay turnos fijos vigentes';
+  static const String recurringSlotsEmptyCurrentHint =
+      'Un turno fijo reserva la misma cancha, el mismo día y horario todas las semanas.';
+  static const String recurringSlotsEmptyExpired = 'No hay turnos vencidos';
+  static const String recurringSlotsEmptyInactive =
+      'No hay turnos dados de baja';
+  static const String recurringSlotFormTitle = 'Nuevo turno fijo';
+  static const String recurringSlotFormForMember = 'De un socio';
+  static const String recurringSlotFormForActivity = 'Actividad del club';
+  static const String recurringSlotFormDescription = 'Actividad';
+  static const String recurringSlotFormDescriptionHelp =
+      'Por ejemplo: Clases de tenis';
+  static const String recurringSlotFormWeekday = 'Día de la semana';
+  static const String recurringSlotFormWeekdayUnset = 'Elegí el día';
+  static const String recurringSlotFormFrom = 'Desde';
+  static const String recurringSlotFormUntil = 'Hasta';
+  static const String recurringSlotFormOtherDate = 'Otra fecha';
+  static const String recurringSlotFormNoDates =
+      'En ese período no queda ningún día para reservar. Cambiá las fechas.';
+  static const String recurringSlotConfirmTitle = 'Revisá el turno fijo';
+  static const String recurringSlotConfirmAction = 'Crear turno fijo';
+  static const String recurringSlotCreated = 'Turno fijo creado';
+  static const String recurringSlotWhen = 'Cuándo';
+  static const String recurringSlotValidity = 'Vigencia';
+  static const String recurringSlotDates = 'Fechas';
+  static const String recurringSlotState = 'Estado';
+  static const String recurringSlotClashTitle =
+      'Estas fechas ya están ocupadas';
+  static const String recurringSlotClashHint =
+      'Volvé y elegí otro horario u otra vigencia. No se reservó nada.';
+  static const String recurringSlotClashUnknownDates =
+      'Alguna fecha ya está ocupada. Volvé y elegí otro horario u otra vigencia.';
+  static const String clashReserved = 'Reservada';
+  static const String clashBlocked = 'Bloqueada';
+  static const String clashTaken = 'Ocupada';
+  static const String recurringSlotDetailTitle = 'Turno fijo';
+  static const String recurringSlotRenew = 'Renovar';
+  static const String recurringSlotRenewTitle = 'Renovar turno fijo';
+  static const String recurringSlotRenewed = 'Turno fijo renovado';
+  static const String recurringSlotDeactivate = 'Dar de baja';
+  static const String recurringSlotDeactivateMessage =
+      'Se cancelan sus fechas desde ahora. Las que ya pasaron quedan, y no se puede deshacer.';
+  static const String recurringSlotDeactivated = 'Turno fijo dado de baja';
+  static const String recurringSlotUnconfirmed =
+      'No sabemos si se guardó. Revisá la lista antes de volver a intentar.';
+  static const String recurringSlotInactiveHint =
+      'Este turno está dado de baja. Para volver a tenerlo, creá uno nuevo.';
+
+  static String recurringSlotEveryWeek(String weekday, String hours) =>
+      'Todos los $weekday, $hours';
+
+  static String recurringSlotRange(String from, String until) =>
+      'Del $from al $until';
+
+  static String recurringSlotUntil(String until) => 'hasta el $until';
+
+  static String recurringSlotDateCount(
+    int count, {
+    required String singular,
+    required String plural,
+  }) =>
+      count == 1 ? '1 $singular' : '$count $plural';
+
+  static String recurringSlotDatesSummary(String count, String range) =>
+      '$count, ${range[0].toLowerCase()}${range.substring(1)}';
+
+  static String recurringSlotReservedDates(int count) =>
+      count == 1 ? 'Se reserva 1 fecha' : 'Se reservan $count fechas';
+
+  static String recurringSlotExpiresIn(int days) => switch (days) {
+        0 => 'Vence hoy',
+        1 => 'Vence mañana',
+        _ => 'Vence en $days días',
+      };
+
+  static String recurringSlotExpiredOn(String day) => 'Venció el $day';
+
+  static String recurringSlotOverdueWarning(String name, int days) =>
+      '$name tiene $days días de mora. Podés crear el turno igual.';
+
+  static String recurringSlotDeactivateTitle(String holder) =>
+      '¿Dar de baja el turno fijo de $holder?';
+
+  static String validityPreset(int months) =>
+      months == 12 ? '1 año' : '$months meses';
+
+  static String clashLine(String day, String reason) => '$day · $reason';
+
   static const List<String> weekdayAbbreviations = [
     'lun',
     'mar',
