@@ -120,6 +120,7 @@ import '../../features/reservations/domain/usecases/watch_reservation_changes_us
 import '../../features/reservations/presentation/cubit/agenda_cubit.dart';
 import '../../features/reservations/presentation/cubit/reservation_confirm_cubit.dart';
 import '../../features/reservations/presentation/cubit/reservation_form_cubit.dart';
+import '../../features/reservations/presentation/cubit/upcoming_reservations_cubit.dart';
 import '../config/app_environment.dart';
 import '../config/app_features.dart';
 import '../logging/app_logger.dart';
@@ -217,7 +218,7 @@ void _registerAdminDomain() {
 void _registerMemberDataSources() {
   sl.registerLazySingleton<MemberRemoteDataSource>(
     () => AppEnvironment.usesFakeDataSources
-        ? MemberFakeDataSource()
+        ? MemberFakeDataSource(onDeactivated: _cancelFakeReservationsOfMember)
         : MemberRemoteDataSourceImpl(sl(), sl()),
   );
 }
@@ -398,6 +399,13 @@ void _cancelFakeReservationsOf(int courtId) {
   }
 }
 
+void _cancelFakeReservationsOfMember(int memberId) {
+  final reservations = sl<ReservationRemoteDataSource>();
+  if (reservations is ReservationFakeDataSource) {
+    reservations.cancelUpcomingOfMember(memberId);
+  }
+}
+
 void _registerCourtBlocks() {
   sl.registerLazySingleton<CourtBlockRemoteDataSource>(
     () => AppEnvironment.usesFakeDataSources
@@ -464,6 +472,14 @@ void _registerReservations() {
     ),
   );
   sl.registerFactory(() => ReservationConfirmCubit(sl()));
+  sl.registerFactory(
+    () => UpcomingReservationsCubit(
+      loadClub: sl(),
+      loadAgenda: sl(),
+      watchReservations: sl(),
+      watchRoster: sl(),
+    ),
+  );
 }
 
 void _registerReports() {

@@ -5,10 +5,13 @@ import '../models/member_model.dart';
 import 'member_remote_data_source.dart';
 
 class MemberFakeDataSource implements MemberRemoteDataSource {
-  MemberFakeDataSource({this.latency = const Duration(milliseconds: 600)})
-      : _roster = [...roster];
+  MemberFakeDataSource({
+    this.latency = const Duration(milliseconds: 600),
+    this.onDeactivated,
+  }) : _roster = [...roster];
 
   final Duration latency;
+  final void Function(int memberId)? onDeactivated;
   final List<MemberModel> _roster;
 
   static const int activeMembers = 34;
@@ -89,6 +92,7 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
         daysOverdue: isActive ? current.daysOverdue : 0,
       ),
     );
+    if (!isActive) onDeactivated?.call(memberId);
   }
 
   @override
