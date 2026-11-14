@@ -46,6 +46,7 @@ void main() {
       'startsAt': '2026-08-03T08:00',
       'endsAt': '2026-08-05T23:59',
       'reason': 'Torneo',
+      'reservationIdsToCancel': <int>[],
     });
   });
 
@@ -58,6 +59,17 @@ void main() {
     );
 
     expect(body['reason'], isNull);
+  });
+
+  test('sends the reservations the admin agreed to cancel', () {
+    final body = CourtBlockModel.bodyFromDraft(
+      CourtBlockDraft(
+        startsAt: DateTime(2026, 12, 1, 8),
+        endsAt: DateTime(2026, 12, 3, 23),
+      ).cancelling(const [45, 46]),
+    );
+
+    expect(body['reservationIdsToCancel'], [45, 46]);
   });
 
   test('asks for the blocks from a day as yyyy-MM-dd', () {

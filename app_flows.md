@@ -97,7 +97,7 @@ Rutas push, fuera de los tabs:
 | Reportes y métricas | `/admin/reports` | admin | Revisión 2026-10-31 |
 | Reporte de cuotas cobradas (PDF) | `/admin/reports/receipts` | admin | E10 |
 | Gestión de canchas | `/admin/courts` (+ `/new`, `/:courtId/edit`) | admin | E9a |
-| Bloqueos de una cancha | `/admin/courts/:courtId/blocks` (+ `/new`) | admin | E9b |
+| Bloqueos de una cancha | `/admin/courts/:courtId/blocks` (+ `/new`, `/new/review`) | admin | E9b, revisión en E9d |
 | Turnos fijos | `/admin/reservations/recurring` (+ `/new`, `/new/confirm`, `/detail`) | admin | E9d |
 | Gestión de administradores | `/admin/admins` (+ `/new`, `/:adminId/edit`) | **superAdmin** | E8 |
 
@@ -417,6 +417,8 @@ En la edición, debajo del botón de guardar: **Restablecer contraseña** (hoja 
 
 Si el bloqueo pisa reservas existentes, la confirmación **debe listar las reservas afectadas** y decir qué pasa con ellas. Es el flujo con mayor potencial de daño de la app.
 
+Construido en E9d: al tocar *Bloquear*, la app pide qué reservas pisa. **Si no pisa ninguna, bloquea directo**, como antes. Si pisa alguna, abre **Revisá el bloqueo** (pantalla, no hoja: la lista puede ser larga): cancha, rango y motivo; el aviso en rojo "Se cancelan 3 reservas. Quitar el bloqueo después no las devuelve."; cada reserva con su fecha, horario y socio o actividad; y el botón *Bloquear y cancelar 3 reservas*. Si mientras tanto se sumó una reserva, el servidor rechaza el bloqueo y la pantalla se actualiza sola con la lista nueva y el aviso "Mientras revisabas cambiaron las reservas de ese horario". Volver atrás deja el formulario como estaba.
+
 ### 4.6 Reporte de pagos
 
 `Inicio → Reportes y métricas → Generar PDF de cuotas cobradas → meses en la grilla → Generar PDF → hoja con Compartir / Ver o imprimir`
@@ -491,7 +493,7 @@ Una ruta con un `:familyGroupId` que no es un número vuelve a Socios, igual que
 │   ├── /admin/reports                               ← reportes y métricas
 │   │   └── receipts                                 ← PDF de cuotas cobradas (E10)
 │   ├── /admin/courts   (+ /new, /:courtId/edit)       ← gestión de canchas (E9a)
-│   ├── /admin/courts/:courtId/blocks  (+ /new)        ← bloqueos de la cancha (E9b)
+│   ├── /admin/courts/:courtId/blocks  (+ /new, /new/review)  ← bloqueos de la cancha (E9b; revisión E9d)
 │   ├── /admin/reservations/new  (+ /confirm)        ← nueva reserva (E9c)
 │   ├── /admin/reservations/recurring  (+ /new, /new/confirm, /detail)  ← turnos fijos (E9d)
 │   └── /admin/admins   (+ /new, /:adminId/edit)      ← solo superAdmin
@@ -582,7 +584,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E9a | Gestión de canchas: listar, crear, editar, dar de baja y reactivar | No bloquea: usa el PR #25 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #22) |
 | E9b | Bloqueos de cancha: listar, bloquear y quitar | No bloquea: usa el PR #26 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #23) |
 | E9c | Agenda del día y reservas puntuales: reservar y cancelar | No bloquea: usa el PR #27 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #24) |
-| E9d | Turnos fijos y bloqueo con reservas afectadas | Turnos fijos: no bloquea, usa el PR #28 de la API, todavía abierto. Bloqueo con reservas: **Sí** | Turnos fijos 🚧 en revisión; bloqueo con reservas afectadas pendiente del backend |
+| E9d | Turnos fijos y bloqueo con reservas afectadas | No bloquea: usa los PR #28 y #29 de la API, todavía abiertos | 🚧 En revisión |
 | E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | ✅ Entregada (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
 | E11 | Recuperar contraseña (informativa) | No bloquea | ✅ Entregada (PR #14). El registro del socio (`/login/activate`) no es parte de E11: va con E12+ |
 | E12+ | Superficie del socio completa, incluido el registro con DNI | **Bloqueada** | — |
@@ -724,7 +726,7 @@ Lo puntual que saca una cancha de uso: mantenimiento o un evento, aunque dure va
 - Las fechas se muestran como `lun 03/08/2026`: un bloqueo de un solo día es una línea ("Sáb 15/08/2026, de 09:00 a 12:00"); uno de varios días, dos ("Desde el…", "Hasta el…").
 - Fake con un bloqueo de mañana en la *Cancha de Pádel 1*, relativo al reloj, así siempre se ve en la lista.
 
-**Pendiente para cuando existan reservas** (flujo §4.5): un bloqueo que pisa reservas tiene que listarlas antes de confirmar. **Decidido el 2026-11-10 (comentario en club-management-api#26): el bloqueo pisa la reserva.** Al confirmar, las reservas listadas se cancelan en la misma operación, y solo esas; quitar el bloqueo después no las devuelve, y la confirmación tiene que decirlo. El contrato se documenta en `backend_api.md` cuando exista el endpoint.
+**Bloquear sobre reservas** (flujo §4.5, construido en E9d). **Decidido el 2026-11-10 (comentario en club-management-api#26): el bloqueo pisa la reserva.** Al confirmar, las reservas listadas se cancelan en la misma operación, y solo esas; quitar el bloqueo después no las devuelve, y la confirmación lo dice. El contrato está en [backend_api.md](backend_api.md) §5.
 
 **Terminado cuando**: el admin bloquea una cancha un día completo en un toque, o un rango de varios días con motivo; ve los bloqueos de hoy en adelante y quita uno con confirmación; un bloqueo que termina antes de empezar no se puede guardar; hay tests del mapeo, de las reglas, del fake, del formato y del flujo.
 
