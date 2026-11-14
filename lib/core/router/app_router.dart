@@ -34,6 +34,8 @@ import '../../features/payments/presentation/screens/payment_member_picker_scree
 import '../../features/payments/presentation/screens/register_payment_screen.dart';
 import '../../features/reports/presentation/screens/club_metrics_screen.dart';
 import '../../features/reports/presentation/screens/payment_report_screen.dart';
+import '../../features/courts/presentation/screens/court_block_review_args.dart';
+import '../../features/courts/presentation/screens/court_block_review_screen.dart';
 import '../../features/recurring_slots/presentation/screens/recurring_slot_confirmation_args.dart';
 import '../../features/recurring_slots/presentation/screens/recurring_slot_confirmation_screen.dart';
 import '../../features/recurring_slots/presentation/screens/recurring_slot_detail_args.dart';
@@ -251,6 +253,14 @@ class AppRouter {
       redirect: _requireCourt,
       builder: (context, state) =>
           CourtBlockFormScreen(court: state.extra as Court),
+    ),
+    GoRoute(
+      path: AppRoutes.adminCourtBlockReviewPattern,
+      redirect: (context, state) =>
+          state.extra is CourtBlockReviewArgs ? null : AppRoutes.adminCourts,
+      builder: (context, state) => CourtBlockReviewScreen(
+        args: state.extra as CourtBlockReviewArgs,
+      ),
     ),
     GoRoute(
       path: AppRoutes.adminReservationCreation,

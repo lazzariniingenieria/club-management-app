@@ -648,6 +648,23 @@ class AppStrings {
   static const String courtBlockUnconfirmed =
       'No sabemos si el bloqueo se guardó. Revisá la lista antes de volver a bloquear.';
   static const String courtBlockDayPickerHelp = 'Elegí el día';
+  static const String courtBlockReviewTitle = 'Revisá el bloqueo';
+  static const String courtBlockReviewNone =
+      'Ya no se cancela ninguna reserva.';
+  static const String courtBlockReviewChanged =
+      'Mientras revisabas cambiaron las reservas de ese horario. Revisá la lista de nuevo.';
+
+  static String courtBlockReviewReason(String reason) => 'Motivo: $reason';
+
+  static String courtBlockReviewWarning(int count) => count == 1
+      ? 'Se cancela 1 reserva. Quitar el bloqueo después no la devuelve.'
+      : 'Se cancelan $count reservas. Quitar el bloqueo después no las devuelve.';
+
+  static String courtBlockReviewConfirm(int count) => switch (count) {
+        0 => 'Bloquear',
+        1 => 'Bloquear y cancelar 1 reserva',
+        _ => 'Bloquear y cancelar $count reservas',
+      };
 
   static String courtBlockRemoveSemantics(String range) =>
       'Quitar el bloqueo: $range';

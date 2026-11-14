@@ -1,5 +1,6 @@
 import '../../../../core/errors/exceptions.dart';
 import '../../../courts/domain/entities/clock_time.dart';
+import '../../../courts/domain/entities/court_block_draft.dart';
 import '../../domain/entities/reservation.dart';
 import '../../domain/entities/reservation_draft.dart';
 import '../models/reservation_model.dart';
@@ -107,6 +108,34 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
     }
   }
 
+  @override
+  Future<List<ReservationModel>> fetchAffectedByBlock(
+    int courtId,
+    CourtBlockDraft block,
+  ) async {
+    await Future<void>.delayed(latency);
+
+    return affectedBy(courtId, block);
+  }
+
+  List<ReservationModel> affectedBy(int courtId, CourtBlockDraft block) {
+    final now = _clock();
+
+    return [
+      for (final reservation in _reservations)
+        if (reservation.courtId == courtId &&
+            _startOf(reservation).isAfter(now) &&
+            block.overlaps(_startOf(reservation), _endOf(reservation)))
+          reservation,
+    ]..sort((a, b) => _startOf(a).compareTo(_startOf(b)));
+  }
+
+  void cancelAll(Iterable<int> reservationIds) {
+    final ids = reservationIds.toSet();
+    _reservations.removeWhere((reservation) => ids.contains(reservation.id));
+    _cancelledIds.addAll(ids);
+  }
+
   void cancelUpcomingOfRecurringSlot(int recurringSlotId) => _cancelUpcoming(
         (reservation) => reservation.recurringSlotId == recurringSlotId,
       );
@@ -130,6 +159,14 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
       _cancelledIds.add(reservation.id);
     }
   }
+
+  static DateTime _endOf(ReservationModel reservation) => DateTime(
+        reservation.date.year,
+        reservation.date.month,
+        reservation.date.day,
+        reservation.endTime.hour,
+        reservation.endTime.minute,
+      );
 
   static DateTime _startOf(ReservationModel reservation) => DateTime(
         reservation.date.year,

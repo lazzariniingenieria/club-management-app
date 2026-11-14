@@ -57,6 +57,14 @@ abstract final class ApiConstants {
   static String courtBlocksFrom(int courtId, String fromDay) =>
       '${courtBlocks(courtId)}?from=$fromDay';
 
+  static String courtBlockAffectedReservations(
+    int courtId, {
+    required String startsAt,
+    required String endsAt,
+  }) =>
+      '${courtBlocks(courtId)}/affected-reservations'
+      '?startsAt=$startsAt&endsAt=$endsAt';
+
   static String courtBlock(int courtId, int blockId) =>
       '${courtBlocks(courtId)}/$blockId';
 

@@ -15,20 +15,26 @@ abstract final class CourtBlockFormats {
   static String time(DateTime value) =>
       CourtFormats.time(ClockTime(value.hour, value.minute));
 
-  static List<String> range(CourtBlock block) {
-    if (block.isWithinOneDay) {
+  static List<String> range(CourtBlock block) =>
+      rangeOf(block.startsAt, block.endsAt);
+
+  static List<String> rangeOf(DateTime startsAt, DateTime endsAt) {
+    final sameDay = startsAt.year == endsAt.year &&
+        startsAt.month == endsAt.month &&
+        startsAt.day == endsAt.day;
+    if (sameDay) {
       return [
         AppStrings.courtBlockSameDay(
-          _capitalized(day(block.startsAt)),
-          time(block.startsAt),
-          time(block.endsAt),
+          _capitalized(day(startsAt)),
+          time(startsAt),
+          time(endsAt),
         ),
       ];
     }
 
     return [
-      AppStrings.courtBlockFrom(day(block.startsAt), time(block.startsAt)),
-      AppStrings.courtBlockUntil(day(block.endsAt), time(block.endsAt)),
+      AppStrings.courtBlockFrom(day(startsAt), time(startsAt)),
+      AppStrings.courtBlockUntil(day(endsAt), time(endsAt)),
     ];
   }
 
