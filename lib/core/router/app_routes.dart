@@ -12,6 +12,13 @@ abstract final class AppRoutes {
   static const String adminReservationCreation = '/admin/reservations/new';
   static const String adminReservationConfirmation =
       '/admin/reservations/new/confirm';
+  static const String adminRecurringSlots = '/admin/reservations/recurring';
+  static const String adminRecurringSlotCreation =
+      '/admin/reservations/recurring/new';
+  static const String adminRecurringSlotConfirmation =
+      '/admin/reservations/recurring/new/confirm';
+  static const String adminRecurringSlotDetail =
+      '/admin/reservations/recurring/detail';
   static const String adminCourts = '/admin/courts';
   static const String adminCourtCreation = '/admin/courts/new';
   static const String adminCourtEditionPattern = '/admin/courts/:courtId/edit';

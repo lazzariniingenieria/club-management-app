@@ -40,7 +40,8 @@ class ValidationException implements Exception {
 
 class ConflictException implements Exception {
   final String? message;
-  ConflictException([this.message]);
+  final List<String> details;
+  ConflictException([this.message, this.details = const []]);
 
   @override
   String toString() => message ?? 'ConflictException';

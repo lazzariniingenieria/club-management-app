@@ -98,6 +98,7 @@ Rutas push, fuera de los tabs:
 | Reporte de cuotas cobradas (PDF) | `/admin/reports/receipts` | admin | E10 |
 | Gestión de canchas | `/admin/courts` (+ `/new`, `/:courtId/edit`) | admin | E9a |
 | Bloqueos de una cancha | `/admin/courts/:courtId/blocks` (+ `/new`) | admin | E9b |
+| Turnos fijos | `/admin/reservations/recurring` (+ `/new`, `/new/confirm`, `/detail`) | admin | E9d |
 | Gestión de administradores | `/admin/admins` (+ `/new`, `/:adminId/edit`) | **superAdmin** | E8 |
 
 **El listado de socios es un tab, no una pantalla aparte.** El diseño original lo tenía como ruta push en `/admin/members`, con un tab Pagos separado para las cuotas. Son la misma tarea: el admin abre la lista de socios *para cobrar*, y partirla en dos superficies obligaba a saltar entre ellas para resolver un solo trámite. Una pantalla menos, un tab que ahora hace algo, y el estado del listado lo preserva el `StatefulShellRoute` en lugar de reconstruirse en cada push.
@@ -492,6 +493,7 @@ Una ruta con un `:familyGroupId` que no es un número vuelve a Socios, igual que
 │   ├── /admin/courts   (+ /new, /:courtId/edit)       ← gestión de canchas (E9a)
 │   ├── /admin/courts/:courtId/blocks  (+ /new)        ← bloqueos de la cancha (E9b)
 │   ├── /admin/reservations/new  (+ /confirm)        ← nueva reserva (E9c)
+│   ├── /admin/reservations/recurring  (+ /new, /new/confirm, /detail)  ← turnos fijos (E9d)
 │   └── /admin/admins   (+ /new, /:adminId/edit)      ← solo superAdmin
 └── StatefulShellRoute (socio)      → E12+
     ├── branch: /home
@@ -580,7 +582,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E9a | Gestión de canchas: listar, crear, editar, dar de baja y reactivar | No bloquea: usa el PR #25 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #22) |
 | E9b | Bloqueos de cancha: listar, bloquear y quitar | No bloquea: usa el PR #26 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #23) |
 | E9c | Agenda del día y reservas puntuales: reservar y cancelar | No bloquea: usa el PR #27 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #24) |
-| E9d | Turnos fijos y bloqueo con reservas afectadas | **Bloqueada** | Decisiones tomadas (§E9d) |
+| E9d | Turnos fijos y bloqueo con reservas afectadas | Turnos fijos: no bloquea, usa el PR #28 de la API, todavía abierto. Bloqueo con reservas: **Sí** | Turnos fijos 🚧 en revisión; bloqueo con reservas afectadas pendiente del backend |
 | E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | ✅ Entregada (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
 | E11 | Recuperar contraseña (informativa) | No bloquea | ✅ Entregada (PR #14). El registro del socio (`/login/activate`) no es parte de E11: va con E12+ |
 | E12+ | Superficie del socio completa, incluido el registro con DNI | **Bloqueada** | — |
@@ -756,6 +758,14 @@ Lo que queda de E9. Los turnos fijos están en el PR #28 de la API, todavía abi
 - **Nuevo turno fijo**: *De un socio* o *Actividad del club* (con descripción), cancha, día de la semana, duración y horario. Los horarios son chips dentro del horario de la cancha, **sin marcar ocupados**: saberlo pediría la agenda de cada semana. Si alguna fecha choca, la API la rechaza y la confirmación lista cuáles. **Vigencia**: *Desde* arranca hoy; *Hasta* con atajos 3 meses · 6 meses (preelegido) · 1 año, o una fecha exacta.
 - **La confirmación es una pantalla** (*Revisá el turno fijo*): quién, cancha, "todos los martes, 18:00 a 19:00", la vigencia y cuántas fechas se reservan, el aviso de mora y, si la API rechaza, las fechas que chocan.
 - **Renovar** propone *Desde* el día siguiente al vencimiento (u hoy si ya venció) y los mismos atajos para *Hasta*.
+
+**Cómo quedó construido:**
+
+- La lista carga una sola vez todos los turnos (`GET /api/recurring-slots` sin `state`) junto con las canchas y el padrón, y los chips filtran en el cliente. Un turno vigente que vence en 30 días o menos lo avisa en rojo ("Vence en 12 días"); uno vencido dice "Venció el …".
+- El detalle muestra quién, cancha, cuándo, vigencia y estado, con *Renovar* y *Dar de baja*. Uno dado de baja no ofrece acciones: se crea otro.
+- **Un timeout no se da por fallo sin releer**, como en las reservas: al crear o renovar, si el turno ya figura en la lista, cuenta como hecho. Dar de baja uno que otro admin ya había dado de baja (`409`) cuenta como hecho.
+- Un `409` sin `details` (dos altas a la vez) muestra "Alguna fecha ya está ocupada" sin lista.
+- Crear, renovar o dar de baja recarga la agenda, Nueva reserva y "Próximos turnos": los cambios de turnos fijos llegan como cambios de reservas.
 
 - **Saltear una fecha** (un feriado) es cancelar esa reserva, como cualquier otra.
 - **No se edita**: para cambiar día, horario o cancha se da de baja y se crea otro.

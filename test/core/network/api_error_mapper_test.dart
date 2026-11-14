@@ -56,4 +56,28 @@ void main() {
       expect(error, isNot(isA<ResponseTimeoutException>()));
     }
   });
+
+  test('a conflict keeps the details the API sent', () {
+    final error = apiExceptionFrom(
+      DioException(
+        requestOptions: RequestOptions(path: '/recurring-slots'),
+        type: DioExceptionType.badResponse,
+        response: Response<dynamic>(
+          requestOptions: RequestOptions(path: '/recurring-slots'),
+          statusCode: 409,
+          data: const {
+            'message': 'recurring slot conflicts',
+            'details': ['2026-12-01: court already reserved'],
+          },
+        ),
+      ),
+      logger: const SilentLogger(),
+      logContext: 'test',
+    );
+
+    expect(
+      (error as ConflictException).details,
+      ['2026-12-01: court already reserved'],
+    );
+  });
 }

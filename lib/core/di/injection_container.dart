@@ -109,6 +109,17 @@ import '../../features/reports/domain/usecases/load_club_metrics_use_case.dart';
 import '../../features/reports/presentation/cubit/club_metrics_cubit.dart';
 import '../../features/reports/presentation/cubit/payment_report_cubit.dart';
 import '../../features/reports/presentation/export/report_file_exporter.dart';
+import '../../features/recurring_slots/data/datasources/recurring_slot_fake_data_source.dart';
+import '../../features/recurring_slots/data/datasources/recurring_slot_remote_data_source.dart';
+import '../../features/recurring_slots/data/repositories/recurring_slot_repository_impl.dart';
+import '../../features/recurring_slots/domain/repositories/recurring_slot_repository.dart';
+import '../../features/recurring_slots/domain/usecases/create_recurring_slot_use_case.dart';
+import '../../features/recurring_slots/domain/usecases/deactivate_recurring_slot_use_case.dart';
+import '../../features/recurring_slots/domain/usecases/load_recurring_slot_overview_use_case.dart';
+import '../../features/recurring_slots/domain/usecases/renew_recurring_slot_use_case.dart';
+import '../../features/recurring_slots/domain/usecases/watch_recurring_slot_changes_use_case.dart';
+import '../../features/recurring_slots/presentation/cubit/recurring_slot_submit_cubit.dart';
+import '../../features/recurring_slots/presentation/cubit/recurring_slots_cubit.dart';
 import '../../features/reservations/data/datasources/reservation_fake_data_source.dart';
 import '../../features/reservations/data/datasources/reservation_remote_data_source.dart';
 import '../../features/reservations/data/repositories/reservation_repository_impl.dart';
@@ -147,6 +158,7 @@ Future<void> init() async {
   _registerCourts();
   _registerCourtBlocks();
   _registerReservations();
+  _registerRecurringSlots();
   _registerReports();
   _registerPresentation();
 }
@@ -438,7 +450,11 @@ void _registerReservations() {
         : ReservationRemoteDataSourceImpl(sl(), sl()),
   );
   sl.registerLazySingleton<ReservationRepository>(
-    () => ReservationRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+    () => ReservationRepositoryImpl(
+      remoteDataSource: sl(),
+      logger: sl(),
+      relatedChanges: sl<RecurringSlotRepository>().recurringSlotChanges,
+    ),
   );
 
   sl.registerLazySingleton(
@@ -480,6 +496,51 @@ void _registerReservations() {
       watchRoster: sl(),
     ),
   );
+}
+
+void _registerRecurringSlots() {
+  sl.registerLazySingleton<RecurringSlotRemoteDataSource>(
+    () => AppEnvironment.usesFakeDataSources
+        ? RecurringSlotFakeDataSource(reservations: _fakeReservations())
+        : RecurringSlotRemoteDataSourceImpl(sl(), sl()),
+  );
+  sl.registerLazySingleton<RecurringSlotRepository>(
+    () => RecurringSlotRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+  );
+
+  sl.registerLazySingleton(
+    () => LoadRecurringSlotOverviewUseCase(
+      recurringSlots: sl(),
+      courts: sl(),
+      members: sl(),
+    ),
+  );
+  sl.registerLazySingleton(() => CreateRecurringSlotUseCase(sl()));
+  sl.registerLazySingleton(() => RenewRecurringSlotUseCase(sl()));
+  sl.registerLazySingleton(() => DeactivateRecurringSlotUseCase(sl()));
+  sl.registerLazySingleton(() => WatchRecurringSlotChangesUseCase(sl()));
+
+  sl.registerFactory(
+    () => RecurringSlotsCubit(
+      loadOverview: sl(),
+      watchRecurringSlots: sl(),
+      watchCourts: sl(),
+      watchRoster: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => RecurringSlotSubmitCubit(
+      create: sl(),
+      renew: sl(),
+      deactivate: sl(),
+    ),
+  );
+}
+
+ReservationFakeDataSource? _fakeReservations() {
+  final reservations = sl<ReservationRemoteDataSource>();
+
+  return reservations is ReservationFakeDataSource ? reservations : null;
 }
 
 void _registerReports() {
