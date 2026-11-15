@@ -45,7 +45,7 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
         id: _nextId(),
         firstName: draft.firstName,
         lastName: draft.lastName,
-        dni: draft.dni,
+        dni: _orNull(draft.dni),
         status: MemberStatus.active,
         daysOverdue: 0,
         phone: _orNull(draft.phone),
@@ -66,7 +66,7 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
         id: current.id,
         firstName: draft.firstName,
         lastName: draft.lastName,
-        dni: draft.dni,
+        dni: _orNull(draft.dni),
         status: current.status,
         daysOverdue: current.daysOverdue,
         phone: _orNull(draft.phone),
@@ -164,6 +164,8 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
   }
 
   void _rejectDuplicatedDni(String dni, {int? keeping}) {
+    if (dni.isEmpty) return;
+
     for (final member in _roster) {
       if (member.dni == dni && member.id != keeping) {
         throw ConflictException('Duplicated dni');

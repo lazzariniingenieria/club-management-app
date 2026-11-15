@@ -81,10 +81,27 @@ void main() {
           MemberDraft(
             firstName: 'Ana',
             lastName: 'Nueva',
-            dni: roster.first.dni,
+            dni: roster.first.dni!,
           ),
         ),
         throwsA(isA<ConflictException>()),
+      );
+    });
+
+    test('two members without a dni do not collide, as in the API', () async {
+      final dataSource = buildDataSource();
+      const withoutDni = MemberDraft(
+        firstName: 'Ana',
+        lastName: 'Nueva',
+        dni: '',
+      );
+
+      await dataSource.createMember(withoutDni);
+      await dataSource.createMember(withoutDni);
+
+      expect(
+        await dataSource.fetchMembers(),
+        hasLength(MemberFakeDataSource.totalMembers + 2),
       );
     });
 

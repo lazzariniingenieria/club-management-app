@@ -112,6 +112,25 @@ void main() {
     expect((await tester.runAsync(admins.fetchAdmins))!, hasLength(before));
   });
 
+  testWidgets('an admin still needs a dni, because it is how they sign in', (
+    tester,
+  ) async {
+    await openAdmins(tester);
+    final before = (await tester.runAsync(admins.fetchAdmins))!.length;
+
+    await tester.tap(find.text(AppStrings.adminsNew));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, AppStrings.adminFormPassword),
+      's3cr3t123',
+    );
+    await tester.tap(find.text(AppStrings.adminFormCreate));
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppStrings.memberFormRequiredField), findsOneWidget);
+    expect((await tester.runAsync(admins.fetchAdmins))!, hasLength(before));
+  });
+
   testWidgets('a repeated dni is reported without losing the form', (
     tester,
   ) async {

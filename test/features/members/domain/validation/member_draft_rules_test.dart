@@ -12,7 +12,6 @@ void main() {
         MemberFieldError.required,
       );
       expect(validate(MemberField.lastName, ''), MemberFieldError.required);
-      expect(validate(MemberField.dni, ' '), MemberFieldError.required);
     });
 
     test('a name within the column length is accepted', () {
@@ -35,6 +34,11 @@ void main() {
   });
 
   group('dni', () {
+    test('is optional, because a member may not want to give it', () {
+      expect(validate(MemberField.dni, ''), isNull);
+      expect(validate(MemberField.dni, '   '), isNull);
+    });
+
     test('accepts the digits the admin reads off the document', () {
       expect(validate(MemberField.dni, '30111222'), isNull);
     });

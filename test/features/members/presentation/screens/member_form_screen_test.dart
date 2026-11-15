@@ -37,7 +37,7 @@ void main() {
 
   Future<void> openEditionForm(WidgetTester tester) async {
     await bootRoster(tester);
-    await tester.enterText(find.byType(TextField).first, seededMember.dni);
+    await tester.enterText(find.byType(TextField).first, seededMember.dni!);
     await settleSession(tester);
     await tester.tap(find.byIcon(Icons.edit_outlined));
     await tester.pumpAndSettle();
@@ -111,8 +111,28 @@ void main() {
       await tester.tap(find.text(AppStrings.memberFormSaveCreation));
       await tester.pumpAndSettle();
 
-      expect(find.text(AppStrings.memberFormRequiredField), findsNWidgets(3));
+      expect(find.text(AppStrings.memberFormRequiredField), findsNWidgets(2));
       expect(find.text(AppStrings.memberFormCreateTitle), findsWidgets);
+    });
+
+    testWidgets('a member who does not give a dni is added all the same', (
+      tester,
+    ) async {
+      await openCreationForm(tester);
+
+      await fillIdentity(tester, dni: '');
+      await tester.tap(find.text(AppStrings.memberFormSaveCreation));
+      await tester.pumpAndSettle();
+
+      expect(
+        chip(
+          AppStrings.adminMembersFilterAll,
+          MemberFakeDataSource.activeMembers + 1,
+        ),
+        findsOneWidget,
+      );
+
+      await tester.pump(const Duration(seconds: 5));
     });
 
     testWidgets('the dni and the phone are laid out while typing', (
@@ -167,7 +187,7 @@ void main() {
     ) async {
       await openCreationForm(tester);
 
-      await fillIdentity(tester, dni: seededMember.dni);
+      await fillIdentity(tester, dni: seededMember.dni!);
       await tester.tap(find.text(AppStrings.memberFormSaveCreation));
       await tester.pumpAndSettle();
 
@@ -288,7 +308,7 @@ void main() {
       expect(find.text(AppStrings.memberFormEditTitle), findsWidgets);
       expect(find.text(seededMember.firstName), findsOneWidget);
       expect(
-        find.text(DigitLayouts.groupedByThousands(seededMember.dni)),
+        find.text(DigitLayouts.groupedByThousands(seededMember.dni!)),
         findsOneWidget,
       );
       expect(find.text(AppStrings.memberFormSaveEdition), findsOneWidget);

@@ -21,7 +21,7 @@ class MemberDraft extends Equatable {
     return MemberDraft(
       firstName: member.firstName,
       lastName: member.lastName,
-      dni: member.dni,
+      dni: member.dni ?? '',
       phone: member.phone ?? '',
       email: member.email ?? '',
     );

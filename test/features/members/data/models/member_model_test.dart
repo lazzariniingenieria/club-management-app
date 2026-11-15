@@ -77,6 +77,18 @@ void main() {
     expect(member.dni, '30111222');
   });
 
+  test('keeps a member who has not given a dni', () {
+    final member = MemberModel.fromJson(const {
+      'id': 4,
+      'firstName': 'Sofía',
+      'lastName': 'Acosta',
+      'dni': null,
+      'status': 'ACTIVE',
+    });
+
+    expect(member.dni, isNull);
+  });
+
   test('maps an empty club to an empty roster', () {
     final roster = MemberModel.listFromResponses(
       members: const [],

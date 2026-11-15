@@ -104,7 +104,7 @@ class AppStrings {
   static const String memberFormEditTitle = 'Editar socio';
   static const String memberFormFirstName = 'Nombre';
   static const String memberFormLastName = 'Apellido';
-  static const String memberFormDni = 'DNI';
+  static const String memberFormDni = 'DNI (opcional)';
   static const String memberFormPhone = 'Teléfono (opcional)';
   static const String memberFormEmail = 'Email (opcional)';
   static const String memberFormRequiredField = 'Este dato es obligatorio';
@@ -176,6 +176,8 @@ class AppStrings {
   static const String memberUpToDateBadge = 'Al día';
 
   static String memberDni(String dni) => 'DNI $dni';
+
+  static const String memberWithoutDni = 'Sin DNI';
 
   static String daysOverdueBadge(int days) =>
       days == 1 ? '1 día de mora' : '$days días de mora';

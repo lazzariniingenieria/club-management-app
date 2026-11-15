@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 Member buildMember({
   String firstName = 'Juan',
   String lastName = 'Pérez',
-  String dni = '30111222',
+  String? dni = '30111222',
   MemberStatus status = MemberStatus.active,
   int daysOverdue = 0,
 }) {
@@ -47,6 +47,14 @@ void main() {
 
     test('matches on the dni', () {
       expect(buildMember(dni: '30111222').matches('1112'), isTrue);
+    });
+
+    test('a member without a dni is still found by name', () {
+      expect(buildMember(dni: null).matches('juan'), isTrue);
+    });
+
+    test('a member without a dni never matches the missing value', () {
+      expect(buildMember(dni: null).matches('null'), isFalse);
     });
 
     test('matches an accented name typed without accents', () {

@@ -9,7 +9,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/formatters/display_formats.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/confirmation_dialog.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
@@ -17,6 +16,7 @@ import '../../../../shared/widgets/status_message_view.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../members/domain/entities/homonyms.dart';
 import '../../../members/domain/entities/member.dart';
+import '../../../members/presentation/formatting/member_formats.dart';
 import '../../domain/entities/family_group_candidates.dart';
 import '../cubit/family_group_builder_cubit.dart';
 import '../cubit/family_group_builder_state.dart';
@@ -455,7 +455,7 @@ class _CandidateTileContent extends StatelessWidget {
                 Text(member.fullName, style: AppTextStyles.labelLarge),
                 if (showsDni)
                   Text(
-                    AppStrings.memberDni(DisplayFormats.dni(member.dni)),
+                    MemberFormats.dni(member),
                     style: AppTextStyles.bodyMedium,
                   ),
               ],

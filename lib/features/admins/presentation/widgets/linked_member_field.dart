@@ -4,10 +4,10 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/formatters/display_formats.dart';
 import '../../../../shared/widgets/app_sheet_frame.dart';
 import '../../../members/domain/entities/homonyms.dart';
 import '../../../members/domain/entities/member.dart';
+import '../../../members/presentation/formatting/member_formats.dart';
 
 class LinkedMemberField extends StatelessWidget {
   final List<Member> members;
@@ -76,7 +76,7 @@ class LinkedMemberField extends StatelessWidget {
 }
 
 String _labelOf(Member member, Homonyms homonyms) => homonyms.includes(member)
-    ? '${member.fullName} · ${AppStrings.memberDni(DisplayFormats.dni(member.dni))}'
+    ? '${member.fullName} · ${MemberFormats.dni(member)}'
     : member.fullName;
 
 class _LinkedMemberChoice {
@@ -247,7 +247,7 @@ class _MemberChoiceTile extends StatelessWidget {
   String? get _subtitle => switch (detail) {
         _ChoiceDetail.none => null,
         _ChoiceDetail.dni =>
-          AppStrings.memberDni(DisplayFormats.dni(member.dni)),
+          MemberFormats.dni(member),
         _ChoiceDetail.taken => AppStrings.adminFormMemberTaken,
       };
 
