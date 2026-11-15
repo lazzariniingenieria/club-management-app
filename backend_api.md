@@ -6,7 +6,7 @@ Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, 
 
 **Canchas** (`/api/courts` y `courtsEnabled` en `/api/clubs/me`, §5) viene del PR #25, los **bloqueos** (`/api/courts/{courtId}/blocks`) del PR #26 y las **reservas** (`/api/reservations`) del PR #27. **Los tres están en `develop` (test) desde el 2026-11-11, y todavía no en `main` (producción).**
 
-**El DNI opcional del socio** (§5 y §8) viene del [PR #30](https://github.com/lazzariniingenieria/club-management-api/pull/30) de la API, **abierto y todavía sin mergear al 2026-11-15**. Hasta que entre, la API sigue respondiendo `400` a un socio sin `dni`.
+**El DNI opcional del socio y el nombre único** (§5 y §8) vienen del [PR #30](https://github.com/lazzariniingenieria/club-management-api/pull/30) de la API, **abierto y todavía sin mergear al 2026-11-15**. Hasta que entre, la API sigue respondiendo `400` a un socio sin `dni` y acepta dos socios con el mismo nombre.
 
 **Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/` (incluido `JwtAuthenticationFilter`), `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
@@ -138,7 +138,7 @@ El envelope sale siempre como `application/json`, aunque el pedido haya mandado 
 | :--- | :--- |
 | `400` | Validación fallida (`details` por campo), body ilegible, `paidByMemberId` fuera del grupo familiar, `periodsCovered` con repetidos, rango `from` > `to` en la búsqueda de pagos o `paidFrom` > `paidTo` en el reporte, query param con un valor que no se puede parsear |
 | `404` | El recurso no existe **en tu club** — indistinguible de uno de otro club, porque todo filtra por el `clubId` del token. Aplica a socios, grupos, pagos y admins |
-| `409` | DNI ya usado en el club, un período que el socio ya tiene pago, un pago que ya estaba anulado, un socio que ya tiene grupo al crear un grupo con `memberIds`, o cualquier otra violación de constraint |
+| `409` | DNI ya usado en el club, nombre y apellido que ya tiene otro socio (PR #30), un período que el socio ya tiene pago, un pago que ya estaba anulado, un socio que ya tiene grupo al crear un grupo con `memberIds`, o cualquier otra violación de constraint |
 | `500` | Excepción no manejada |
 
 ---
@@ -171,6 +171,8 @@ El envelope sale siempre como `application/json`, aunque el pedido haya mandado 
 **`POST`** — `firstName` y `lastName` requeridos (≤ 100); `dni` (≤ 20, único por club → `409`), `phone` (≤ 30), `email` (formato, ≤ 150) y `familyGroupId` (tiene que existir → `404`) opcionales. Un `dni` ausente, `null`, vacío o de solo espacios se guarda como `null`, y el `409` solo aplica cuando se manda un DNI: puede haber muchos socios sin DNI (PR #30). El servidor fija `joinedAt = hoy` y `status = ACTIVE`: **el cliente no puede mandar ninguno de los dos ni retrodatar un alta.** El `201` ya trae el recurso completo.
 
 **`PATCH`** recibe `firstName` y `lastName` (requeridos), `dni`, `phone` y `email`. Es reemplazo completo: **mandarlo sin `dni` borra el DNI del socio**, igual que pasa con `phone` y `email`. **No toca `familyGroupId` ni `status`** — esos se mueven por sus endpoints.
+
+**Nombre y apellido únicos en el club** (PR #30): `POST` y `PATCH` responden `409` si otro socio ya tiene ese `firstName` + `lastName`, sin distinguir mayúsculas, tenga o no DNI y aunque esté dado de baja. Los acentos sí distinguen ("Perez" y "Pérez" conviven). **Son dos fuentes de `409` en estos endpoints** y, sin `code` estable (§4), solo se distinguen leyendo el `message`: `dni … is already in use in this club` o `a member named … already exists in this club`. La API chequea primero el DNI. Si el request no llevaba `dni`, el `409` solo puede ser el nombre.
 
 **`PATCH /{id}/family-group`** recibe `{ "familyGroupId": 7 }` (requerido → `400` si falta; `404` si el grupo no es del club). Si el socio ya estaba en otro grupo, **lo mueve** sin aviso. **`DELETE /{id}/family-group`** lo deja sin grupo y es idempotente: un socio sin grupo devuelve `200` igual. Ninguno de los dos mira `status`: se puede agrupar a un socio inactivo.
 
@@ -411,6 +413,7 @@ Constraints que el cliente ve como comportamiento HTTP:
 | Constraint | Efecto |
 | :--- | :--- |
 | `user_account UNIQUE (club_id, dni)` · `member UNIQUE (club_id, dni)` | El `409` de DNI duplicado. Único **por club**, no global: por eso el login pide el club. `member.dni` es nullable desde `V18` (PR #30) y varios `NULL` no chocan; `user_account.dni` sigue siendo obligatorio |
+| `member UNIQUE (club_id, LOWER(first_name), LOWER(last_name))` (`V19`, PR #30) | El `409` de nombre y apellido repetidos en `/api/members` |
 | `user_account UNIQUE (member_id)` | Un socio no puede tener dos cuentas — el segundo `409` de `/api/admins`. Varios `NULL` sí se permiten |
 | `CHECK (role <> 'SUPER_ADMIN' OR member_id IS NULL)` | El `memberId` del super admin es siempre `null` |
 | `CHECK (amount > 0)` en `payment` | Refuerza la validación del `POST` |
