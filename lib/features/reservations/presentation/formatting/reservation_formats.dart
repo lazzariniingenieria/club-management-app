@@ -1,10 +1,10 @@
 import '../../../../core/constants/app_strings.dart';
-import '../../../../shared/formatters/display_formats.dart';
 import '../../../courts/domain/entities/clock_time.dart';
 import '../../../courts/domain/entities/court_block.dart';
 import '../../../courts/presentation/formatting/court_block_formats.dart';
 import '../../../courts/presentation/formatting/court_formats.dart';
 import '../../../members/domain/entities/member.dart';
+import '../../../members/presentation/formatting/member_formats.dart';
 import '../../domain/entities/reservation.dart';
 import '../../domain/entities/start_option.dart';
 
@@ -22,7 +22,7 @@ abstract final class ReservationFormats {
       member?.fullName ?? AppStrings.reservationActivity;
 
   static String memberWithDni(Member member) {
-    final dni = AppStrings.memberDni(DisplayFormats.dni(member.dni));
+    final dni = MemberFormats.dni(member);
 
     return '${member.fullName} · $dni';
   }

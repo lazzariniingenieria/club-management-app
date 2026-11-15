@@ -187,6 +187,22 @@ void main() {
       expect(sent.method, 'PATCH');
     });
 
+    test('sends a member without a dni as null, not as an empty text',
+        () async {
+      late RequestOptions sent;
+      final dataSource = buildDataSource((options, _) {
+        sent = options;
+
+        return jsonResponse(201);
+      });
+
+      await dataSource.createMember(
+        const MemberDraft(firstName: 'Ana', lastName: 'Álvarez', dni: ''),
+      );
+
+      expect(sent.data, containsPair('dni', isNull));
+    });
+
     test('maps a dni already taken to a conflict, not to a generic error', () {
       final dataSource = buildDataSource((_, __) => jsonResponse(409));
 

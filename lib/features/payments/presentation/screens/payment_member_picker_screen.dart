@@ -9,7 +9,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/formatters/display_formats.dart';
 import '../../../../shared/widgets/app_pill.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/inline_error_card.dart';
@@ -18,6 +17,7 @@ import '../../../../shared/widgets/visibility_reporter.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../members/domain/entities/homonyms.dart';
 import '../../../members/domain/entities/member.dart';
+import '../../../members/presentation/formatting/member_formats.dart';
 import '../../domain/entities/payment_receipt.dart';
 import '../cubit/member_roster_cubit.dart';
 import '../cubit/member_roster_state.dart';
@@ -325,7 +325,7 @@ class _PickerTileContent extends StatelessWidget {
                 Text(member.fullName, style: AppTextStyles.labelLarge),
                 if (showsDni)
                   Text(
-                    AppStrings.memberDni(DisplayFormats.dni(member.dni)),
+                    MemberFormats.dni(member),
                     style: AppTextStyles.bodyMedium,
                   ),
               ],

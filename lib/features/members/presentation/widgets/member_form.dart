@@ -39,6 +39,7 @@ class _MemberFormState extends State<MemberForm> {
   late final MemberDraft _initialDraft;
   late final Listenable _anyFieldEdited;
   String? _takenDniError;
+  String? _takenNameError;
 
   bool get _isEdition => widget.member != null;
 
@@ -66,7 +67,9 @@ class _MemberFormState extends State<MemberForm> {
       _focusNodes[field] = FocusNode()..addListener(() => _markTouched(field));
     }
     _initialDraft = _draft;
-    _controllers[MemberField.dni]!.addListener(_clearTakenDniError);
+    for (final field in _fieldsThatCanBeTaken) {
+      _controllers[field]!.addListener(_clearTakenErrors);
+    }
     _anyFieldEdited = Listenable.merge(_controllers.values.toList());
   }
 
@@ -104,10 +107,19 @@ class _MemberFormState extends State<MemberForm> {
     return hasDigitLayout ? DigitLayouts.digitsOf(text) : text;
   }
 
-  void _clearTakenDniError() {
-    if (_takenDniError == null) return;
+  static const List<MemberField> _fieldsThatCanBeTaken = [
+    MemberField.firstName,
+    MemberField.lastName,
+    MemberField.dni,
+  ];
 
-    setState(() => _takenDniError = null);
+  void _clearTakenErrors() {
+    if (_takenDniError == null && _takenNameError == null) return;
+
+    setState(() {
+      _takenDniError = null;
+      _takenNameError = null;
+    });
   }
 
   void _markTouched(MemberField field) {
@@ -120,6 +132,9 @@ class _MemberFormState extends State<MemberForm> {
   String? _validate(MemberField field, String? value) {
     if (field == MemberField.dni && _takenDniError != null) {
       return _takenDniError;
+    }
+    if (field == MemberField.lastName && _takenNameError != null) {
+      return _takenNameError;
     }
     final error = MemberDraftRules.validate(field, value ?? '');
 
@@ -179,8 +194,11 @@ class _MemberFormState extends State<MemberForm> {
       case MemberFormSaved(:final outcome):
         showAppSnackBar(context, _outcomeMessage(outcome));
         context.pop();
-      case MemberFormDuplicatedDni():
-        setState(() => _takenDniError = AppStrings.memberFormDniTaken);
+      case MemberFormDuplicatedName():
+        setState(() => _takenNameError = AppStrings.memberFormNameTaken);
+        _formKey.currentState?.validate();
+      case MemberFormDuplicatedDniOrName():
+        setState(() => _takenDniError = AppStrings.memberFormDniOrNameTaken);
         _formKey.currentState?.validate();
       case MemberFormFailure(:final message):
         showAppSnackBar(context, message, isError: true);

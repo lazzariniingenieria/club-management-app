@@ -198,7 +198,7 @@ void main() {
     await tester.pumpAndSettle();
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(0), 'Ana');
-    await tester.enterText(fields.at(1), 'Álvarez');
+    await tester.enterText(fields.at(1), 'Nueva');
     await tester.enterText(fields.at(2), '45999888');
     await tester.tap(find.text(AppStrings.memberFormSaveCreation));
     await tester.pumpAndSettle();

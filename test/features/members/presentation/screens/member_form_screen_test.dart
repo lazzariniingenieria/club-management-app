@@ -37,7 +37,7 @@ void main() {
 
   Future<void> openEditionForm(WidgetTester tester) async {
     await bootRoster(tester);
-    await tester.enterText(find.byType(TextField).first, seededMember.dni);
+    await tester.enterText(find.byType(TextField).first, seededMember.dni!);
     await settleSession(tester);
     await tester.tap(find.byIcon(Icons.edit_outlined));
     await tester.pumpAndSettle();
@@ -49,7 +49,7 @@ void main() {
   }) async {
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(0), 'Ana');
-    await tester.enterText(fields.at(1), 'Álvarez');
+    await tester.enterText(fields.at(1), 'Nueva');
     await tester.enterText(fields.at(2), dni);
   }
 
@@ -111,8 +111,28 @@ void main() {
       await tester.tap(find.text(AppStrings.memberFormSaveCreation));
       await tester.pumpAndSettle();
 
-      expect(find.text(AppStrings.memberFormRequiredField), findsNWidgets(3));
+      expect(find.text(AppStrings.memberFormRequiredField), findsNWidgets(2));
       expect(find.text(AppStrings.memberFormCreateTitle), findsWidgets);
+    });
+
+    testWidgets('a member who does not give a dni is added all the same', (
+      tester,
+    ) async {
+      await openCreationForm(tester);
+
+      await fillIdentity(tester, dni: '');
+      await tester.tap(find.text(AppStrings.memberFormSaveCreation));
+      await tester.pumpAndSettle();
+
+      expect(
+        chip(
+          AppStrings.adminMembersFilterAll,
+          MemberFakeDataSource.activeMembers + 1,
+        ),
+        findsOneWidget,
+      );
+
+      await tester.pump(const Duration(seconds: 5));
     });
 
     testWidgets('the dni and the phone are laid out while typing', (
@@ -139,7 +159,7 @@ void main() {
       await tester.enterText(find.byType(TextField).first, '45999888');
       await settleSession(tester);
 
-      expect(find.text('Ana Álvarez'), findsOneWidget);
+      expect(find.text('Ana Nueva'), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 5));
     });
@@ -167,12 +187,54 @@ void main() {
     ) async {
       await openCreationForm(tester);
 
-      await fillIdentity(tester, dni: seededMember.dni);
+      await fillIdentity(tester, dni: seededMember.dni!);
       await tester.tap(find.text(AppStrings.memberFormSaveCreation));
       await tester.pumpAndSettle();
 
-      expect(find.text(AppStrings.memberFormDniTaken), findsOneWidget);
+      expect(find.text(AppStrings.memberFormDniOrNameTaken), findsOneWidget);
       expect(find.text(AppStrings.memberFormSaveCreation), findsOneWidget);
+    });
+
+    testWidgets('a name the club already uses is shown on the last name', (
+      tester,
+    ) async {
+      await openCreationForm(tester);
+
+      await tester.enterText(field(0), seededMember.firstName);
+      await tester.enterText(field(1), seededMember.lastName);
+      await tester.tap(find.text(AppStrings.memberFormSaveCreation));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.memberFormNameTaken), findsOneWidget);
+      expect(find.text(AppStrings.memberFormSaveCreation), findsOneWidget);
+    });
+
+    testWidgets('correcting the name clears the taken name and lets it save', (
+      tester,
+    ) async {
+      await openCreationForm(tester);
+
+      await tester.enterText(field(0), seededMember.firstName);
+      await tester.enterText(field(1), seededMember.lastName);
+      await tester.tap(find.text(AppStrings.memberFormSaveCreation));
+      await tester.pumpAndSettle();
+      await tester.enterText(field(1), 'Zzyzx');
+      await tester.pump();
+
+      expect(find.text(AppStrings.memberFormNameTaken), findsNothing);
+
+      await tester.tap(find.text(AppStrings.memberFormSaveCreation));
+      await tester.pumpAndSettle();
+
+      expect(
+        chip(
+          AppStrings.adminMembersFilterAll,
+          MemberFakeDataSource.activeMembers + 1,
+        ),
+        findsOneWidget,
+      );
+
+      await tester.pump(const Duration(seconds: 5));
     });
 
     testWidgets('leaving with something typed asks before discarding it', (
@@ -288,7 +350,7 @@ void main() {
       expect(find.text(AppStrings.memberFormEditTitle), findsWidgets);
       expect(find.text(seededMember.firstName), findsOneWidget);
       expect(
-        find.text(DigitLayouts.groupedByThousands(seededMember.dni)),
+        find.text(DigitLayouts.groupedByThousands(seededMember.dni!)),
         findsOneWidget,
       );
       expect(find.text(AppStrings.memberFormSaveEdition), findsOneWidget);

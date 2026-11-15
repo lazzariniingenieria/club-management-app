@@ -111,13 +111,23 @@ void main() {
     verify(() => createMember(any())).called(1);
   });
 
-  test('turns a taken dni into the field error, not into a snack bar',
+  test('a conflict with a dni sent may be the dni or the name, never a snack',
       () async {
     stubCreate(const Left(ConflictFailure('Duplicated dni')));
 
     await cubit.save(draft);
 
-    expect(cubit.state, const MemberFormDuplicatedDni());
+    expect(cubit.state, const MemberFormDuplicatedDniOrName());
+  });
+
+  test('a conflict without a dni sent can only be the name', () async {
+    stubCreate(const Left(ConflictFailure('Duplicated name')));
+
+    await cubit.save(
+      const MemberDraft(firstName: 'Ana', lastName: 'Álvarez', dni: ''),
+    );
+
+    expect(cubit.state, const MemberFormDuplicatedName());
   });
 
   test('turns any other failure into its Spanish message', () async {

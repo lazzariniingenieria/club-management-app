@@ -35,8 +35,13 @@ class MemberFormCubit extends Cubit<MemberFormState> {
     _emitOutcome(
       result,
       memberId == null ? MemberFormOutcome.created : MemberFormOutcome.updated,
+      conflict: _conflictOf(trimmed),
     );
   }
+
+  static MemberFormState _conflictOf(MemberDraft draft) => draft.dni.isEmpty
+      ? const MemberFormDuplicatedName()
+      : const MemberFormDuplicatedDniOrName();
 
   Future<void> setActive(int memberId, {required bool isActive}) async {
     if (state is MemberFormSubmitting) return;
@@ -52,17 +57,23 @@ class MemberFormCubit extends Cubit<MemberFormState> {
     );
   }
 
-  void _emitOutcome(Either<Failure, void> result, MemberFormOutcome outcome) {
+  void _emitOutcome(
+    Either<Failure, void> result,
+    MemberFormOutcome outcome, {
+    MemberFormState? conflict,
+  }) {
     if (isClosed) return;
 
-    final MemberFormState next =
-        result.fold(_failureFrom, (_) => MemberFormSaved(outcome));
+    final MemberFormState next = result.fold(
+      (failure) => _failureFrom(failure, conflict),
+      (_) => MemberFormSaved(outcome),
+    );
 
     emit(next);
   }
 
-  MemberFormState _failureFrom(Failure failure) {
-    if (failure is ConflictFailure) return const MemberFormDuplicatedDni();
+  MemberFormState _failureFrom(Failure failure, MemberFormState? conflict) {
+    if (failure is ConflictFailure && conflict != null) return conflict;
 
     return MemberFormFailure(failure.userMessage);
   }
