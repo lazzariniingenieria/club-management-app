@@ -113,8 +113,10 @@ class AppStrings {
   static const String dniInvalidLength = 'El DNI tiene entre 6 y 8 números';
   static const String memberFormMalformedEmail =
       'Revisá el email: le falta el @ o el dominio';
-  static const String memberFormDniTaken =
-      'Ya hay un socio con este DNI en el club';
+  static const String memberFormNameTaken =
+      'Ya hay un socio con este nombre y apellido en el club';
+  static const String memberFormDniOrNameTaken =
+      'Ya hay un socio con este DNI o con este nombre y apellido';
   static const String memberFormSaveCreation = 'Crear socio';
   static const String memberFormSaveEdition = 'Guardar cambios';
   static const String memberFormCreated = 'Socio creado';

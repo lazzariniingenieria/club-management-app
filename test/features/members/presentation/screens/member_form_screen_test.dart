@@ -49,7 +49,7 @@ void main() {
   }) async {
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(0), 'Ana');
-    await tester.enterText(fields.at(1), 'Álvarez');
+    await tester.enterText(fields.at(1), 'Nueva');
     await tester.enterText(fields.at(2), dni);
   }
 
@@ -159,7 +159,7 @@ void main() {
       await tester.enterText(find.byType(TextField).first, '45999888');
       await settleSession(tester);
 
-      expect(find.text('Ana Álvarez'), findsOneWidget);
+      expect(find.text('Ana Nueva'), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 5));
     });
@@ -191,8 +191,50 @@ void main() {
       await tester.tap(find.text(AppStrings.memberFormSaveCreation));
       await tester.pumpAndSettle();
 
-      expect(find.text(AppStrings.memberFormDniTaken), findsOneWidget);
+      expect(find.text(AppStrings.memberFormDniOrNameTaken), findsOneWidget);
       expect(find.text(AppStrings.memberFormSaveCreation), findsOneWidget);
+    });
+
+    testWidgets('a name the club already uses is shown on the last name', (
+      tester,
+    ) async {
+      await openCreationForm(tester);
+
+      await tester.enterText(field(0), seededMember.firstName);
+      await tester.enterText(field(1), seededMember.lastName);
+      await tester.tap(find.text(AppStrings.memberFormSaveCreation));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.memberFormNameTaken), findsOneWidget);
+      expect(find.text(AppStrings.memberFormSaveCreation), findsOneWidget);
+    });
+
+    testWidgets('correcting the name clears the taken name and lets it save', (
+      tester,
+    ) async {
+      await openCreationForm(tester);
+
+      await tester.enterText(field(0), seededMember.firstName);
+      await tester.enterText(field(1), seededMember.lastName);
+      await tester.tap(find.text(AppStrings.memberFormSaveCreation));
+      await tester.pumpAndSettle();
+      await tester.enterText(field(1), 'Zzyzx');
+      await tester.pump();
+
+      expect(find.text(AppStrings.memberFormNameTaken), findsNothing);
+
+      await tester.tap(find.text(AppStrings.memberFormSaveCreation));
+      await tester.pumpAndSettle();
+
+      expect(
+        chip(
+          AppStrings.adminMembersFilterAll,
+          MemberFakeDataSource.activeMembers + 1,
+        ),
+        findsOneWidget,
+      );
+
+      await tester.pump(const Duration(seconds: 5));
     });
 
     testWidgets('leaving with something typed asks before discarding it', (

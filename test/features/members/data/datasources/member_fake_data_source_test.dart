@@ -90,18 +90,53 @@ void main() {
 
     test('two members without a dni do not collide, as in the API', () async {
       final dataSource = buildDataSource();
-      const withoutDni = MemberDraft(
-        firstName: 'Ana',
-        lastName: 'Nueva',
-        dni: '',
-      );
+      const ana = MemberDraft(firstName: 'Ana', lastName: 'Nueva', dni: '');
+      const eva = MemberDraft(firstName: 'Eva', lastName: 'Nueva', dni: '');
 
-      await dataSource.createMember(withoutDni);
-      await dataSource.createMember(withoutDni);
+      await dataSource.createMember(ana);
+      await dataSource.createMember(eva);
 
       expect(
         await dataSource.fetchMembers(),
         hasLength(MemberFakeDataSource.totalMembers + 2),
+      );
+    });
+
+    test('a name another member already uses is rejected, whatever the case',
+        () {
+      final dataSource = buildDataSource();
+      final taken = roster.first;
+
+      expect(
+        dataSource.createMember(
+          MemberDraft(
+            firstName: taken.firstName.toUpperCase(),
+            lastName: taken.lastName.toLowerCase(),
+            dni: '99999999',
+          ),
+        ),
+        throwsA(isA<ConflictException>()),
+      );
+    });
+
+    test('a member keeps their own name when edited', () async {
+      final dataSource = buildDataSource();
+      final target = roster.first;
+
+      await dataSource.updateMember(
+        target.id,
+        MemberDraft(
+          firstName: target.firstName,
+          lastName: target.lastName,
+          dni: target.dni!,
+          phone: '3498462578',
+        ),
+      );
+      final members = await dataSource.fetchMembers();
+
+      expect(
+        members.firstWhere((member) => member.id == target.id).phone,
+        '3498462578',
       );
     });
 

@@ -39,6 +39,7 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
   Future<void> createMember(MemberDraft draft) async {
     await Future<void>.delayed(latency);
     _rejectDuplicatedDni(draft.dni);
+    _rejectDuplicatedName(draft);
 
     _roster.add(
       MemberModel(
@@ -59,6 +60,7 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
   Future<void> updateMember(int memberId, MemberDraft draft) async {
     await Future<void>.delayed(latency);
     _rejectDuplicatedDni(draft.dni, keeping: memberId);
+    _rejectDuplicatedName(draft, keeping: memberId);
 
     _replace(
       memberId,
@@ -172,6 +174,20 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
       }
     }
   }
+
+  void _rejectDuplicatedName(MemberDraft draft, {int? keeping}) {
+    final fullName = _fullNameKey(draft.firstName, draft.lastName);
+
+    for (final member in _roster) {
+      final memberFullName = _fullNameKey(member.firstName, member.lastName);
+      if (memberFullName == fullName && member.id != keeping) {
+        throw ConflictException('Duplicated name');
+      }
+    }
+  }
+
+  static String _fullNameKey(String firstName, String lastName) =>
+      '${firstName.toLowerCase()}|${lastName.toLowerCase()}';
 
   int _nextId() {
     var highestId = 0;
