@@ -48,7 +48,7 @@ El **superAdmin comparte el shell del admin**: su único delta es la gestión de
 | :--- | :--- | :--- |
 | Splash / Bootstrap | `/` | ✅ Implementada — resuelve sesión persistida y redirige (§3.1.1) |
 | Login | `/login` | ✅ Implementada |
-| Primer ingreso | `/login/activate` | A construir — CTA ya existe en `AppStrings.loginFirstTimeUser` |
+| Primer ingreso | `/login/activate` | A construir, **y ya no es un auto-registro** (decisión del 2026-11-15): la cuenta del socio la crea un admin, que le da la contraseña inicial, igual que el super admin con los admins. Qué hace esta pantalla queda por definir junto con E11/E12 — la candidata es el cambio de contraseña del primer ingreso, que necesita un flag que la API no tiene ([backend_api.md](backend_api.md) §10). El CTA `AppStrings.loginFirstTimeUser` ya existe |
 | Recuperar contraseña | `/login/forgot` | ✅ Implementada — **pantalla informativa**, no formulario (§3.1.2) |
 
 #### 3.1.1 Splash — no es una pantalla instantánea
@@ -213,6 +213,7 @@ Inicio ──[Total de socios ⇒ chip Todos ]──►
 - La búsqueda y el filtrado hoy los resuelve el cliente sobre el padrón completo, porque la API devuelve la lista entera sin paginar ni filtrar. Sirve con los ~245 socios del club; cuando el backend exponga paginación, el listado pasa a "cargando más" al pie y el mapeo no cambia.
 - El DNI duplicado lo valida el backend y se muestra en el campo, no en un snackbar genérico (E5).
 - **El DNI se escribe, pero casi no se muestra** (revisión en el celular, 2026-10-31): no es un dato que el admin quiera leer a cada rato. Se ve en los formularios, en la fila de un administrador sin socio vinculado (es lo único que lo identifica) y, en los buscadores para elegir un socio (registrar pago, armar grupo, vincular admin), **solo cuando hay otro socio con el mismo nombre y apellido**. La búsqueda por DNI sigue funcionando aunque no se vea.
+- **El DNI del socio es opcional** (2026-11-15): algunos socios no quieren darlo al asociarse. El formulario lo pide como "DNI (opcional)", vacío se guarda sin DNI y, si se escribe, valen las mismas reglas de siempre. Se completa más adelante desde *Editar socio*, a más tardar cuando el socio pida una cuenta para la app. Donde se mostraría el DNI de un socio que no lo tiene, dice "Sin DNI". **El DNI de un administrador sigue siendo obligatorio**: es con lo que ingresa.
 - **El DNI acepta de 6 a 8 dígitos**, en el login y en las altas: 7 u 8 es lo normal (los de extranjeros también tienen 8) y 6 cubre las LE/LC más viejas. La API acepta hasta 20, así que la regla es del cliente.
 - Al volver de un alta exitosa el listado refresca y hace scroll al socio creado.
 - El listado se recarga solo cuando el padrón cambia (alta, edición, baja o reactivación), venga el cambio de donde venga: un alta hecha desde el Inicio ya aparece al abrir Socios, sin pull-to-refresh. La recarga conserva búsqueda y chip.
