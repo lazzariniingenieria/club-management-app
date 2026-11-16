@@ -1,4 +1,5 @@
 import '../../../../core/errors/exceptions.dart';
+import '../../../reservations/data/datasources/reservation_fake_data_source.dart';
 import '../../domain/entities/court_block_draft.dart';
 import '../models/court_block_model.dart';
 import 'court_block_remote_data_source.dart';
@@ -7,9 +8,11 @@ class CourtBlockFakeDataSource implements CourtBlockRemoteDataSource {
   CourtBlockFakeDataSource({
     this.latency = const Duration(milliseconds: 600),
     DateTime Function() clock = DateTime.now,
+    this.reservations,
   }) : _blocks = _seeded(clock());
 
   final Duration latency;
+  final ReservationFakeDataSource? reservations;
   final List<CourtBlockModel> _blocks;
 
   static const int seededBlockId = 1;
@@ -49,6 +52,7 @@ class CourtBlockFakeDataSource implements CourtBlockRemoteDataSource {
     if (!draft.endsAfterStarts) {
       throw ValidationException('endsAt must be after startsAt');
     }
+    _cancelAffected(courtId, draft);
 
     _blocks.add(
       CourtBlockModel(
@@ -59,6 +63,20 @@ class CourtBlockFakeDataSource implements CourtBlockRemoteDataSource {
         reason: draft.reason.isEmpty ? null : draft.reason,
       ),
     );
+  }
+
+  void _cancelAffected(int courtId, CourtBlockDraft draft) {
+    final affected = reservations?.affectedBy(courtId, draft) ?? const [];
+    final notShown = [
+      for (final reservation in affected)
+        if (!draft.reservationIdsToCancel.contains(reservation.id))
+          'reservation ${reservation.id}',
+    ];
+    if (notShown.isNotEmpty) {
+      throw ConflictException('would cancel reservations not shown', notShown);
+    }
+
+    reservations?.cancelAll([for (final each in affected) each.id]);
   }
 
   @override

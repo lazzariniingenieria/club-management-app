@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:club_management_app/features/courts/domain/repositories/court_block_repository.dart';
 import 'package:club_management_app/features/courts/domain/repositories/court_repository.dart';
-import 'package:club_management_app/features/courts/domain/usecases/watch_court_block_changes_use_case.dart';
 import 'package:club_management_app/features/courts/domain/usecases/watch_court_changes_use_case.dart';
 import 'package:club_management_app/features/members/domain/repositories/member_repository.dart';
 import 'package:club_management_app/features/members/domain/usecases/watch_roster_changes_use_case.dart';
@@ -36,7 +35,6 @@ void main() {
     final courts = MockCourtRepository();
     final blocks = MockCourtBlockRepository();
     when(() => courts.courtChanges).thenAnswer((_) => const Stream.empty());
-    when(() => blocks.blockChanges).thenAnswer((_) => const Stream.empty());
     when(() => courts.loadCourts()).thenAnswer((_) async => const Right([]));
 
     return AgendaCubit(
@@ -48,7 +46,6 @@ void main() {
       ),
       cancelReservation: CancelReservationUseCase(reservations),
       watchReservations: WatchReservationChangesUseCase(reservations),
-      watchBlocks: WatchCourtBlockChangesUseCase(blocks),
       watchCourts: WatchCourtChangesUseCase(courts),
       watchRoster: WatchRosterChangesUseCase(members),
       clock: () => today,

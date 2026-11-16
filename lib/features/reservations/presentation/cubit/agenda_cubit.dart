@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failures.dart';
-import '../../../courts/domain/usecases/watch_court_block_changes_use_case.dart';
 import '../../../courts/domain/usecases/watch_court_changes_use_case.dart';
 import '../../../members/domain/usecases/watch_roster_changes_use_case.dart';
 import '../../domain/entities/reservation.dart';
@@ -23,7 +22,6 @@ class AgendaCubit extends Cubit<AgendaState> with DayAgendaLoader {
     required this.loadAgenda,
     required CancelReservationUseCase cancelReservation,
     required WatchReservationChangesUseCase watchReservations,
-    required WatchCourtBlockChangesUseCase watchBlocks,
     required WatchCourtChangesUseCase watchCourts,
     required WatchRosterChangesUseCase watchRoster,
     DateTime Function() clock = DateTime.now,
@@ -31,7 +29,6 @@ class AgendaCubit extends Cubit<AgendaState> with DayAgendaLoader {
         super(AgendaLoading(DayAgendaLoader.dayOf(clock()))) {
     _changes = [
       watchReservations().listen((_) => load()),
-      watchBlocks().listen((_) => load()),
       watchCourts().listen((_) => load()),
       watchRoster().listen((_) => refresh()),
     ];
