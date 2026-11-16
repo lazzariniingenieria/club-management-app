@@ -54,50 +54,85 @@ class _ReviewBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<CourtBlockReviewCubit, CourtBlockReviewState>(
       listener: _onStateChanged,
-      builder: (context, state) => ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        children: [
-          if (state.hasChanged) ...[
-            const AppNotice(
-              tone: AppNoticeTone.danger,
-              message: AppStrings.courtBlockReviewChanged,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-          _BlockSummary(args: args),
-          const SizedBox(height: AppSpacing.lg),
-          ..._impact(state.impact),
-          const SizedBox(height: AppSpacing.xl),
-          AppButton(
-            text: AppStrings.courtBlockReviewConfirm(
-              state.impact.reservations.length,
-            ),
-            isLoading: state.phase == CourtBlockReviewPhase.submitting,
-            onPressed: () => context
-                .read<CourtBlockReviewCubit>()
-                .confirm(args.court.id, args.draft),
+      builder: (context, state) => CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            sliver: SliverList.list(children: _header(state)),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            sliver: _AffectedReservations(impact: state.impact),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            sliver: SliverToBoxAdapter(child: _confirmButton(context, state)),
           ),
         ],
       ),
     );
   }
 
-  List<Widget> _impact(BlockImpact impact) {
+  List<Widget> _header(CourtBlockReviewState state) {
+    return [
+      if (state.hasChanged) ...[
+        const AppNotice(
+          tone: AppNoticeTone.danger,
+          message: AppStrings.courtBlockReviewChanged,
+        ),
+        const SizedBox(height: AppSpacing.lg),
+      ],
+      _BlockSummary(args: args),
+      const SizedBox(height: AppSpacing.lg),
+      _ImpactNotice(impact: state.impact),
+    ];
+  }
+
+  Widget _confirmButton(BuildContext context, CourtBlockReviewState state) {
+    return AppButton(
+      text: AppStrings.courtBlockReviewConfirm(
+        state.impact.reservations.length,
+      ),
+      isLoading: state.phase == CourtBlockReviewPhase.submitting,
+      onPressed: () => context
+          .read<CourtBlockReviewCubit>()
+          .confirm(args.court.id, args.draft),
+    );
+  }
+}
+
+class _ImpactNotice extends StatelessWidget {
+  final BlockImpact impact;
+
+  const _ImpactNotice({required this.impact});
+
+  @override
+  Widget build(BuildContext context) {
     if (impact.cancelsNothing) {
-      return const [AppNotice(message: AppStrings.courtBlockReviewNone)];
+      return const AppNotice(message: AppStrings.courtBlockReviewNone);
     }
 
-    return [
-      AppNotice(
-        tone: AppNoticeTone.danger,
-        message: AppStrings.courtBlockReviewWarning(
-          impact.reservations.length,
-        ),
+    return AppNotice(
+      tone: AppNoticeTone.danger,
+      message: AppStrings.courtBlockReviewWarning(impact.reservations.length),
+    );
+  }
+}
+
+class _AffectedReservations extends StatelessWidget {
+  final BlockImpact impact;
+
+  const _AffectedReservations({required this.impact});
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverList.builder(
+      itemCount: impact.reservations.length,
+      itemBuilder: (_, index) => _AffectedReservation(
+        reservation: impact.reservations[index],
+        impact: impact,
       ),
-      const SizedBox(height: AppSpacing.md),
-      for (final reservation in impact.reservations)
-        _AffectedReservation(reservation: reservation, impact: impact),
-    ];
+    );
   }
 }
 
@@ -140,9 +175,6 @@ class _AffectedReservation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final when = '${CourtBlockFormats.day(reservation.date)} · '
-        '${ReservationFormats.ofReservation(reservation)}';
-
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Container(
@@ -156,7 +188,10 @@ class _AffectedReservation extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(when, style: AppTextStyles.labelLarge),
+              Text(
+                ReservationFormats.dayAndHours(reservation),
+                style: AppTextStyles.labelLarge,
+              ),
               Text(
                 ReservationFormats.holderOf(
                   reservation,

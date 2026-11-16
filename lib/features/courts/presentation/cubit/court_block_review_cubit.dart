@@ -1,12 +1,13 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/errors/failure_messages.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../reservations/domain/entities/block_impact.dart';
 import '../../../reservations/domain/usecases/preview_court_block_use_case.dart';
 import '../../domain/entities/court_block_draft.dart';
 import '../../domain/usecases/create_court_block_use_case.dart';
-import 'court_block_form_cubit.dart';
+import '../formatting/court_block_formats.dart';
 
 enum CourtBlockReviewPhase { reviewing, submitting, saved }
 
@@ -54,7 +55,7 @@ class CourtBlockReviewCubit extends Cubit<CourtBlockReviewState> {
     } else if (failure is ConflictFailure) {
       await _reviewAgain(courtId, draft);
     } else {
-      emit(_with(error: CourtBlockFormCubit.messageFor(failure)));
+      emit(_with(error: CourtBlockFormats.creationFailure(failure)));
     }
   }
 
@@ -64,7 +65,7 @@ class CourtBlockReviewCubit extends Cubit<CourtBlockReviewState> {
 
     emit(
       impact.fold(
-        (failure) => _with(error: CourtBlockFormCubit.messageFor(failure)),
+        (failure) => _with(error: failure.userMessage),
         (impact) => CourtBlockReviewState(impact: impact, hasChanged: true),
       ),
     );

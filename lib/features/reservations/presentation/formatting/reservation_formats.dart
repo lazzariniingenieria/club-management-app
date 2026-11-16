@@ -18,6 +18,12 @@ abstract final class ReservationFormats {
   static String ofReservation(Reservation reservation) =>
       hours(reservation.startTime, reservation.endTime);
 
+  static String dayAndHours(Reservation reservation) =>
+      AppStrings.reservationDayAndHours(
+        CourtBlockFormats.day(reservation.date),
+        ofReservation(reservation),
+      );
+
   static String holder(Member? member) =>
       member?.fullName ?? AppStrings.reservationActivity;
 

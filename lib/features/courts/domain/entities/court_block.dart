@@ -15,11 +15,6 @@ class CourtBlock extends Equatable {
     this.reason,
   });
 
-  bool get isWithinOneDay =>
-      startsAt.year == endsAt.year &&
-      startsAt.month == endsAt.month &&
-      startsAt.day == endsAt.day;
-
   @override
   List<Object?> get props => [id, courtId, startsAt, endsAt, reason];
 }

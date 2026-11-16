@@ -81,7 +81,7 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
       paths: [path],
       build: (responses) => [
         for (final row in responses.single)
-          ReservationModel.fromJson(row as Map<String, dynamic>),
+          _reservationOf(row as Map<String, dynamic>),
       ],
     );
   }

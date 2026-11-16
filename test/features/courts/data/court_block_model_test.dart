@@ -30,7 +30,6 @@ void main() {
     });
 
     expect(block.reason, isNull);
-    expect(block.isWithinOneDay, isTrue);
   });
 
   test('sends the range without seconds nor time zone', () {

@@ -1,11 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/constants/app_strings.dart';
 import '../../../../core/errors/failure_messages.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../reservations/domain/usecases/preview_court_block_use_case.dart';
 import '../../domain/entities/court_block_draft.dart';
 import '../../domain/usecases/create_court_block_use_case.dart';
+import '../formatting/court_block_formats.dart';
 import 'court_block_form_state.dart';
 
 class CourtBlockFormCubit extends Cubit<CourtBlockFormState> {
@@ -32,7 +32,7 @@ class CourtBlockFormCubit extends Cubit<CourtBlockFormState> {
     if (impact.isLeft() || cancelsSomething) {
       emit(
         impact.fold(
-          (failure) => CourtBlockFormFailure(messageFor(failure)),
+          (failure) => CourtBlockFormFailure(failure.userMessage),
           (impact) => CourtBlockFormNeedsReview(draft: block, impact: impact),
         ),
       );
@@ -57,7 +57,7 @@ class CourtBlockFormCubit extends Cubit<CourtBlockFormState> {
     emit(
       failure == null
           ? const CourtBlockFormSaved()
-          : CourtBlockFormFailure(messageFor(failure)),
+          : CourtBlockFormFailure(CourtBlockFormats.creationFailure(failure)),
     );
   }
 
@@ -67,7 +67,7 @@ class CourtBlockFormCubit extends Cubit<CourtBlockFormState> {
 
     emit(
       impact.fold(
-        (failure) => CourtBlockFormFailure(messageFor(failure)),
+        (failure) => CourtBlockFormFailure(failure.userMessage),
         (impact) => CourtBlockFormNeedsReview(
           draft: block,
           impact: impact,
@@ -75,11 +75,5 @@ class CourtBlockFormCubit extends Cubit<CourtBlockFormState> {
         ),
       ),
     );
-  }
-
-  static String messageFor(Failure failure) {
-    return failure is ResponseTimeoutFailure
-        ? AppStrings.courtBlockUnconfirmed
-        : failure.userMessage;
   }
 }

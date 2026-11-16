@@ -1,4 +1,6 @@
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/errors/failure_messages.dart';
+import '../../../../core/errors/failures.dart';
 import '../../domain/entities/clock_time.dart';
 import '../../domain/entities/court_block.dart';
 import 'court_formats.dart';
@@ -38,6 +40,11 @@ abstract final class CourtBlockFormats {
       AppStrings.courtBlockUntil(day(endsAt), time(endsAt)),
     ];
   }
+
+  static String creationFailure(Failure failure) =>
+      failure is ResponseTimeoutFailure
+          ? AppStrings.courtBlockUnconfirmed
+          : failure.userMessage;
 
   static String reason(CourtBlock block) =>
       block.reason ?? AppStrings.courtBlockNoReason;

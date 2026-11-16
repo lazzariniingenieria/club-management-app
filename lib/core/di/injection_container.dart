@@ -502,7 +502,6 @@ void _registerReservations() {
       loadAgenda: sl(),
       cancelReservation: sl(),
       watchReservations: sl(),
-      watchBlocks: sl(),
       watchCourts: sl(),
       watchRoster: sl(),
     ),

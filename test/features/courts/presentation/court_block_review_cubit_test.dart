@@ -1,3 +1,4 @@
+import 'package:club_management_app/core/constants/app_strings.dart';
 import 'package:club_management_app/core/errors/failures.dart';
 import 'package:club_management_app/features/courts/domain/entities/clock_time.dart';
 import 'package:club_management_app/features/courts/domain/entities/court_block_draft.dart';
@@ -73,6 +74,59 @@ void main() {
       verifyNever(() => create(any(), any()));
       await cubit.close();
     });
+
+    test('a preview that timed out never says the block may be saved',
+        () async {
+      when(() => preview(3, any()))
+          .thenAnswer((_) async => const Left(ResponseTimeoutFailure()));
+      final cubit = build();
+
+      await cubit.create(3, draft);
+
+      expect(
+        cubit.state,
+        const CourtBlockFormFailure(AppStrings.networkErrorMessage),
+      );
+      await cubit.close();
+    });
+
+    test('a preview after a conflict that timed out is a read failure',
+        () async {
+      var previews = 0;
+      when(() => preview(3, any())).thenAnswer(
+        (_) async => previews++ == 0
+            ? const Right(BlockImpact.none)
+            : const Left(ResponseTimeoutFailure()),
+      );
+      when(() => create(3, any()))
+          .thenAnswer((_) async => const Left(ConflictFailure()));
+      final cubit = build();
+
+      await cubit.create(3, draft);
+
+      expect(
+        cubit.state,
+        const CourtBlockFormFailure(AppStrings.networkErrorMessage),
+      );
+      await cubit.close();
+    });
+
+    test('a block creation that timed out still says it may be saved',
+        () async {
+      when(() => preview(3, any()))
+          .thenAnswer((_) async => const Right(BlockImpact.none));
+      when(() => create(3, any()))
+          .thenAnswer((_) async => const Left(ResponseTimeoutFailure()));
+      final cubit = build();
+
+      await cubit.create(3, draft);
+
+      expect(
+        cubit.state,
+        const CourtBlockFormFailure(AppStrings.courtBlockUnconfirmed),
+      );
+      await cubit.close();
+    });
   });
 
   group('review', () {
@@ -108,6 +162,32 @@ void main() {
       expect(cubit.state.hasChanged, isTrue);
       expect(cubit.state.impact.reservationIds, [45, 52]);
       expect(cubit.state.phase, CourtBlockReviewPhase.reviewing);
+      await cubit.close();
+    });
+
+    test('a preview after a conflict that timed out is a read failure',
+        () async {
+      when(() => create(3, any()))
+          .thenAnswer((_) async => const Left(ConflictFailure()));
+      when(() => preview(3, draft))
+          .thenAnswer((_) async => const Left(ResponseTimeoutFailure()));
+      final cubit = build(impactOf([at(45, 18)]));
+
+      await cubit.confirm(3, draft);
+
+      expect(cubit.state.error, AppStrings.networkErrorMessage);
+      await cubit.close();
+    });
+
+    test('a block creation that timed out still says it may be saved',
+        () async {
+      when(() => create(3, any()))
+          .thenAnswer((_) async => const Left(ResponseTimeoutFailure()));
+      final cubit = build(impactOf([at(45, 18)]));
+
+      await cubit.confirm(3, draft);
+
+      expect(cubit.state.error, AppStrings.courtBlockUnconfirmed);
       await cubit.close();
     });
   });

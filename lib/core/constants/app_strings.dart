@@ -889,6 +889,9 @@ class AppStrings {
 
   static String clashLine(String day, String reason) => '$day · $reason';
 
+  static String reservationDayAndHours(String day, String hours) =>
+      '$day · $hours';
+
   static const List<String> weekdayAbbreviations = [
     'lun',
     'mar',
