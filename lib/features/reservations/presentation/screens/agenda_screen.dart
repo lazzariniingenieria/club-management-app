@@ -40,6 +40,7 @@ class AgendaScreen extends StatelessWidget {
         child: const AdminScaffold(
           title: AppStrings.agendaTitle,
           showsRoleBadge: true,
+          actions: [_RecurringSlotsButton()],
           floatingActionButton: _NewReservationButton(),
           body: _AgendaBody(),
         ),
@@ -73,6 +74,19 @@ class _FollowRequestedDayState extends State<_FollowRequestedDay> {
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+class _RecurringSlotsButton extends StatelessWidget {
+  const _RecurringSlotsButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: () => context.push(AppRoutes.adminRecurringSlots),
+      icon: const Icon(Icons.event_repeat_rounded),
+      label: const Text(AppStrings.recurringSlotsAction),
+    );
+  }
 }
 
 class _NewReservationButton extends StatelessWidget {

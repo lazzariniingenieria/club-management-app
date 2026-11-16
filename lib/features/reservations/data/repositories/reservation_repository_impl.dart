@@ -17,7 +17,10 @@ class ReservationRepositoryImpl implements ReservationRepository {
   ReservationRepositoryImpl({
     required this.remoteDataSource,
     required this.logger,
-  });
+    Stream<void>? relatedChanges,
+  }) {
+    relatedChanges?.listen(_reservationChanges.add);
+  }
 
   static const String _logContext = 'ReservationRepository';
 
