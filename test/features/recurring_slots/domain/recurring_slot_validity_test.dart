@@ -130,6 +130,24 @@ void main() {
       );
     });
 
+    test('more than a year before the end falls back to the suggested range',
+        () {
+      final validity = RecurringSlotValidity(
+        from: DateTime(2026, 11, 20),
+        until: DateTime(2027, 11, 18),
+      );
+
+      final moved = validity.startingOn(DateTime(2026, 11, 16));
+
+      expect(
+        moved,
+        RecurringSlotValidity.preset(
+          DateTime(2026, 11, 16),
+          ValidityPreset.suggested,
+        ),
+      );
+    });
+
     test('with a preset keeps the preset', () {
       final validity = RecurringSlotValidity.preset(
         DateTime(2026, 11, 16),
