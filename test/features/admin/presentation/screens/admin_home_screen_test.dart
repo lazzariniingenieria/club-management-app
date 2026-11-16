@@ -7,6 +7,9 @@ import 'package:club_management_app/features/admin/data/models/admin_summary_mod
 import 'package:club_management_app/features/admin/presentation/screens/admin_home_screen.dart';
 import 'package:club_management_app/features/admin/presentation/widgets/quick_access_card.dart';
 import 'package:club_management_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:club_management_app/features/club/data/datasources/club_remote_data_source.dart';
+import 'package:club_management_app/features/club/data/models/club_model.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +33,22 @@ class ScriptedSummaryDataSource implements AdminSummaryRemoteDataSource {
   }
 }
 
+class ClubWithoutCourts implements ClubRemoteDataSource {
+  static const ClubModel _club = ClubModel(id: 1, name: 'Club 1');
+
+  @override
+  Future<ClubModel> fetchClub() => SynchronousFuture(_club);
+
+  @override
+  Future<ClubModel> updateMonthlyFee(int? monthlyFeeCents) =>
+      SynchronousFuture(_club);
+}
+
+void registerClubWithoutCourts() {
+  di.sl.unregister<ClubRemoteDataSource>();
+  di.sl.registerLazySingleton<ClubRemoteDataSource>(ClubWithoutCourts.new);
+}
+
 void main() {
   const summary = AdminSummaryModel(activeMembers: 230, overdueMembers: 25);
 
@@ -44,6 +63,7 @@ void main() {
     di.sl.registerLazySingleton<AdminSummaryRemoteDataSource>(
       () => dataSource,
     );
+    registerClubWithoutCourts();
 
     await tester.pumpWidget(
       BlocProvider<AuthBloc>.value(
@@ -113,6 +133,7 @@ void main() {
         latency: const Duration(milliseconds: 50),
       ),
     );
+    registerClubWithoutCourts();
 
     await tester.pumpWidget(
       BlocProvider<AuthBloc>.value(

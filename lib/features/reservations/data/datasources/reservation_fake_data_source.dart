@@ -1,5 +1,6 @@
 import '../../../../core/errors/exceptions.dart';
 import '../../../courts/domain/entities/clock_time.dart';
+import '../../domain/entities/reservation.dart';
 import '../../domain/entities/reservation_draft.dart';
 import '../models/reservation_model.dart';
 import 'reservation_remote_data_source.dart';
@@ -20,8 +21,14 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
   static const int seededCourtId = 2;
   static const int seededMemberId = 2;
   static const ClockTime seededStart = ClockTime(19, 0);
+  static const int seededRecurringReservationId = 2;
+  static const int seededRecurringMemberId = 1;
+  static const int seededActivityReservationId = 3;
+  static const String seededActivity = 'Clases de tenis';
 
   static List<ReservationModel> _seeded(DateTime now) {
+    final inTwoDays = DateTime(now.year, now.month, now.day + 2);
+
     return [
       ReservationModel(
         id: seededReservationId,
@@ -30,6 +37,26 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
         date: DateTime(now.year, now.month, now.day + 1),
         startTime: seededStart,
         endTime: const ClockTime(20, 0),
+      ),
+      ReservationModel(
+        id: seededRecurringReservationId,
+        courtId: 1,
+        memberId: seededRecurringMemberId,
+        source: ReservationSource.recurring,
+        recurringSlotId: 1,
+        date: inTwoDays,
+        startTime: const ClockTime(18, 0),
+        endTime: const ClockTime(19, 0),
+      ),
+      ReservationModel(
+        id: seededActivityReservationId,
+        courtId: seededCourtId,
+        source: ReservationSource.activity,
+        recurringSlotId: 2,
+        description: seededActivity,
+        date: inTwoDays,
+        startTime: const ClockTime(17, 0),
+        endTime: const ClockTime(18, 0),
       ),
     ];
   }
@@ -44,22 +71,24 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
     ];
   }
 
-  void cancelUpcomingOf(int courtId) {
-    for (final reservation in _upcomingOf(courtId)) {
+  void cancelUpcomingOf(int courtId) =>
+      _cancelUpcoming((reservation) => reservation.courtId == courtId);
+
+  void cancelUpcomingOfMember(int memberId) =>
+      _cancelUpcoming((reservation) => reservation.memberId == memberId);
+
+  void _cancelUpcoming(bool Function(ReservationModel) matches) {
+    final now = _clock();
+    final upcoming = [
+      for (final reservation in _reservations)
+        if (matches(reservation) && _startOf(reservation).isAfter(now))
+          reservation,
+    ];
+
+    for (final reservation in upcoming) {
       _reservations.remove(reservation);
       _cancelledIds.add(reservation.id);
     }
-  }
-
-  List<ReservationModel> _upcomingOf(int courtId) {
-    final now = _clock();
-
-    return [
-      for (final reservation in _reservations)
-        if (reservation.courtId == courtId &&
-            _startOf(reservation).isAfter(now))
-          reservation,
-    ];
   }
 
   static DateTime _startOf(ReservationModel reservation) => DateTime(

@@ -3,8 +3,9 @@ import 'package:equatable/equatable.dart';
 import '../../../courts/domain/entities/clock_time.dart';
 import '../../../courts/domain/entities/court_block_draft.dart';
 import 'day_agenda.dart';
+import 'reservation.dart';
 
-enum SlotUnavailability { past, reserved, blocked }
+enum SlotUnavailability { past, reserved, recurring, activity, blocked }
 
 class StartOption extends Equatable {
   final ClockTime start;
@@ -57,8 +58,8 @@ class SlotRules {
     final endsAt = CourtBlockDraft.at(day, end);
 
     if (startsAt.isBefore(now)) return SlotUnavailability.past;
-    if (agenda.reservations.any((each) => each.overlaps(start, end))) {
-      return SlotUnavailability.reserved;
+    for (final reservation in agenda.reservations) {
+      if (reservation.overlaps(start, end)) return _takenBy(reservation);
     }
 
     final blocked = agenda.blocks.any(
@@ -68,6 +69,13 @@ class SlotRules {
 
     return blocked ? SlotUnavailability.blocked : null;
   }
+
+  static SlotUnavailability _takenBy(Reservation reservation) =>
+      switch (reservation.source) {
+        ReservationSource.member => SlotUnavailability.reserved,
+        ReservationSource.recurring => SlotUnavailability.recurring,
+        ReservationSource.activity => SlotUnavailability.activity,
+      };
 
   static ClockTime _clockTime(int minutesOfDay) => ClockTime(
         minutesOfDay ~/ Duration.minutesPerHour,

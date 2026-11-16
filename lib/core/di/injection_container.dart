@@ -116,10 +116,12 @@ import '../../features/reservations/domain/repositories/reservation_repository.d
 import '../../features/reservations/domain/usecases/cancel_reservation_use_case.dart';
 import '../../features/reservations/domain/usecases/create_reservation_use_case.dart';
 import '../../features/reservations/domain/usecases/load_day_agenda_use_case.dart';
+import '../../features/reservations/domain/usecases/load_upcoming_reservations_use_case.dart';
 import '../../features/reservations/domain/usecases/watch_reservation_changes_use_case.dart';
 import '../../features/reservations/presentation/cubit/agenda_cubit.dart';
 import '../../features/reservations/presentation/cubit/reservation_confirm_cubit.dart';
 import '../../features/reservations/presentation/cubit/reservation_form_cubit.dart';
+import '../../features/reservations/presentation/cubit/upcoming_reservations_cubit.dart';
 import '../config/app_environment.dart';
 import '../config/app_features.dart';
 import '../logging/app_logger.dart';
@@ -217,7 +219,7 @@ void _registerAdminDomain() {
 void _registerMemberDataSources() {
   sl.registerLazySingleton<MemberRemoteDataSource>(
     () => AppEnvironment.usesFakeDataSources
-        ? MemberFakeDataSource()
+        ? MemberFakeDataSource(onDeactivated: _cancelFakeReservationsOfMember)
         : MemberRemoteDataSourceImpl(sl(), sl()),
   );
 }
@@ -398,6 +400,13 @@ void _cancelFakeReservationsOf(int courtId) {
   }
 }
 
+void _cancelFakeReservationsOfMember(int memberId) {
+  final reservations = sl<ReservationRemoteDataSource>();
+  if (reservations is ReservationFakeDataSource) {
+    reservations.cancelUpcomingOfMember(memberId);
+  }
+}
+
 void _registerCourtBlocks() {
   sl.registerLazySingleton<CourtBlockRemoteDataSource>(
     () => AppEnvironment.usesFakeDataSources
@@ -441,6 +450,13 @@ void _registerReservations() {
       members: sl(),
     ),
   );
+  sl.registerLazySingleton(
+    () => LoadUpcomingReservationsUseCase(
+      courts: sl(),
+      reservations: sl(),
+      members: sl(),
+    ),
+  );
   sl.registerLazySingleton(() => CreateReservationUseCase(sl()));
   sl.registerLazySingleton(() => CancelReservationUseCase(sl()));
   sl.registerLazySingleton(() => WatchReservationChangesUseCase(sl()));
@@ -464,6 +480,14 @@ void _registerReservations() {
     ),
   );
   sl.registerFactory(() => ReservationConfirmCubit(sl()));
+  sl.registerFactory(
+    () => UpcomingReservationsCubit(
+      loadClub: sl(),
+      loadUpcoming: sl(),
+      watchReservations: sl(),
+      watchRoster: sl(),
+    ),
+  );
 }
 
 void _registerReports() {
