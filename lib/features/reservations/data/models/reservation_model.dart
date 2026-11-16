@@ -49,6 +49,12 @@ class ReservationModel extends Reservation {
   static ReservationSource sourceFromJson(String? value) =>
       _sources[value] ?? ReservationSource.member;
 
+  static bool isKnownSource(String? value) =>
+      value == null || _sources.containsKey(value);
+
+  static String? rawSourceOf(Map<String, dynamic> json) =>
+      json[_sourceKey] as String?;
+
   static Map<String, dynamic> bodyFromDraft(ReservationDraft draft) {
     return {
       _courtIdKey: draft.courtId,

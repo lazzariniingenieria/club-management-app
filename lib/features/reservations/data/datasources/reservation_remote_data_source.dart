@@ -17,7 +17,8 @@ abstract class ReservationRemoteDataSource {
 
 class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
   ReservationRemoteDataSourceImpl(ApiClient apiClient, AppLogger logger)
-      : _reader = ApiListReader(
+      : _logger = logger,
+        _reader = ApiListReader(
           apiClient: apiClient,
           logger: logger,
           logContext: _logContext,
@@ -28,6 +29,7 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
           logContext: _logContext,
         );
 
+  final AppLogger _logger;
   final ApiListReader _reader;
   final ApiWriter _writer;
 
@@ -39,9 +41,23 @@ class ReservationRemoteDataSourceImpl implements ReservationRemoteDataSource {
       paths: [ApiConstants.reservationsOf(CourtBlockModel.dayToJson(day))],
       build: (responses) => [
         for (final row in responses.single)
-          ReservationModel.fromJson(row as Map<String, dynamic>),
+          _reservationOf(row as Map<String, dynamic>),
       ],
     );
+  }
+
+  ReservationModel _reservationOf(Map<String, dynamic> json) {
+    final reservation = ReservationModel.fromJson(json);
+    final source = ReservationModel.rawSourceOf(json);
+    if (!ReservationModel.isKnownSource(source)) {
+      _logger.warning(
+        'Unknown reservation source $source on reservation ${reservation.id}, '
+        'read as a one-off reservation',
+        context: _logContext,
+      );
+    }
+
+    return reservation;
   }
 
   @override

@@ -116,6 +116,7 @@ import '../../features/reservations/domain/repositories/reservation_repository.d
 import '../../features/reservations/domain/usecases/cancel_reservation_use_case.dart';
 import '../../features/reservations/domain/usecases/create_reservation_use_case.dart';
 import '../../features/reservations/domain/usecases/load_day_agenda_use_case.dart';
+import '../../features/reservations/domain/usecases/load_upcoming_reservations_use_case.dart';
 import '../../features/reservations/domain/usecases/watch_reservation_changes_use_case.dart';
 import '../../features/reservations/presentation/cubit/agenda_cubit.dart';
 import '../../features/reservations/presentation/cubit/reservation_confirm_cubit.dart';
@@ -449,6 +450,13 @@ void _registerReservations() {
       members: sl(),
     ),
   );
+  sl.registerLazySingleton(
+    () => LoadUpcomingReservationsUseCase(
+      courts: sl(),
+      reservations: sl(),
+      members: sl(),
+    ),
+  );
   sl.registerLazySingleton(() => CreateReservationUseCase(sl()));
   sl.registerLazySingleton(() => CancelReservationUseCase(sl()));
   sl.registerLazySingleton(() => WatchReservationChangesUseCase(sl()));
@@ -475,7 +483,7 @@ void _registerReservations() {
   sl.registerFactory(
     () => UpcomingReservationsCubit(
       loadClub: sl(),
-      loadAgenda: sl(),
+      loadUpcoming: sl(),
       watchReservations: sl(),
       watchRoster: sl(),
     ),

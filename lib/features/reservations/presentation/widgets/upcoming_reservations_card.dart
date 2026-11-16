@@ -8,8 +8,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/inline_error_card.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
-import '../../domain/entities/day_agenda.dart';
+import '../../domain/entities/upcoming_reservations.dart';
 import '../cubit/upcoming_reservations_cubit.dart';
+import '../cubit/upcoming_reservations_state.dart';
 import '../formatting/reservation_formats.dart';
 
 class UpcomingReservationsCard extends StatelessWidget {
@@ -36,13 +37,9 @@ class UpcomingReservationsCard extends StatelessWidget {
               onRetry: context.read<UpcomingReservationsCubit>().load,
             ),
           ),
-        UpcomingReservationsReady(:final agenda, :final upcoming) => Padding(
+        UpcomingReservationsReady(:final upcoming) => Padding(
             padding: const EdgeInsets.only(top: AppSpacing.xl),
-            child: _UpcomingPanel(
-              agenda: agenda,
-              upcoming: upcoming,
-              onTap: onOpenAgenda,
-            ),
+            child: _UpcomingPanel(upcoming: upcoming, onTap: onOpenAgenda),
           ),
       },
     );
@@ -50,15 +47,10 @@ class UpcomingReservationsCard extends StatelessWidget {
 }
 
 class _UpcomingPanel extends StatelessWidget {
-  final DayAgenda agenda;
-  final List<UpcomingReservation> upcoming;
+  final UpcomingReservations upcoming;
   final VoidCallback onTap;
 
-  const _UpcomingPanel({
-    required this.agenda,
-    required this.upcoming,
-    required this.onTap,
-  });
+  const _UpcomingPanel({required this.upcoming, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -75,13 +67,13 @@ class _UpcomingPanel extends StatelessWidget {
             children: [
               const _PanelHeader(),
               const SizedBox(height: AppSpacing.sm),
-              if (upcoming.isEmpty)
+              if (upcoming.items.isEmpty)
                 Text(
                   AppStrings.upcomingReservationsNoneLeft,
                   style: AppTextStyles.bodyMedium,
                 ),
-              for (final item in upcoming)
-                _UpcomingRow(item: item, agenda: agenda),
+              for (final item in upcoming.items)
+                _UpcomingRow(item: item, upcoming: upcoming),
             ],
           ),
         ),
@@ -124,9 +116,9 @@ class _PanelHeader extends StatelessWidget {
 
 class _UpcomingRow extends StatelessWidget {
   final UpcomingReservation item;
-  final DayAgenda agenda;
+  final UpcomingReservations upcoming;
 
-  const _UpcomingRow({required this.item, required this.agenda});
+  const _UpcomingRow({required this.item, required this.upcoming});
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +137,7 @@ class _UpcomingRow extends StatelessWidget {
                   Text(
                     ReservationFormats.holderOf(
                       reservation,
-                      agenda.memberOf(reservation),
+                      upcoming.memberOf(reservation),
                     ),
                     style: AppTextStyles.labelLarge,
                   ),
