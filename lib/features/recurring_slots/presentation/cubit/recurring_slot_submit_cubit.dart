@@ -1,4 +1,3 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fpdart/fpdart.dart';
 
@@ -12,43 +11,7 @@ import '../../domain/entities/recurring_slot_validity.dart';
 import '../../domain/usecases/create_recurring_slot_use_case.dart';
 import '../../domain/usecases/deactivate_recurring_slot_use_case.dart';
 import '../../domain/usecases/renew_recurring_slot_use_case.dart';
-
-sealed class RecurringSlotSubmitState extends Equatable {
-  const RecurringSlotSubmitState();
-
-  @override
-  List<Object?> get props => [];
-}
-
-class RecurringSlotSubmitIdle extends RecurringSlotSubmitState {
-  const RecurringSlotSubmitIdle();
-}
-
-class RecurringSlotSubmitting extends RecurringSlotSubmitState {
-  const RecurringSlotSubmitting();
-}
-
-class RecurringSlotSubmitSaved extends RecurringSlotSubmitState {
-  const RecurringSlotSubmitSaved();
-}
-
-class RecurringSlotSubmitClashes extends RecurringSlotSubmitState {
-  final List<RecurringSlotClash> clashes;
-
-  const RecurringSlotSubmitClashes(this.clashes);
-
-  @override
-  List<Object?> get props => [clashes];
-}
-
-class RecurringSlotSubmitFailure extends RecurringSlotSubmitState {
-  final String message;
-
-  const RecurringSlotSubmitFailure(this.message);
-
-  @override
-  List<Object?> get props => [message];
-}
+import 'recurring_slot_submit_state.dart';
 
 class RecurringSlotSubmitCubit extends Cubit<RecurringSlotSubmitState> {
   final CreateRecurringSlotUseCase _create;

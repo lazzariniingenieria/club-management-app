@@ -73,8 +73,8 @@ class RecurringSlotRepositoryImpl implements RecurringSlotRepository {
   ) async {
     final result = await _guard(operation, run);
     final failure = result.getLeft().toNullable();
-    final mayHaveChanged = failure is ResponseTimeoutFailure ||
-        (failure is ConflictFailure && failure is! RecurringSlotClashFailure);
+    final mayHaveChanged =
+        failure is ResponseTimeoutFailure || failure is ConflictFailure;
     if (result.isRight() || mayHaveChanged) _changes.add(null);
 
     return result;

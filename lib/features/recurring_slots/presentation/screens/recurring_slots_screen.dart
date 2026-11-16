@@ -15,6 +15,7 @@ import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../domain/entities/recurring_slot.dart';
 import '../../domain/entities/recurring_slot_overview.dart';
 import '../cubit/recurring_slots_cubit.dart';
+import '../cubit/recurring_slots_state.dart';
 import '../formatting/recurring_slot_formats.dart';
 import 'recurring_slot_detail_args.dart';
 
@@ -236,9 +237,8 @@ class _SlotRow extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: _SlotRowText(
-              title: '${RecurringSlotFormats.hoursOf(slot)} · $court',
-              subtitle:
-                  '$holder · ${RecurringSlotFormats.until(slot.validUntil)}',
+              title: RecurringSlotFormats.rowTitle(slot, court),
+              subtitle: RecurringSlotFormats.rowSubtitle(holder, slot),
               notice: notice,
             ),
           ),

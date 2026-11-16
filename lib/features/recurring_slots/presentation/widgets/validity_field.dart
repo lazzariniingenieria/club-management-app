@@ -19,11 +19,6 @@ class ValidityField extends StatelessWidget {
     required this.onChanged,
   });
 
-  void _changeFrom(DateTime from) {
-    final preset = value.preset ?? ValidityPreset.suggested;
-    onChanged(RecurringSlotValidity.preset(from, preset));
-  }
-
   Future<void> _pickUntil(BuildContext context) async {
     final firstUntil =
         DateTime(value.from.year, value.from.month, value.from.day + 1);
@@ -49,7 +44,7 @@ class ValidityField extends StatelessWidget {
           value: value.from,
           firstDay: firstDay,
           lastDay: DateTime(firstDay.year + 1, firstDay.month, firstDay.day),
-          onChanged: _changeFrom,
+          onChanged: (from) => onChanged(value.startingOn(from)),
         ),
         const SizedBox(height: AppSpacing.lg),
         Text(AppStrings.recurringSlotFormUntil,

@@ -36,6 +36,17 @@ class RecurringSlotValidity extends Equatable {
   bool get isWithinLimits =>
       until.isAfter(from) && !until.isAfter(latestUntil(from));
 
+  RecurringSlotValidity startingOn(DateTime newFrom) {
+    final chosenPreset = preset;
+    final kept = RecurringSlotValidity(from: newFrom, until: until);
+    if (chosenPreset == null && kept.isWithinLimits) return kept;
+
+    return RecurringSlotValidity.preset(
+      newFrom,
+      chosenPreset ?? ValidityPreset.suggested,
+    );
+  }
+
   ValidityPreset? get preset {
     for (final preset in ValidityPreset.values) {
       if (until == _monthsAfter(from, preset.months)) return preset;

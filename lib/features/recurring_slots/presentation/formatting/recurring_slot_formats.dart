@@ -30,8 +30,8 @@ abstract final class RecurringSlotFormats {
 
   static String range(RecurringSlotValidity validity) =>
       AppStrings.recurringSlotRange(
-        _date(validity.from),
-        _date(validity.until),
+        CourtBlockFormats.date(validity.from),
+        CourtBlockFormats.date(validity.until),
       );
 
   static String rangeOfSlot(RecurringSlot slot) => range(
@@ -39,7 +39,7 @@ abstract final class RecurringSlotFormats {
       );
 
   static String until(DateTime value) =>
-      AppStrings.recurringSlotUntil(_date(value));
+      AppStrings.recurringSlotUntil(CourtBlockFormats.date(value));
 
   static String datesSummary(
     int weekday,
@@ -66,15 +66,24 @@ abstract final class RecurringSlotFormats {
       };
 
   static String? expiryNotice(RecurringSlot slot, DateTime today) {
-    if (slot.state == RecurringSlotState.expired) {
-      return AppStrings.recurringSlotExpiredOn(_date(slot.validUntil));
-    }
     final days = slot.daysUntilExpiry(today);
-    final isClose =
-        slot.state == RecurringSlotState.current && days <= expiryWarningDays;
+    final isCurrent = slot.state == RecurringSlotState.current;
+    if (slot.state == RecurringSlotState.expired || (isCurrent && days < 0)) {
+      return AppStrings.recurringSlotExpiredOn(
+        CourtBlockFormats.date(slot.validUntil),
+      );
+    }
 
-    return isClose ? AppStrings.recurringSlotExpiresIn(days) : null;
+    return isCurrent && days <= expiryWarningDays
+        ? AppStrings.recurringSlotExpiresIn(days)
+        : null;
   }
+
+  static String rowTitle(RecurringSlot slot, String court) =>
+      AppStrings.recurringSlotRowTitle(hoursOf(slot), court);
+
+  static String rowSubtitle(String holder, RecurringSlot slot) =>
+      AppStrings.recurringSlotRowSubtitle(holder, until(slot.validUntil));
 
   static String clash(RecurringSlotClash clash) => AppStrings.clashLine(
         CourtBlockFormats.day(clash.date),
@@ -84,13 +93,6 @@ abstract final class RecurringSlotFormats {
           ClashReason.unknown => AppStrings.clashTaken,
         },
       );
-
-  static String _date(DateTime value) {
-    final day = value.day.toString().padLeft(2, '0');
-    final month = value.month.toString().padLeft(2, '0');
-
-    return '$day/$month/${value.year}';
-  }
 
   static String _capitalized(String text) =>
       text.isEmpty ? text : '${text[0].toUpperCase()}${text.substring(1)}';

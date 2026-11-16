@@ -1,6 +1,7 @@
 import 'package:club_management_app/core/errors/failures.dart';
 import 'package:club_management_app/features/courts/domain/entities/clock_time.dart';
 import 'package:club_management_app/features/recurring_slots/domain/entities/recurring_slot.dart';
+import 'package:club_management_app/features/recurring_slots/domain/entities/recurring_slot_clash.dart';
 import 'package:club_management_app/features/recurring_slots/domain/entities/recurring_slot_draft.dart';
 import 'package:club_management_app/features/recurring_slots/domain/entities/recurring_slot_validity.dart';
 import 'package:club_management_app/features/recurring_slots/domain/repositories/recurring_slot_repository.dart';
@@ -18,6 +19,13 @@ final validity = RecurringSlotValidity(
   from: DateTime(2026, 11, 17),
   until: DateTime(2027, 5, 17),
 );
+
+final clash = RecurringSlotClashFailure([
+  RecurringSlotClash(
+    date: DateTime(2026, 11, 17),
+    reason: ClashReason.reserved,
+  ),
+]);
 
 final draft = RecurringSlotDraft(
   courtId: 1,
@@ -95,6 +103,80 @@ void main() {
 
       expect(result.getLeft().toNullable(), isA<ResponseTimeoutFailure>());
     });
+
+    test('a clash against the slot it had just created counts as created',
+        () async {
+      when(() => repository.createRecurringSlot(any()))
+          .thenAnswer((_) async => Left(clash));
+      when(() => repository.loadRecurringSlots())
+          .thenAnswer((_) async => Right([slotFor(validity)]));
+
+      final result = await CreateRecurringSlotUseCase(repository)(draft);
+
+      expect(result.getRight().toNullable()?.id, 7);
+    });
+
+    test("a clash with someone else's reservation is still reported",
+        () async {
+      when(() => repository.createRecurringSlot(any()))
+          .thenAnswer((_) async => Left(clash));
+      when(() => repository.loadRecurringSlots())
+          .thenAnswer((_) async => const Right([]));
+
+      final result = await CreateRecurringSlotUseCase(repository)(draft);
+
+      expect(result.getLeft().toNullable(), clash);
+    });
+
+    test('a creation without errors makes a single request', () async {
+      when(() => repository.createRecurringSlot(any()))
+          .thenAnswer((_) async => Right(slotFor(validity)));
+
+      await CreateRecurringSlotUseCase(repository)(draft);
+
+      verifyNever(() => repository.loadRecurringSlots());
+    });
+  });
+
+  RecurringSlot expiredOriginal() => slotFor(
+        RecurringSlotValidity(
+          from: DateTime(2026, 5, 17),
+          until: DateTime(2026, 11, 16),
+        ),
+        id: 3,
+        state: RecurringSlotState.expired,
+      );
+
+  test('a renewal clashing with the slot it had just renewed counts as done',
+      () async {
+    final original = expiredOriginal();
+    when(() => repository.renewRecurringSlot(3, validity))
+        .thenAnswer((_) async => Left(clash));
+    when(() => repository.loadRecurringSlots())
+        .thenAnswer((_) async => Right([original, slotFor(validity)]));
+
+    final result = await RenewRecurringSlotUseCase(repository)(
+      original,
+      validity,
+    );
+
+    expect(result.getRight().toNullable()?.id, 7);
+  });
+
+  test("a renewal clashing with someone else's reservation is reported",
+      () async {
+    final original = expiredOriginal();
+    when(() => repository.renewRecurringSlot(3, validity))
+        .thenAnswer((_) async => Left(clash));
+    when(() => repository.loadRecurringSlots())
+        .thenAnswer((_) async => Right([original]));
+
+    final result = await RenewRecurringSlotUseCase(repository)(
+      original,
+      validity,
+    );
+
+    expect(result.getLeft().toNullable(), clash);
   });
 
   test('renewing with a timeout looks for the renewed slot', () async {

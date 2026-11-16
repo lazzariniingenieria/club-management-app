@@ -834,6 +834,12 @@ class AppStrings {
 
   static String recurringSlotUntil(String until) => 'hasta el $until';
 
+  static String recurringSlotRowTitle(String hours, String court) =>
+      '$hours · $court';
+
+  static String recurringSlotRowSubtitle(String holder, String until) =>
+      '$holder · $until';
+
   static String recurringSlotDateCount(
     int count, {
     required String singular,

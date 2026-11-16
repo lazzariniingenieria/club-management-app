@@ -10,6 +10,7 @@ import '../../../../shared/widgets/app_sheet_frame.dart';
 import '../../domain/entities/recurring_slot.dart';
 import '../../domain/entities/recurring_slot_validity.dart';
 import '../cubit/recurring_slot_submit_cubit.dart';
+import '../cubit/recurring_slot_submit_state.dart';
 import 'clash_notice.dart';
 import 'validity_field.dart';
 

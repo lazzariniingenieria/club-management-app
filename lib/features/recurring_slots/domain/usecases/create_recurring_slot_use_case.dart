@@ -2,6 +2,7 @@ import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/errors/failures.dart';
 import '../entities/recurring_slot.dart';
+import '../entities/recurring_slot_clash.dart';
 import '../entities/recurring_slot_draft.dart';
 import '../repositories/recurring_slot_repository.dart';
 
@@ -16,12 +17,13 @@ class CreateRecurringSlotUseCase {
     }
 
     final created = await repository.createRecurringSlot(draft);
-    if (created.getLeft().toNullable() is! ResponseTimeoutFailure) {
-      return created;
-    }
+    if (!mayBeListed(created.getLeft().toNullable())) return created;
 
     return await findListed(repository, draft) ?? created;
   }
+
+  static bool mayBeListed(Failure? failure) =>
+      failure is ResponseTimeoutFailure || failure is RecurringSlotClashFailure;
 
   static Future<Either<Failure, RecurringSlot>?> findListed(
     RecurringSlotRepository repository,

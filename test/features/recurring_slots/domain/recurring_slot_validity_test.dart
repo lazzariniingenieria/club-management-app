@@ -99,4 +99,47 @@ void main() {
       expect(dates.first, DateTime(2026, 11, 13));
     });
   });
+
+  group('moving the start', () {
+    test('keeps an end date picked by hand', () {
+      final validity = RecurringSlotValidity(
+        from: DateTime(2026, 11, 16),
+        until: DateTime(2026, 12, 15),
+      );
+
+      final moved = validity.startingOn(DateTime(2026, 11, 17));
+
+      expect(moved.from, DateTime(2026, 11, 17));
+      expect(moved.until, DateTime(2026, 12, 15));
+    });
+
+    test('past the end falls back to the suggested range', () {
+      final validity = RecurringSlotValidity(
+        from: DateTime(2026, 11, 16),
+        until: DateTime(2026, 12, 15),
+      );
+
+      final moved = validity.startingOn(DateTime(2026, 12, 20));
+
+      expect(
+        moved,
+        RecurringSlotValidity.preset(
+          DateTime(2026, 12, 20),
+          ValidityPreset.suggested,
+        ),
+      );
+    });
+
+    test('with a preset keeps the preset', () {
+      final validity = RecurringSlotValidity.preset(
+        DateTime(2026, 11, 16),
+        ValidityPreset.threeMonths,
+      );
+
+      final moved = validity.startingOn(DateTime(2026, 11, 20));
+
+      expect(moved.preset, ValidityPreset.threeMonths);
+      expect(moved.from, DateTime(2026, 11, 20));
+    });
+  });
 }

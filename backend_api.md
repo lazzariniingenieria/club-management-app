@@ -310,6 +310,8 @@ El `409` por choques lista las fechas en `details`:
   "details": ["2026-12-01: court already reserved", "2026-12-08: court blocked"] }
 ```
 
+Cada detalle es `yyyy-MM-dd: <motivo>`, y los dos motivos (`court already reserved` y `court blocked`) **son contrato**: la app busca `reserved` y `blocked` en el texto para decir si la fecha está reservada o bloqueada. Si la API cambia esa redacción, la app muestra todos los choques como "Ocupada".
+
 Si dos pedidos chocan entre sí al mismo tiempo, el `409` es el genérico de constraint, **sin `details`**.
 
 **No se edita**: para cambiar un turno se da de baja y se crea otro.

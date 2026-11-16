@@ -11,6 +11,7 @@ import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/summary_table.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../cubit/recurring_slot_submit_cubit.dart';
+import '../cubit/recurring_slot_submit_state.dart';
 import '../formatting/recurring_slot_formats.dart';
 import '../widgets/clash_notice.dart';
 import 'recurring_slot_confirmation_args.dart';

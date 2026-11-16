@@ -83,13 +83,25 @@ void main() {
   test('announces a change only when something may have changed', () async {
     final changes = <void>[];
     repository.recurringSlotChanges.listen(changes.add);
-    when(() => remote.createRecurringSlot(draft)).thenThrow(
-      ConflictException('conflicts', ['2026-12-01: court already reserved']),
-    );
+    when(() => remote.createRecurringSlot(draft))
+        .thenThrow(ValidationException('bad request'));
     when(() => remote.deactivateRecurringSlot(7)).thenAnswer((_) async {});
 
     await repository.createRecurringSlot(draft);
     await repository.deactivateRecurringSlot(7);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(changes, hasLength(1));
+  });
+
+  test('announces a change when the creation clashes', () async {
+    final changes = <void>[];
+    repository.recurringSlotChanges.listen(changes.add);
+    when(() => remote.createRecurringSlot(draft)).thenThrow(
+      ConflictException('conflicts', ['2026-12-01: court already reserved']),
+    );
+
+    await repository.createRecurringSlot(draft);
     await Future<void>.delayed(Duration.zero);
 
     expect(changes, hasLength(1));

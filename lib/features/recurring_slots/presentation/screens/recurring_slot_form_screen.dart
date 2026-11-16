@@ -22,6 +22,7 @@ import '../../domain/entities/recurring_slot_overview.dart';
 import '../../domain/entities/recurring_slot_starts.dart';
 import '../../domain/entities/recurring_slot_validity.dart';
 import '../cubit/recurring_slots_cubit.dart';
+import '../cubit/recurring_slots_state.dart';
 import '../formatting/recurring_slot_formats.dart';
 import '../widgets/validity_field.dart';
 import 'recurring_slot_confirmation_args.dart';
@@ -33,26 +34,37 @@ class RecurringSlotFormScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider<RecurringSlotsCubit>(
       create: (_) => sl<RecurringSlotsCubit>()..load(),
-      child: AdminScaffold(
+      child: const AdminScaffold(
         title: AppStrings.recurringSlotFormTitle,
-        body: BlocBuilder<RecurringSlotsCubit, RecurringSlotsState>(
-          builder: (context, state) => switch (state) {
-            RecurringSlotsLoading() => const Padding(
-                padding: EdgeInsets.all(AppSpacing.lg),
-                child: SkeletonBox(height: 320),
-              ),
-            RecurringSlotsFailure() => Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: InlineErrorCard(
-                  title: AppStrings.recurringSlotsErrorTitle,
-                  message: AppStrings.networkErrorMessage,
-                  onRetry: context.read<RecurringSlotsCubit>().load,
-                ),
-              ),
-            RecurringSlotsReady(:final overview) =>
-              _RecurringSlotForm(overview: overview),
-          },
-        ),
+        body: _RecurringSlotForm(),
+      ),
+    );
+  }
+}
+
+class _FormSkeleton extends StatelessWidget {
+  const _FormSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.all(AppSpacing.lg),
+      child: SkeletonBox(height: 320),
+    );
+  }
+}
+
+class _LoadError extends StatelessWidget {
+  const _LoadError();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: InlineErrorCard(
+        title: AppStrings.recurringSlotsErrorTitle,
+        message: AppStrings.networkErrorMessage,
+        onRetry: context.read<RecurringSlotsCubit>().load,
       ),
     );
   }
@@ -61,9 +73,7 @@ class RecurringSlotFormScreen extends StatelessWidget {
 enum _HolderKind { member, activity }
 
 class _RecurringSlotForm extends StatefulWidget {
-  final RecurringSlotOverview overview;
-
-  const _RecurringSlotForm({required this.overview});
+  const _RecurringSlotForm();
 
   @override
   State<_RecurringSlotForm> createState() => _RecurringSlotFormState();
@@ -72,6 +82,7 @@ class _RecurringSlotForm extends StatefulWidget {
 class _RecurringSlotFormState extends State<_RecurringSlotForm> {
   late final DateTime _today = _dayOf(DateTime.now());
   final _description = TextEditingController();
+  RecurringSlotOverview? _overview;
   _HolderKind _holderKind = _HolderKind.member;
   Member? _member;
   int? _courtId;
@@ -97,7 +108,7 @@ class _RecurringSlotFormState extends State<_RecurringSlotForm> {
   }
 
   Court? get _court {
-    for (final court in widget.overview.activeCourts) {
+    for (final court in _overview?.activeCourts ?? const <Court>[]) {
       if (court.id == _courtId) return court;
     }
 
@@ -138,15 +149,34 @@ class _RecurringSlotFormState extends State<_RecurringSlotForm> {
 
   @override
   Widget build(BuildContext context) {
+    return BlocConsumer<RecurringSlotsCubit, RecurringSlotsState>(
+      listener: (context, state) {
+        if (state is RecurringSlotsReady) {
+          setState(() => _overview = state.overview);
+        }
+      },
+      builder: (context, state) {
+        final overview = _overview ??
+            (state is RecurringSlotsReady ? state.overview : null);
+        if (overview != null) return _fields(overview);
+
+        return state is RecurringSlotsFailure
+            ? const _LoadError()
+            : const _FormSkeleton();
+      },
+    );
+  }
+
+  Widget _fields(RecurringSlotOverview overview) {
     final draft = _draft;
     final dates = draft?.dates(DateTime.now()) ?? const <DateTime>[];
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        ..._holderFields(),
+        ..._holderFields(overview.members),
         const SizedBox(height: AppSpacing.lg),
-        ..._whenFields(),
+        ..._whenFields(overview.activeCourts),
         const SizedBox(height: AppSpacing.lg),
         ValidityField(
           value: _validity,
@@ -167,7 +197,7 @@ class _RecurringSlotFormState extends State<_RecurringSlotForm> {
     );
   }
 
-  List<Widget> _holderFields() {
+  List<Widget> _holderFields(List<Member> members) {
     return [
       _HolderKindToggle(
         value: _holderKind,
@@ -176,7 +206,7 @@ class _RecurringSlotFormState extends State<_RecurringSlotForm> {
       const SizedBox(height: AppSpacing.lg),
       if (_holderKind == _HolderKind.member)
         ReservationMemberField(
-          members: widget.overview.members,
+          members: members,
           selected: _member,
           onSelected: (member) => setState(() => _member = member),
         )
@@ -194,12 +224,12 @@ class _RecurringSlotFormState extends State<_RecurringSlotForm> {
     ];
   }
 
-  List<Widget> _whenFields() {
+  List<Widget> _whenFields(List<Court> courts) {
     final court = _court;
 
     return [
       _CourtField(
-        courts: widget.overview.activeCourts,
+        courts: courts,
         courtId: _courtId,
         onChanged: (courtId) => setState(() {
           _courtId = courtId;

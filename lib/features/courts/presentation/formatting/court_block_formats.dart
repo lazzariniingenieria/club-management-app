@@ -6,11 +6,12 @@ import 'court_formats.dart';
 abstract final class CourtBlockFormats {
   static String day(DateTime value) {
     final weekday = AppStrings.weekdayAbbreviations[value.weekday - 1];
-    final dayOfMonth = _twoDigits(value.day);
-    final month = _twoDigits(value.month);
 
-    return '$weekday $dayOfMonth/$month/${value.year}';
+    return '$weekday ${date(value)}';
   }
+
+  static String date(DateTime value) =>
+      '${_twoDigits(value.day)}/${_twoDigits(value.month)}/${value.year}';
 
   static String time(DateTime value) =>
       CourtFormats.time(ClockTime(value.hour, value.minute));

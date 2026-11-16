@@ -21,9 +21,8 @@ class RenewRecurringSlotUseCase {
     }
 
     final renewed = await repository.renewRecurringSlot(original.id, validity);
-    if (renewed.getLeft().toNullable() is! ResponseTimeoutFailure) {
-      return renewed;
-    }
+    final failure = renewed.getLeft().toNullable();
+    if (!CreateRecurringSlotUseCase.mayBeListed(failure)) return renewed;
 
     return await CreateRecurringSlotUseCase.findListed(
           repository,

@@ -15,6 +15,7 @@ import '../../../../shared/widgets/summary_table.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../domain/entities/recurring_slot.dart';
 import '../cubit/recurring_slot_submit_cubit.dart';
+import '../cubit/recurring_slot_submit_state.dart';
 import '../formatting/recurring_slot_formats.dart';
 import '../widgets/renew_recurring_slot_sheet.dart';
 import 'recurring_slot_detail_args.dart';

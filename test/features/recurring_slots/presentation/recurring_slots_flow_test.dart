@@ -1,11 +1,34 @@
 import 'package:club_management_app/core/constants/app_strings.dart';
+import 'package:club_management_app/core/errors/exceptions.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
+import 'package:club_management_app/features/recurring_slots/data/datasources/recurring_slot_fake_data_source.dart';
+import 'package:club_management_app/features/recurring_slots/data/models/recurring_slot_model.dart';
+import 'package:club_management_app/features/recurring_slots/domain/entities/recurring_slot_draft.dart';
 import 'package:club_management_app/features/recurring_slots/presentation/formatting/recurring_slot_formats.dart';
 import 'package:club_management_app/features/reservations/data/datasources/reservation_fake_data_source.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/app_test_harness.dart';
+
+class SignalLostOnCreate extends RecurringSlotFakeDataSource {
+  SignalLostOnCreate() : super(latency: Duration.zero);
+
+  bool _signalLost = false;
+
+  @override
+  Future<List<RecurringSlotModel>> fetchRecurringSlots() {
+    if (_signalLost) throw NetworkException('offline');
+
+    return super.fetchRecurringSlots();
+  }
+
+  @override
+  Future<RecurringSlotModel> createRecurringSlot(RecurringSlotDraft draft) {
+    _signalLost = true;
+    throw ResponseTimeoutException('no answer');
+  }
+}
 
 void main() {
   Finder tab(String label) => find.descendant(
@@ -30,8 +53,15 @@ void main() {
       .descendant(of: find.byType(ListView), matching: find.byType(Scrollable))
       .first;
 
-  Future<void> openRecurringSlots(WidgetTester tester) async {
-    await bootApp(tester, signedInAs: UserRole.admin);
+  Future<void> openRecurringSlots(
+    WidgetTester tester, {
+    RecurringSlotFakeDataSource? source,
+  }) async {
+    await bootApp(
+      tester,
+      signedInAs: UserRole.admin,
+      recurringSlotSource: source,
+    );
     await tester.tap(tab(AppStrings.adminTabReservations));
     await tester.pumpAndSettle();
     await tester.tap(find.text(AppStrings.recurringSlotsAction));
@@ -200,5 +230,73 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('SÁBADO'), findsOneWidget);
+  });
+
+  testWidgets('a failed reload keeps what the admin filled in', (
+    tester,
+  ) async {
+    await openRecurringSlots(tester, source: SignalLostOnCreate());
+
+    await fillActivity(
+      tester,
+      description: 'Escuela de pádel',
+      court: 'Cancha de Pádel 1',
+      weekday: DateTime.saturday,
+      start: '10:00',
+    );
+    await tester.tap(find.text(AppStrings.recurringSlotConfirmAction));
+    await tester.pumpAndSettle();
+    await tapBackButton(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppStrings.recurringSlotsErrorTitle), findsNothing);
+    await tester.scrollUntilVisible(
+      find.byType(TextField),
+      -200,
+      scrollable: formScrollable(),
+    );
+    final description = tester.widget<TextField>(find.byType(TextField).first);
+    expect(description.controller?.text, 'Escuela de pádel');
+    expect(find.text('Cancha de Pádel 1'), findsOneWidget);
+  });
+
+  testWidgets('warns about an overdue member and still creates the slot', (
+    tester,
+  ) async {
+    await openRecurringSlots(tester);
+    await tester.tap(find.text(AppStrings.recurringSlotsNew));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppStrings.reservationFormMemberUnset));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'Juan Álvarez');
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Juan Álvarez').last);
+    await tester.pumpAndSettle();
+    await choose(tester, 0, 'Cancha de Pádel 1');
+    await choose(tester, 1, RecurringSlotFormats.weekday(DateTime.saturday));
+    final chip = find.widgetWithText(ChoiceChip, '10:00');
+    await tester.scrollUntilVisible(chip, 200, scrollable: formScrollable());
+    await tester.tap(chip);
+    await tester.pumpAndSettle();
+    final continueButton = find.text(AppStrings.reservationFormContinue);
+    await tester.scrollUntilVisible(
+      continueButton,
+      200,
+      scrollable: formScrollable(),
+    );
+    await tester.tap(continueButton);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Juan Álvarez tiene', findRichText: true),
+      findsOneWidget,
+    );
+
+    final confirm = find.text(AppStrings.recurringSlotConfirmAction);
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppStrings.recurringSlotCreated), findsOneWidget);
   });
 }
