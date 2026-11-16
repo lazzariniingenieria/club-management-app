@@ -4,7 +4,7 @@ Documento de referencia del frontend: **qué pantallas existen, cómo se navega,
 
 No define píxeles. Define estructura, flujos, estados y alcance por entrega.
 
-> **Estado al 2026-11-13.** La superficie del **administrador es el camino crítico**: se construye completa antes de la del socio. Entregadas E1 a E8, E10, E11 y las partes de E9 que no dependen de la API (E9a, E9b y E9c, PR #22 a #24). Lo que falta del admin (turnos fijos y bloquear sobre reservas, resto de E9) espera al backend. La paleta de §7 está confirmada en código (`AppColors`).
+> **Estado al 2026-11-16.** La superficie del **administrador es el camino crítico**: se construye completa antes de la del socio. Entregadas E1 a E11: con E9d (turnos fijos y bloquear sobre reservas, PR #25 a #27) la etapa 2 queda completa en `develop`; falta pasarla a `main`. La paleta de §7 está confirmada en código (`AppColors`).
 >
 > **El contrato de la API no se documenta acá**: vive en [backend_api.md](backend_api.md), verificado contra `develop`. Este archivo manda en pantallas, flujos y entregas; ese otro manda en endpoints, shapes, errores y reglas del servidor.
 
@@ -584,7 +584,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E9a | Gestión de canchas: listar, crear, editar, dar de baja y reactivar | No bloquea: usa el PR #25 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #22) |
 | E9b | Bloqueos de cancha: listar, bloquear y quitar | No bloquea: usa el PR #26 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #23) |
 | E9c | Agenda del día y reservas puntuales: reservar y cancelar | No bloquea: usa el PR #27 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #24) |
-| E9d | Turnos fijos y bloqueo con reservas afectadas | No bloquea: usa los PR #28 y #29 de la API, todavía abiertos | 🚧 En revisión |
+| E9d | Turnos fijos y bloqueo con reservas afectadas | No bloquea: usa los PR #28 y #29 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #25 a #27) |
 | E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | ✅ Entregada (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
 | E11 | Recuperar contraseña (informativa) | No bloquea | ✅ Entregada (PR #14). El registro del socio (`/login/activate`) no es parte de E11: va con E12+ |
 | E12+ | Superficie del socio completa, incluido el registro con DNI | **Bloqueada** | — |
@@ -749,7 +749,7 @@ El flujo §4.4 sobre `/api/reservations` (PR #27 de la API). Los turnos fijos y 
 
 ### E9d — Turnos fijos y bloqueo sobre reservas
 
-Lo que queda de E9. Los turnos fijos están en el PR #28 de la API, todavía abierto ([backend_api.md](backend_api.md) §5); la vista previa del bloqueo y la cancelación de lo que pisa siguen faltando (§10). El modelo es el del documento técnico V6 §04: un turno fijo es de un socio **o** de una actividad del club sin socio (clases, escuela), vale como mucho un año, y al crearlo se generan todas sus fechas como reservas en la misma operación; si una sola choca, no se crea ninguna.
+Lo que quedaba de E9. Usa los turnos fijos (PR #28 de la API) y la vista previa del bloqueo con la cancelación de lo que pisa (PR #29), los dos en `develop` desde el 2026-11-16 ([backend_api.md](backend_api.md) §5). El modelo es el del documento técnico V6 §04: un turno fijo es de un socio **o** de una actividad del club sin socio (clases, escuela), vale como mucho un año, y al crearlo se generan todas sus fechas como reservas en la misma operación; si una sola choca, no se crea ninguna.
 
 **Decidido el 2026-11-13:**
 
