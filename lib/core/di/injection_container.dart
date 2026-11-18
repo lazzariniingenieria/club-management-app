@@ -76,6 +76,14 @@ import '../../features/family_groups/presentation/cubit/family_group_builder_cub
 import '../../features/family_groups/presentation/cubit/family_group_cubit.dart';
 import '../../features/family_groups/presentation/cubit/family_group_name_cubit.dart';
 import '../../features/family_groups/presentation/cubit/family_group_picker_cubit.dart';
+import '../../features/member_accounts/data/datasources/member_account_fake_data_source.dart';
+import '../../features/member_accounts/data/datasources/member_account_remote_data_source.dart';
+import '../../features/member_accounts/data/repositories/member_account_repository_impl.dart';
+import '../../features/member_accounts/domain/repositories/member_account_repository.dart';
+import '../../features/member_accounts/domain/usecases/create_member_account_use_case.dart';
+import '../../features/member_accounts/domain/usecases/load_member_account_use_case.dart';
+import '../../features/member_accounts/domain/usecases/reset_member_account_password_use_case.dart';
+import '../../features/member_accounts/presentation/cubit/member_account_cubit.dart';
 import '../../features/members/data/datasources/member_fake_data_source.dart';
 import '../../features/members/data/datasources/member_remote_data_source.dart';
 import '../../features/members/data/repositories/member_repository_impl.dart';
@@ -143,6 +151,7 @@ Future<void> init() async {
   _registerFamilyGroups();
   _registerClub();
   _registerAdmins();
+  _registerMemberAccounts();
   _registerCourts();
   _registerCourtBlocks();
   _registerReservations();
@@ -359,6 +368,30 @@ void _registerAdmins() {
     () => AdminFormCubit(
       saveAdmin: sl(),
       setAdminActive: sl(),
+      resetPassword: sl(),
+    ),
+  );
+}
+
+void _registerMemberAccounts() {
+  sl.registerLazySingleton<MemberAccountRemoteDataSource>(
+    () => AppEnvironment.usesFakeDataSources
+        ? MemberAccountFakeDataSource(members: sl(), admins: sl(), club: sl())
+        : MemberAccountRemoteDataSourceImpl(sl(), sl()),
+  );
+  sl.registerLazySingleton<MemberAccountRepository>(
+    () => MemberAccountRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+  );
+
+  sl.registerLazySingleton(() => LoadMemberAccountUseCase(sl()));
+  sl.registerLazySingleton(() => CreateMemberAccountUseCase(sl()));
+  sl.registerLazySingleton(() => ResetMemberAccountPasswordUseCase(sl()));
+
+  sl.registerFactory(
+    () => MemberAccountCubit(
+      loadClub: sl(),
+      loadAccount: sl(),
+      createAccount: sl(),
       resetPassword: sl(),
     ),
   );

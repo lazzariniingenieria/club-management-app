@@ -830,6 +830,33 @@ class AppStrings {
   static const String saveFailedServer =
       'No pudimos guardar el cambio. El sistema del club tuvo un problema: probá de nuevo en unos minutos.';
 
+  static const String memberAccountSectionLabel = 'Cuenta para la app';
+  static const String memberAccountLoading = 'Cargando la cuenta para la app';
+  static const String memberAccountLoadFailed = 'No pudimos cargar la cuenta';
+  static const String memberAccountLoadOffline =
+      'Sin conexión: revisá la conexión y probá de nuevo.';
+  static const String memberAccountLoadServer =
+      'El sistema del club tuvo un problema.';
+  static const String memberAccountNone = 'Todavía no tiene cuenta';
+  static const String memberAccountNeedsDni =
+      'Para crear la cuenta, cargale el DNI al socio.';
+  static const String memberAccountCreateAction = 'Crear cuenta';
+  static const String memberAccountCreateTitle = 'Crear cuenta para la app';
+  static const String memberAccountCreateNotice =
+      'Dale esta contraseña al socio en persona. Ingresa con su DNI y esta contraseña.';
+  static const String memberAccountCreated = 'Cuenta creada';
+  static const String memberAccountConflict =
+      'Ya hay una cuenta con el DNI de este socio en el club.';
+  static const String memberAccountAdmin =
+      'Ingresa con su cuenta de administrador.';
+  static const String memberAccountResetAction = 'Restablecer contraseña';
+  static const String memberAccountResetNotice =
+      'Se cierran sus sesiones abiertas. Dale la contraseña nueva en persona.';
+  static const String memberAccountResetDone = 'Contraseña restablecida';
+
+  static String memberAccountSignsInWith(String dni) =>
+      'Ingresa con el DNI $dni';
+
   static const String memberSurfacePendingTitle = 'En preparación';
   static const String memberSurfacePendingMessage =
       'La app para socios todavía está en preparación. Por ahora la usan los administradores del club.';

@@ -7,12 +7,14 @@ class ClubModel extends Club {
     required super.name,
     super.monthlyFeeCents,
     super.courtsEnabled,
+    super.memberAppEnabled,
   });
 
   static const String _idKey = 'id';
   static const String _nameKey = 'name';
   static const String _monthlyFeeKey = 'monthlyFeeAmount';
   static const String _courtsEnabledKey = 'courtsEnabled';
+  static const String _memberAppEnabledKey = 'memberAppEnabled';
 
   factory ClubModel.fromJson(Map<String, dynamic> json) {
     final fee = json[_monthlyFeeKey] as num?;
@@ -22,6 +24,7 @@ class ClubModel extends Club {
       name: json[_nameKey] as String,
       monthlyFeeCents: fee == null ? null : centsFromJson(fee),
       courtsEnabled: json[_courtsEnabledKey] as bool? ?? false,
+      memberAppEnabled: json[_memberAppEnabledKey] as bool? ?? false,
     );
   }
 

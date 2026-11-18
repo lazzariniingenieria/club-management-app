@@ -18,6 +18,11 @@ abstract final class ApiConstants {
   static String memberFamilyGroup(int memberId) =>
       '${member(memberId)}/family-group';
 
+  static String memberAccount(int memberId) => '${member(memberId)}/account';
+
+  static String memberAccountPassword(int memberId) =>
+      '${memberAccount(memberId)}/password';
+
   static String admin(int adminId) => '$admins/$adminId';
 
   static String adminPassword(int adminId) => '${admin(adminId)}/password';
