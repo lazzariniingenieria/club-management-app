@@ -48,7 +48,7 @@ El **superAdmin comparte el shell del admin**: su único delta es la gestión de
 | :--- | :--- | :--- |
 | Splash / Bootstrap | `/` | ✅ Implementada — resuelve sesión persistida y redirige (§3.1.1) |
 | Login | `/login` | ✅ Implementada |
-| Primer ingreso | `/login/activate` | A construir, **y ya no es un auto-registro** (decisión del 2026-11-15): la cuenta del socio la crea un admin, que le da la contraseña inicial, igual que el super admin con los admins. Qué hace esta pantalla queda por definir junto con E11/E12 — la candidata es el cambio de contraseña del primer ingreso, que necesita un flag que la API no tiene ([backend_api.md](backend_api.md) §10). El CTA `AppStrings.loginFirstTimeUser` ya existe |
+| Primer ingreso | `/login/activate` | A construir, **y ya no es un auto-registro** (decisión del 2026-11-15): la cuenta del socio la crea un admin, que le da la contraseña inicial, igual que el super admin con los admins. Desde E12a el admin la crea y le restablece la contraseña en la ficha del socio (§4.2.1). Qué hace esta pantalla queda por definir junto con E11/E12 — la candidata es el cambio de contraseña del primer ingreso, que necesita un flag que la API no tiene ([backend_api.md](backend_api.md) §10). El CTA `AppStrings.loginFirstTimeUser` ya existe |
 | Recuperar contraseña | `/login/forgot` | ✅ Implementada — **pantalla informativa**, no formulario (§3.1.2) |
 
 #### 3.1.1 Splash — no es una pantalla instantánea
@@ -69,7 +69,7 @@ La regla de fondo: **el Splash nunca es una pantalla sin salida**. Cualquier ram
 
 El backend no expone ni va a exponer recuperación por email: **el reset de contraseña es una acción manual de un ADMIN o SUPER_ADMIN**, decisión de arquitectura ya tomada del lado de la API. La pantalla no puede ser un formulario de email porque no hay endpoint del otro lado.
 
-Se construye entonces como pantalla informativa (E11, parte del Bloque 1): separa por quién la lee, porque la pantalla está antes del login y la ve cualquiera, en dos líneas: *"Si sos administrador, pedile al administrador principal una contraseña nueva."* (E8) y *"Si sos socio, consultá en la administración del club."* (no hay reset de socio, [backend_api.md](backend_api.md) §10), y *Volver al ingreso*. Se acortó en la revisión de textos del 2026-10-31: tenía cuatro párrafos, incluido un aviso para el administrador principal que casi nadie lee. El canal de contacto queda pendiente: la API no expone datos de contacto del club ([backend_api.md](backend_api.md) §10). Sin campo de email, sin botón "Enviar" — un formulario que no manda nada a ningún lado es peor que no tener la pantalla.
+Se construye entonces como pantalla informativa (E11, parte del Bloque 1): separa por quién la lee, porque la pantalla está antes del login y la ve cualquiera, en dos líneas: *"Si sos administrador, pedile al administrador principal una contraseña nueva."* (E8) y *"Si sos socio, consultá en la administración del club."* (desde E12a, la administración le restablece la contraseña desde la ficha del socio, §4.2.1), y *Volver al ingreso*. Se acortó en la revisión de textos del 2026-10-31: tenía cuatro párrafos, incluido un aviso para el administrador principal que casi nadie lee. El canal de contacto queda pendiente: la API no expone datos de contacto del club ([backend_api.md](backend_api.md) §10). Sin campo de email, sin botón "Enviar" — un formulario que no manda nada a ningún lado es peor que no tener la pantalla.
 
 **Textos de ayuda** (revisión de textos, 2026-10-31): cada pantalla dice lo justo. Se sacaron las explicaciones que repetían lo que la pantalla ya muestra (la sugerencia de meses, de dónde sale el importe, "tocá un pago para…", las notas de cuota individual del grupo) y se acortaron las que evitan errores. Quedan enteros los avisos de errores y de acciones irreversibles. Antes de sumar un texto de ayuda, preguntarse si la pantalla sin él se entiende igual.
 
@@ -296,6 +296,21 @@ Socios ──[fila]──► Ficha del socio ─────────┼─�
 - **Historial**, del mes más nuevo al más viejo: mes, importe, medio, fecha de carga y quién pagó cuando no fue el socio. Vacío con mensaje propio si nunca pagó.
 - **Pie fijo** con *Registrar pago* (*Registrar primer pago* si no tiene ninguno).
 - Estados de §5: skeleton, sin conexión y error del servidor con *Reintentar*, y socio inexistente.
+
+**Card "Cuenta para la app"** (E12a), debajo de la del grupo familiar y **solo si el club tiene `memberAppEnabled`**. Carga aparte de la ficha: si falla, la ficha sigue usable. Deslizar para refrescar la recarga junto con la ficha.
+
+| Caso | Qué muestra |
+| :--- | :--- |
+| Cargando | Skeleton chico con la forma de la card |
+| No se pudo leer | "No pudimos cargar la cuenta", con el motivo (sin conexión o error del servidor) y *Reintentar* |
+| Sin cuenta, socio con DNI | "Todavía no tiene cuenta" + *Crear cuenta*: la misma hoja de contraseña que *Restablecer contraseña* de los admins (§4.3), con el aviso "Dale esta contraseña al socio en persona. Ingresa con su DNI y esta contraseña." Al guardar, "Cuenta creada" y la card muestra la cuenta |
+| Sin cuenta, socio sin DNI | "Para crear la cuenta, cargale el DNI al socio." Sin botón: el DNI se carga con el lápiz del encabezado |
+| Sin cuenta, socio dado de baja | La card no se muestra |
+| Con cuenta de socio | "Ingresa con el DNI 30.111.222" — el DNI **de la cuenta**, que puede no ser el del socio si después se lo editó — + *Restablecer contraseña*, con el aviso de que se cierran sus sesiones abiertas y que se la dé en persona. Al guardar, "Contraseña restablecida". Un socio dado de baja que ya tenía cuenta la sigue viendo |
+| El socio es administrador | "Ingresa con su cuenta de administrador." sin acciones: esa contraseña se restablece desde Administradores |
+| Club sin `memberAppEnabled` | La card no se muestra |
+
+Si al crear la cuenta ya hay una con ese DNI, o el socio ya tiene una (otro admin la creó mientras tanto), la hoja dice "Ya hay una cuenta con el DNI de este socio en el club." y la card se recarga al cerrarla. Si el alta se rechaza por otro motivo (el socio se dio de baja, se le borró el DNI o el club apagó la app del socio) o la cuenta ya no está al restablecer, la hoja muestra el aviso genérico de guardado y la card también se recarga al cerrarla. Los errores se distinguen por status code, nunca por el texto ([backend_api.md](backend_api.md) §5). Un servidor que no responde a tiempo al crear se avisa como falta de conexión: si el alta había entrado, el reintento da el aviso de cuenta existente y, al cerrar, la card la muestra.
 
 **Anular un pago**: tocar una fila del historial abre el **detalle** (los mismos datos y la fecha de carga; quién lo cargó queda pendiente de backend, [backend_api.md](backend_api.md) §10) con la acción *Anular pago*, que pide confirmación en una segunda hoja:
 
@@ -585,6 +600,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E9 | Turnos fijos y bloqueo con reservas afectadas | **Bloqueada** | — |
 | E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
 | E11 | Recuperar contraseña (informativa) + primer ingreso | Primer ingreso: **Sí** | Recuperar contraseña 🚧 En revisión (PR #14); primer ingreso en el Bloque 2 |
+| E12a | Cuenta del socio para la app: el admin la crea y le restablece la contraseña desde la ficha del socio | No bloquea: usa el PR #33 de la API, **todavía abierto** | 🚧 En revisión |
 | E12+ | Superficie del socio completa | **Bloqueada** | — |
 
 ### E1 — Migración de paleta y theming
@@ -770,6 +786,19 @@ El último requisito de la Etapa 1 de V6 sin pantalla. Las decisiones están en 
 - **Pagar por todo el grupo** en Registrar pago (§4.2): `LoadFamilyPaymentStatusUseCase` lee el historial de cada integrante activo para mostrar qué se le cobra, y `RegisterFamilyPaymentUseCase` lo relee antes de enviar, saltea lo ya pago y manda un solo pedido con `PaymentRepository.recordPayments` (`POST /api/payments/batch`), que avisa una sola vez al terminar. Su resultado es uno de cuatro: registrado, nada para cobrar, en duda (timeout que no se pudo confirmar) o rechazado.
 
 **Terminado cuando**: desde las cuotas de un socio sin grupo se arma un grupo en tres toques; desde Registrar pago se cobra a todo el grupo en un paso, salteando los meses que cada uno ya tiene pagos, y un pedido rechazado no registra a nadie y se reintenta sin cobrar dos veces; un socio se suma al grupo de un familiar y otro pasa de un grupo a otro con confirmación; se renombra, se quita un integrante y se elimina el grupo; el grupo armado aparece en *¿Quién pagó?* al registrar un pago; armar un grupo es una sola operación y una lista desactualizada se explica y se recarga; los estados de §5 se ven a 130 % y 200 % sin overflow; hay tests de dominio, del mapeo DTO ↔ dominio, de los Cubits y del flujo de armar en pantalla.
+
+### E12a — Cuenta del socio para la app (admin)
+
+Primer paso de la etapa 3: sin cuenta no hay superficie del socio. **Reemplaza al registro con DNI y matching automático del documento V7**: la cuenta la crea un admin para un socio ya cargado y le da la contraseña en persona (§3.1). Las pantallas están en §4.2.1; el contrato, en [backend_api.md](backend_api.md) §5 (PR #33 de la API, abierto). Un `MEMBER` que ingresa sigue viendo "en preparación" (§6): la superficie del socio va en las entregas que siguen.
+
+- **Feature `member_accounts`** con sus tres capas. `MemberAccount` lleva el DNI y el rol **de la cuenta** (`member` o `admin`); solo una cuenta de socio se puede restablecer desde acá.
+- **`Club.memberAppEnabled`**, leído de `/api/clubs/me` (ausente = `false`). La card tiene su propio Cubit, que lee el club y después la cuenta: un fallo de cualquiera de los dos queda en la card.
+- **La hoja de contraseña nueva** (`NewPasswordSheet`) recibe opcionalmente cómo explicar cada falla, para el `409` del alta. Los admins siguen igual.
+- **Fake** con una cuenta de socio (María Álvarez), el socio vinculado a un admin del fake de admins con su cuenta de administrador, y el resto sin cuenta. Aplica las mismas reglas que la API: `400` sin el flag, socio dado de baja o sin DNI; `409` si el socio ya tiene cuenta o el DNI ya lo usa otra cuenta; `404` si no es del club o no tiene cuenta de socio al restablecer. El fake del club arranca con el flag prendido.
+
+**Pendiente** (próximo corte, [backend_api.md](backend_api.md) §10): cortar la cuenta al dar de baja al socio, sincronizar el DNI de la cuenta, el cambio de contraseña del primer ingreso, y la superficie del socio.
+
+**Terminado cuando**: con `memberAppEnabled`, el admin crea la cuenta de un socio activo con DNI desde su ficha y le restablece la contraseña; sin DNI la card lo pide, sin botón; un socio administrador muestra su cuenta sin acciones; sin el flag, o con el socio dado de baja y sin cuenta, la card no aparece; un fallo de la cuenta no tapa la ficha y se reintenta desde la card; un `409` se explica y la card se recarga; hay tests del mapeo, del fake, del repositorio, de los casos de uso, del Cubit y del flujo en la ficha.
 
 El orden E4 → E5 → E6 → E10 es intencional: listado antes de escrituras, y el reporte al final porque lista los pagos que E6 registra y depende de un filtro que el backend todavía no tiene.
 
