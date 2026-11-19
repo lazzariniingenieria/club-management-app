@@ -604,7 +604,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E9d | Turnos fijos y bloqueo con reservas afectadas | No bloquea: usa los PR #28 y #29 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #25 a #27) |
 | E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | ✅ Entregada (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
 | E11 | Recuperar contraseña (informativa) | No bloquea | ✅ Entregada (PR #14). El primer ingreso del socio (`/login/activate`) no es parte de E11: va con E12+ |
-| E12a | Cuenta del socio para la app: el admin la crea y le restablece la contraseña desde la ficha del socio | No bloquea: usa el PR #33 de la API, **todavía abierto** | 🚧 En revisión |
+| E12a | Cuenta del socio para la app: el admin la crea y le restablece la contraseña desde la ficha del socio | No bloquea: usa el PR #33 de la API, **todavía abierto** | 🚧 En revisión (PR #29) |
 | E12+ | Superficie del socio completa, incluido el primer ingreso | **Bloqueada** | — |
 
 ### E1 — Migración de paleta y theming
