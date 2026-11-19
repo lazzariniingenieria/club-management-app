@@ -6,7 +6,7 @@ Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, 
 
 **Canchas** (`/api/courts` y `courtsEnabled` en `/api/clubs/me`, §5) viene del PR #25, los **bloqueos** (`/api/courts/{courtId}/blocks`) del PR #26 y las **reservas** (`/api/reservations`) del PR #27. **Los tres están en `develop` (test) desde el 2026-11-11, y todavía no en `main` (producción).**
 
-**El DNI opcional del socio y el nombre único** (§5 y §8) vienen del [PR #30](https://github.com/lazzariniingenieria/club-management-api/pull/30) de la API, **abierto y todavía sin mergear al 2026-11-15**. Hasta que entre, la API sigue respondiendo `400` a un socio sin `dni` y acepta dos socios con el mismo nombre.
+**El DNI opcional del socio y el nombre único** (§5 y §8) vienen del [PR #30](https://github.com/lazzariniingenieria/club-management-api/pull/30) de la API. **Está en `develop` (test) desde el 2026-11-16 (`1394a59`), y todavía no en `main` (producción).**
 
 **Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/` (incluido `JwtAuthenticationFilter`), `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
@@ -172,7 +172,7 @@ El envelope sale siempre como `application/json`, aunque el pedido haya mandado 
 
 **`PATCH`** recibe `firstName` y `lastName` (requeridos), `dni`, `phone` y `email`. Es reemplazo completo: **mandarlo sin `dni` borra el DNI del socio**, igual que pasa con `phone` y `email`. **No toca `familyGroupId` ni `status`** — esos se mueven por sus endpoints.
 
-**Nombre y apellido únicos en el club** (PR #30): `POST` y `PATCH` responden `409` si otro socio ya tiene ese `firstName` + `lastName`, sin distinguir mayúsculas, tenga o no DNI y aunque esté dado de baja. Los acentos sí distinguen ("Perez" y "Pérez" conviven). **Son dos fuentes de `409` en estos endpoints** y, sin `code` estable (§4), solo se distinguen leyendo el `message`: `dni … is already in use in this club` o `a member named … already exists in this club`. La API chequea primero el DNI. Si el request no llevaba `dni`, el `409` solo puede ser el nombre.
+**Nombre y apellido únicos en el club** (PR #30): `POST` y `PATCH` responden `409` si otro socio ya tiene ese `firstName` + `lastName`, sin distinguir mayúsculas, tenga o no DNI y aunque esté dado de baja. Los acentos sí distinguen ("Perez" y "Pérez" conviven). **Son dos fuentes de `409` en estos endpoints** y, sin `code` estable (§4), solo se distinguen leyendo el `message`: `dni … is already in use in this club` o `a member named … already exists in this club`. La API chequea primero el DNI. Si el request no llevaba `dni`, el `409` solo puede ser el nombre. En el `PATCH`, además, el DNI se compara contra los otros socios (el propio no cuenta) y el nombre solo se chequea si cambió respecto del guardado, sin distinguir mayúsculas: con el DNI sin cambios el `409` solo puede ser el nombre, y con nombre y apellido sin cambios solo puede ser el DNI.
 
 **`PATCH /{id}/family-group`** recibe `{ "familyGroupId": 7 }` (requerido → `400` si falta; `404` si el grupo no es del club). Si el socio ya estaba en otro grupo, **lo mueve** sin aviso. **`DELETE /{id}/family-group`** lo deja sin grupo y es idempotente: un socio sin grupo devuelve `200` igual. Ninguno de los dos mira `status`: se puede agrupar a un socio inactivo.
 
