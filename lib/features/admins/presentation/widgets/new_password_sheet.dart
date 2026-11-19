@@ -11,11 +11,14 @@ import '../../domain/entities/admin_password_rules.dart';
 
 typedef PasswordSave = Future<Failure?> Function(String newPassword);
 
+typedef PasswordFailureMessage = String Function(Failure failure);
+
 class NewPasswordSheet extends StatefulWidget {
   final String title;
   final String notice;
   final String actionLabel;
   final PasswordSave onSave;
+  final PasswordFailureMessage failureMessage;
 
   const NewPasswordSheet({
     super.key,
@@ -23,11 +26,18 @@ class NewPasswordSheet extends StatefulWidget {
     required this.notice,
     required this.actionLabel,
     required this.onSave,
+    this.failureMessage = defaultFailureMessage,
   });
 
   static Future<bool> show(BuildContext context, NewPasswordSheet sheet) {
     return showAppSheet<bool>(context, (_) => sheet, dismissible: false)
         .then((saved) => saved ?? false);
+  }
+
+  static String defaultFailureMessage(Failure failure) {
+    return failure is NetworkFailure
+        ? AppStrings.saveFailedOffline
+        : AppStrings.saveFailedServer;
   }
 
   static String? messageFor(PasswordProblem? problem) {
@@ -48,7 +58,7 @@ class _NewPasswordSheetState extends State<NewPasswordSheet> {
   bool _obscured = true;
   bool _isSaving = false;
   String? _fieldError;
-  Failure? _failure;
+  String? _failureMessage;
 
   @override
   void dispose() {
@@ -71,7 +81,7 @@ class _NewPasswordSheetState extends State<NewPasswordSheet> {
 
     setState(() {
       _isSaving = false;
-      _failure = failure;
+      _failureMessage = widget.failureMessage(failure);
     });
   }
 
@@ -84,12 +94,10 @@ class _NewPasswordSheetState extends State<NewPasswordSheet> {
   }
 
   List<Widget> _children() => [
-        if (_failure != null) ...[
+        if (_failureMessage != null) ...[
           AppNotice(
             tone: AppNoticeTone.danger,
-            message: _failure is NetworkFailure
-                ? AppStrings.saveFailedOffline
-                : AppStrings.saveFailedServer,
+            message: _failureMessage!,
           ),
           const SizedBox(height: AppSpacing.lg),
         ],
@@ -104,7 +112,9 @@ class _NewPasswordSheetState extends State<NewPasswordSheet> {
         AppNotice(message: widget.notice),
         const SizedBox(height: AppSpacing.lg),
         AppButton(
-          text: _failure == null ? widget.actionLabel : AppStrings.retryAction,
+          text: _failureMessage == null
+              ? widget.actionLabel
+              : AppStrings.retryAction,
           isLoading: _isSaving,
           onPressed: _save,
         ),
