@@ -1,6 +1,7 @@
 import 'package:club_management_app/core/constants/app_strings.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
 import 'package:club_management_app/features/members/data/datasources/member_fake_data_source.dart';
+import 'package:club_management_app/features/members/domain/entities/member_draft.dart';
 import 'package:club_management_app/shared/formatters/digit_layout_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,6 +44,26 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> openEditionFormWithoutDni(WidgetTester tester) async {
+    final members = MemberFakeDataSource(latency: Duration.zero);
+    await tester.runAsync(
+      () => members.updateMember(
+        seededMember.id,
+        MemberDraft(
+          firstName: seededMember.firstName,
+          lastName: seededMember.lastName,
+          dni: '',
+        ),
+      ),
+    );
+    await bootApp(tester, signedInAs: UserRole.admin, memberSource: members);
+    await openPaymentsTab(tester);
+    await tester.enterText(find.byType(TextField).first, seededMember.fullName);
+    await settleSession(tester);
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pumpAndSettle();
+  }
+
   Future<void> fillIdentity(
     WidgetTester tester, {
     required String dni,
@@ -54,6 +75,9 @@ void main() {
   }
 
   Finder field(int index) => find.byType(TextFormField).at(index);
+
+  Finder warningOn(int index, String warning) =>
+      find.descendant(of: field(index), matching: find.text(warning));
 
   bool fieldHasFocus(WidgetTester tester, int index) {
     final editable = find.descendant(
@@ -393,6 +417,63 @@ void main() {
       );
 
       await tester.pump(const Duration(seconds: 5));
+    });
+
+    final namesake = MemberFakeDataSource.roster[1];
+
+    Future<void> saveWithTheFirstNameOfTheNamesake(WidgetTester tester) async {
+      await tester.enterText(field(0), namesake.firstName);
+      await tester.tap(find.text(AppStrings.memberFormSaveEdition));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets(
+        'changing only the first name to a taken name warns on the '
+        'last name, not on the untouched dni', (tester) async {
+      await openEditionForm(tester);
+
+      await saveWithTheFirstNameOfTheNamesake(tester);
+
+      expect(warningOn(1, AppStrings.memberFormNameTaken), findsOneWidget);
+      expect(find.text(AppStrings.memberFormDniOrNameTaken), findsNothing);
+    });
+
+    testWidgets('changing only the dni to a taken one warns on the dni', (
+      tester,
+    ) async {
+      await openEditionForm(tester);
+
+      await tester.enterText(field(2), namesake.dni!);
+      await tester.tap(find.text(AppStrings.memberFormSaveEdition));
+      await tester.pumpAndSettle();
+
+      expect(warningOn(2, AppStrings.memberFormDniTaken), findsOneWidget);
+    });
+
+    testWidgets(
+        'correcting the first name clears the warning on the '
+        'untouched last name', (tester) async {
+      await openEditionForm(tester);
+      await saveWithTheFirstNameOfTheNamesake(tester);
+
+      await tester.enterText(field(0), 'Zzyzx');
+      await tester.pump();
+
+      expect(find.text(AppStrings.memberFormNameTaken), findsNothing);
+    });
+
+    testWidgets(
+        'a member without a dni loses the warning on the last name '
+        'once the first name is corrected', (tester) async {
+      await openEditionFormWithoutDni(tester);
+      await saveWithTheFirstNameOfTheNamesake(tester);
+
+      expect(warningOn(1, AppStrings.memberFormNameTaken), findsOneWidget);
+
+      await tester.enterText(field(0), 'Zzyzx');
+      await tester.pump();
+
+      expect(find.text(AppStrings.memberFormNameTaken), findsNothing);
     });
 
     testWidgets('the logical delete names the member before running', (

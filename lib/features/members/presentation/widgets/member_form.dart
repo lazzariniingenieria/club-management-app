@@ -116,10 +116,15 @@ class _MemberFormState extends State<MemberForm> {
   void _clearTakenErrors() {
     if (_takenDniError == null && _takenNameError == null) return;
 
+    _setTakenErrors();
+  }
+
+  void _setTakenErrors({String? dniError, String? nameError}) {
     setState(() {
-      _takenDniError = null;
-      _takenNameError = null;
+      _takenDniError = dniError;
+      _takenNameError = nameError;
     });
+    _formKey.currentState?.validate();
   }
 
   void _markTouched(MemberField field) {
@@ -148,7 +153,11 @@ class _MemberFormState extends State<MemberForm> {
       return;
     }
 
-    context.read<MemberFormCubit>().save(_draft, memberId: widget.member?.id);
+    context.read<MemberFormCubit>().save(
+          _draft,
+          memberId: widget.member?.id,
+          original: _isEdition ? _initialDraft : null,
+        );
   }
 
   MemberField? get _firstInvalidField {
@@ -195,11 +204,11 @@ class _MemberFormState extends State<MemberForm> {
         showAppSnackBar(context, _outcomeMessage(outcome));
         context.pop();
       case MemberFormDuplicatedName():
-        setState(() => _takenNameError = AppStrings.memberFormNameTaken);
-        _formKey.currentState?.validate();
+        _setTakenErrors(nameError: AppStrings.memberFormNameTaken);
+      case MemberFormDuplicatedDni():
+        _setTakenErrors(dniError: AppStrings.memberFormDniTaken);
       case MemberFormDuplicatedDniOrName():
-        setState(() => _takenDniError = AppStrings.memberFormDniOrNameTaken);
-        _formKey.currentState?.validate();
+        _setTakenErrors(dniError: AppStrings.memberFormDniOrNameTaken);
       case MemberFormFailure(:final message):
         showAppSnackBar(context, message, isError: true);
       case MemberFormEditing():

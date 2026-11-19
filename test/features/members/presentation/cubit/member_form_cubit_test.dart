@@ -130,6 +130,65 @@ void main() {
     expect(cubit.state, const MemberFormDuplicatedName());
   });
 
+  group('a conflict while editing', () {
+    const original = MemberDraft(
+      firstName: 'Eva',
+      lastName: 'Álvarez',
+      dni: '30111222',
+    );
+
+    Future<void> saveEdition(MemberDraft draft) async {
+      stubUpdate(const Left(ConflictFailure('Duplicated')));
+
+      await cubit.save(draft, memberId: 7, original: original);
+    }
+
+    test('with the dni unchanged can only be the name', () async {
+      await saveEdition(
+        const MemberDraft(
+          firstName: 'Ana',
+          lastName: 'Álvarez',
+          dni: ' 30111222 ',
+        ),
+      );
+
+      expect(cubit.state, const MemberFormDuplicatedName());
+    });
+
+    test('with the dni removed can only be the name', () async {
+      await saveEdition(
+        const MemberDraft(firstName: 'Ana', lastName: 'Álvarez', dni: ''),
+      );
+
+      expect(cubit.state, const MemberFormDuplicatedName());
+    });
+
+    test('with the name unchanged, even in another case, can only be the dni',
+        () async {
+      await saveEdition(
+        const MemberDraft(
+          firstName: 'EVA',
+          lastName: 'álvarez ',
+          dni: '30999888',
+        ),
+      );
+
+      expect(cubit.state, const MemberFormDuplicatedDni());
+    });
+
+    test('with the dni and the name changed may be either of them', () async {
+      await saveEdition(
+        const MemberDraft(
+          firstName: 'Ana',
+          lastName: 'Álvarez',
+          dni: '30999888',
+        ),
+      );
+
+      expect(cubit.state, const MemberFormDuplicatedDniOrName());
+    });
+  });
+
   test('turns any other failure into its Spanish message', () async {
     stubCreate(const Left(NetworkFailure('Unreachable')));
 

@@ -30,6 +30,10 @@ class MemberFormDuplicatedName extends MemberFormState {
   const MemberFormDuplicatedName();
 }
 
+class MemberFormDuplicatedDni extends MemberFormState {
+  const MemberFormDuplicatedDni();
+}
+
 class MemberFormDuplicatedDniOrName extends MemberFormState {
   const MemberFormDuplicatedDniOrName();
 }
