@@ -17,6 +17,8 @@ import 'package:club_management_app/features/courts/data/datasources/court_fake_
 import 'package:club_management_app/features/courts/data/datasources/court_remote_data_source.dart';
 import 'package:club_management_app/features/family_groups/data/datasources/family_group_fake_data_source.dart';
 import 'package:club_management_app/features/family_groups/data/datasources/family_group_remote_data_source.dart';
+import 'package:club_management_app/features/member_accounts/data/datasources/member_account_fake_data_source.dart';
+import 'package:club_management_app/features/member_accounts/data/datasources/member_account_remote_data_source.dart';
 import 'package:club_management_app/features/members/data/datasources/member_fake_data_source.dart';
 import 'package:club_management_app/features/members/data/datasources/member_remote_data_source.dart';
 import 'package:club_management_app/features/payments/data/datasources/payment_fake_data_source.dart';
@@ -45,6 +47,7 @@ Future<InMemorySecureStorage> bootApp(
   CourtRemoteDataSource? courtSource,
   CourtBlockRemoteDataSource? courtBlockSource,
   ReservationRemoteDataSource? reservationSource,
+  MemberAccountRemoteDataSource? memberAccountSource,
   AppFeatures? features,
 }) async {
   final storage = InMemorySecureStorage();
@@ -116,6 +119,18 @@ Future<InMemorySecureStorage> bootApp(
   di.sl.registerLazySingleton<ReservationRemoteDataSource>(
     () =>
         reservationSource ?? ReservationFakeDataSource(latency: Duration.zero),
+  );
+
+  di.sl.unregister<MemberAccountRemoteDataSource>();
+  di.sl.registerLazySingleton<MemberAccountRemoteDataSource>(
+    () =>
+        memberAccountSource ??
+        MemberAccountFakeDataSource(
+          members: di.sl(),
+          admins: di.sl(),
+          club: di.sl(),
+          latency: Duration.zero,
+        ),
   );
 
   di.sl.unregister<MemberRosterCubit>();
