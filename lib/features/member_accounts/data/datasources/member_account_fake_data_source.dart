@@ -1,6 +1,5 @@
 import '../../../../core/errors/exceptions.dart';
-import '../../../admins/data/datasources/admin_remote_data_source.dart';
-import '../../../admins/data/models/admin_model.dart';
+import '../../../admins/data/datasources/fake_user_account_store.dart';
 import '../../../club/data/datasources/club_remote_data_source.dart';
 import '../../../members/data/datasources/member_remote_data_source.dart';
 import '../../../members/domain/entities/member.dart';
@@ -11,36 +10,25 @@ import 'member_account_remote_data_source.dart';
 class MemberAccountFakeDataSource implements MemberAccountRemoteDataSource {
   MemberAccountFakeDataSource({
     required MemberRemoteDataSource members,
-    required AdminRemoteDataSource admins,
     required ClubRemoteDataSource club,
+    required this.accounts,
     this.latency = const Duration(milliseconds: 600),
   })  : _members = members,
-        _admins = admins,
-        _club = club,
-        _memberAccounts = [...seeded];
+        _club = club;
 
   final MemberRemoteDataSource _members;
-  final AdminRemoteDataSource _admins;
   final ClubRemoteDataSource _club;
+  final FakeUserAccountStore accounts;
   final Duration latency;
-  final List<MemberAccountModel> _memberAccounts;
-
-  static const List<MemberAccountModel> seeded = [
-    MemberAccountModel(
-      id: 40,
-      memberId: 2,
-      dni: '20013577',
-      role: MemberAccountRole.member,
-      isActive: true,
-    ),
-  ];
 
   @override
   Future<MemberAccountModel?> fetchAccount(int memberId) async {
     await Future<void>.delayed(latency);
     await _members.fetchMember(memberId);
 
-    return _accountOf(memberId, await _admins.fetchAdmins());
+    final account = accounts.ofMember(memberId);
+
+    return account == null ? null : _toModel(account, memberId);
   }
 
   @override
@@ -49,19 +37,18 @@ class MemberAccountFakeDataSource implements MemberAccountRemoteDataSource {
     await Future<void>.delayed(latency);
     await _rejectDisabledMemberApp();
     final dni = _dniOfEligible(await _members.fetchMember(memberId));
-    final admins = await _admins.fetchAdmins();
-    _rejectTaken(memberId, dni, admins);
+    _rejectTaken(memberId, dni);
 
-    final account = MemberAccountModel(
-      id: _nextId(admins),
-      memberId: memberId,
+    final account = FakeUserAccount(
+      id: accounts.nextId(),
       dni: dni,
-      role: MemberAccountRole.member,
+      memberId: memberId,
+      role: FakeAccountRole.member,
       isActive: true,
     );
-    _memberAccounts.add(account);
+    accounts.save(account);
 
-    return account;
+    return _toModel(account, memberId);
   }
 
   @override
@@ -72,11 +59,12 @@ class MemberAccountFakeDataSource implements MemberAccountRemoteDataSource {
     await Future<void>.delayed(latency);
     await _members.fetchMember(memberId);
 
-    return _memberAccounts.firstWhere(
-      (account) => account.memberId == memberId,
-      orElse: () =>
-          throw NotFoundException('member $memberId has no member account'),
-    );
+    final account = accounts.ofMember(memberId);
+    if (account == null || account.isAdmin) {
+      throw NotFoundException('member $memberId has no member account');
+    }
+
+    return _toModel(account, memberId);
   }
 
   Future<void> _rejectDisabledMemberApp() async {
@@ -98,50 +86,23 @@ class MemberAccountFakeDataSource implements MemberAccountRemoteDataSource {
     return dni;
   }
 
-  void _rejectTaken(int memberId, String dni, List<AdminModel> admins) {
-    if (_accountOf(memberId, admins) != null) {
+  void _rejectTaken(int memberId, String dni) {
+    if (accounts.ofMember(memberId) != null) {
       throw ConflictException('member $memberId already has an account');
     }
-    final dnis = [
-      ...admins.map((admin) => admin.dni),
-      ..._memberAccounts.map((account) => account.dni),
-    ];
-    if (dnis.contains(dni)) {
+    if (accounts.all.any((account) => account.dni == dni)) {
       throw ConflictException('dni $dni is already in use in this club');
     }
   }
 
-  MemberAccountModel? _accountOf(int memberId, List<AdminModel> admins) {
-    for (final admin in admins) {
-      if (admin.memberId == memberId) return _adminAccount(admin, memberId);
-    }
-
-    return _memberAccounts
-        .where((account) => account.memberId == memberId)
-        .firstOrNull;
-  }
-
-  static MemberAccountModel _adminAccount(AdminModel admin, int memberId) {
+  static MemberAccountModel _toModel(FakeUserAccount account, int memberId) {
     return MemberAccountModel(
-      id: admin.id,
+      id: account.id,
       memberId: memberId,
-      dni: admin.dni,
-      role: MemberAccountRole.admin,
-      isActive: admin.isActive,
+      dni: account.dni,
+      role:
+          account.isAdmin ? MemberAccountRole.admin : MemberAccountRole.member,
+      isActive: account.isActive,
     );
-  }
-
-  int _nextId(List<AdminModel> admins) {
-    var highestId = 0;
-    final ids = [
-      ...admins.map((admin) => admin.id),
-      ..._memberAccounts.map((account) => account.id),
-    ];
-
-    for (final id in ids) {
-      if (id > highestId) highestId = id;
-    }
-
-    return highestId + 1;
   }
 }

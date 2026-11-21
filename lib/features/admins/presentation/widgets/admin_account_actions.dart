@@ -27,14 +27,7 @@ class AdminAccountActions extends StatelessWidget {
     required this.hasUnsavedChanges,
   });
 
-  String get _name {
-    Member? linked;
-    for (final member in members) {
-      if (member.id == admin.memberId) linked = member;
-    }
-
-    return AdminFormats.displayName(admin, linked);
-  }
+  String get _name => AdminFormats.displayNameAmong(admin, members);
 
   Future<void> _resetPassword(BuildContext context) async {
     final cubit = context.read<AdminFormCubit>();
@@ -58,9 +51,7 @@ class AdminAccountActions extends StatelessWidget {
     final confirmed = await ConfirmationDialog.show(
       context,
       ConfirmationDialog(
-        title: deactivating
-            ? AppStrings.adminDeactivateTitle(_name)
-            : AppStrings.adminReactivateTitle(_name),
+        title: _toggleTitle(deactivating),
         message: _toggleMessage(deactivating),
         confirmLabel: deactivating
             ? AppStrings.adminDeactivate
@@ -68,13 +59,23 @@ class AdminAccountActions extends StatelessWidget {
         isDestructive: deactivating,
       ),
     );
-    if (confirmed) await cubit.setActive(admin.id, isActive: !deactivating);
+    if (confirmed) await cubit.setActive(admin, isActive: !deactivating);
+  }
+
+  String _toggleTitle(bool deactivating) {
+    if (!deactivating) return AppStrings.adminReactivateTitle(_name);
+
+    return admin.isLinkedToMember
+        ? AppStrings.adminDeactivateLinkedTitle(_name)
+        : AppStrings.adminDeactivateTitle(_name);
   }
 
   String _toggleMessage(bool deactivating) {
-    final message = deactivating
-        ? AppStrings.adminDeactivateMessage
-        : AppStrings.adminReactivateMessage;
+    final message = switch ((deactivating, admin.isLinkedToMember)) {
+      (false, _) => AppStrings.adminReactivateMessage,
+      (true, true) => AppStrings.adminDeactivateLinkedMessage,
+      (true, false) => AppStrings.adminDeactivateMessage,
+    };
 
     return hasUnsavedChanges()
         ? '$message ${AppStrings.adminUnsavedChangesLost}'

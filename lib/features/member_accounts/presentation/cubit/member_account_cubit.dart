@@ -7,6 +7,7 @@ import '../../../club/domain/usecases/load_club_use_case.dart';
 import '../../domain/entities/member_account.dart';
 import '../../domain/usecases/create_member_account_use_case.dart';
 import '../../domain/usecases/load_member_account_use_case.dart';
+import '../../domain/usecases/promote_member_to_admin_use_case.dart';
 import '../../domain/usecases/reset_member_account_password_use_case.dart';
 import 'member_account_state.dart';
 
@@ -15,16 +16,19 @@ class MemberAccountCubit extends Cubit<MemberAccountState> {
   final LoadMemberAccountUseCase _loadAccount;
   final CreateMemberAccountUseCase _createAccount;
   final ResetMemberAccountPasswordUseCase _resetPassword;
+  final PromoteMemberToAdminUseCase _promoteToAdmin;
 
   MemberAccountCubit({
     required LoadClubUseCase loadClub,
     required LoadMemberAccountUseCase loadAccount,
     required CreateMemberAccountUseCase createAccount,
     required ResetMemberAccountPasswordUseCase resetPassword,
+    required PromoteMemberToAdminUseCase promoteToAdmin,
   })  : _loadClub = loadClub,
         _loadAccount = loadAccount,
         _createAccount = createAccount,
         _resetPassword = resetPassword,
+        _promoteToAdmin = promoteToAdmin,
         super(const MemberAccountLoading());
 
   int? _memberId;
@@ -63,12 +67,35 @@ class MemberAccountCubit extends Cubit<MemberAccountState> {
     return _save((memberId) => _resetPassword(memberId, newPassword));
   }
 
+  Future<Failure?> promoteToAdmin() async {
+    final memberId = _memberId;
+    final current = state;
+    if (memberId == null || current is! MemberAccountReady) {
+      return const ValidationFailure('No account loaded');
+    }
+
+    emit(MemberAccountReady(current.account, isSaving: true));
+    final failure = (await _promoteToAdmin(memberId)).getLeft().toNullable();
+    if (isClosed) return null;
+    if (failure != null) {
+      emit(current);
+      return _rememberStaleness(failure);
+    }
+
+    await _showAccountOf(memberId);
+    return null;
+  }
+
   Future<void> _loadAccountOf(int memberId, Club club) async {
     if (!club.memberAppEnabled) {
       emit(const MemberAccountDisabled());
       return;
     }
 
+    await _showAccountOf(memberId);
+  }
+
+  Future<void> _showAccountOf(int memberId) async {
     final account = await _loadAccount(memberId);
     if (isClosed) return;
 

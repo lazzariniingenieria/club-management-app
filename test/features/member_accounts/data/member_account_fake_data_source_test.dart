@@ -1,5 +1,6 @@
 import 'package:club_management_app/core/errors/exceptions.dart';
 import 'package:club_management_app/features/admins/data/datasources/admin_fake_data_source.dart';
+import 'package:club_management_app/features/admins/data/datasources/fake_user_account_store.dart';
 import 'package:club_management_app/features/club/data/datasources/club_fake_data_source.dart';
 import 'package:club_management_app/features/member_accounts/data/datasources/member_account_fake_data_source.dart';
 import 'package:club_management_app/features/member_accounts/domain/entities/member_account.dart';
@@ -20,7 +21,7 @@ void main() {
 
     return MemberAccountFakeDataSource(
       members: members,
-      admins: AdminFakeDataSource(latency: Duration.zero),
+      accounts: FakeUserAccountStore(),
       club: ClubFakeDataSource(
         latency: Duration.zero,
         memberAppEnabled: memberAppEnabled,
@@ -41,6 +42,23 @@ void main() {
       final account = await buildSource().fetchAccount(memberLinkedToAdmin);
 
       expect(account?.role, MemberAccountRole.admin);
+    });
+
+    test('an admin linked to a member keeps the account as a member', () async {
+      final store = FakeUserAccountStore();
+      final admins = AdminFakeDataSource(latency: Duration.zero, accounts: store);
+      final source = MemberAccountFakeDataSource(
+        members: MemberFakeDataSource(latency: Duration.zero),
+        club: ClubFakeDataSource(latency: Duration.zero),
+        accounts: store,
+        latency: Duration.zero,
+      );
+
+      await admins.setAdminActive(3, isActive: false);
+      final account = await source.fetchAccount(memberLinkedToAdmin);
+
+      expect(account?.role, MemberAccountRole.member);
+      expect(account?.id, 3);
     });
 
     test('most members have no account', () async {

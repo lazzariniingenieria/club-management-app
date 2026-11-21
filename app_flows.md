@@ -308,6 +308,7 @@ Socios ──[fila]──► Ficha del socio ─────────┼─�
 | Sin cuenta, socio sin DNI | "Para crear la cuenta, cargale el DNI al socio." Sin botón: el DNI se carga con el lápiz del encabezado |
 | Sin cuenta, socio dado de baja | La card no se muestra |
 | Con cuenta de socio | "Ingresa con el DNI 30.111.222" — el DNI **de la cuenta**, que puede no ser el del socio si después se lo editó — + *Restablecer contraseña*, con el aviso de que se cierran sus sesiones abiertas y que se la dé en persona. Al guardar, "Contraseña restablecida". Un socio dado de baja que ya tenía cuenta la sigue viendo |
+| Con cuenta de socio, visto por el superAdmin (E12b) | Además, *Hacer administrador* si el socio está activo. Confirma con "¿Hacer administrador a María Álvarez?" y "Va a ingresar con el mismo DNI y contraseña."; al terminar, "María Álvarez ya es administrador" y la card pasa a la fila de abajo. Mientras guarda, los botones de la card se deshabilitan. Un servidor que no responde a tiempo se relee: si la cuenta ya es de administrador, cuenta como hecho |
 | El socio es administrador | "Ingresa con su cuenta de administrador." sin acciones: esa contraseña se restablece desde Administradores |
 | Club sin `memberAppEnabled` | La card no se muestra |
 
@@ -400,9 +401,11 @@ Estados de §5 en *Grupo familiar*: skeleton con la forma del encabezado, la not
 `Perfil → Administradores → [+ | lápiz | baja | reactivar] → Confirmar`
 
 - **La baja es lógica y reversible**, nunca un borrado.
+- **Un admin vinculado a un socio no se queda sin cuenta al darlo de baja** (E12b, [backend_api.md](backend_api.md) §5): deja de ser administrador y sigue usando la app como socio, con la misma contraseña. El diálogo lo dice corto — *"¿Dar de baja a Juan Álvarez como administrador?"* y *"Dejará de ser administrador y podrá seguir usando la app como socio."* —, el snackbar dice *"Juan Álvarez sigue como socio"*, y sale del listado: ya no es un admin inactivo, es un socio. Se lo vuelve a hacer admin desde su ficha (§4.2.1). Lo que sigue en esta sección vale para los admins sin socio vinculado.
 - **La baja corta la sesión en el momento** ([backend_api.md](backend_api.md) §5): el admin dado de baja no puede volver a ingresar, y si tiene la app abierta su próximo pedido da `401`, el refresh también, y la app lo lleva al ingreso. Lo mismo con el reset de contraseña. El copy lo dice así.
 - Por eso la confirmación es un diálogo estándar con copy claro — *"¿Dar de baja a Juan Pérez? Vas a poder reactivarlo cuando quieras."* — y **no** el patrón de escribir el nombre. Ese patrón se reserva para acciones genuinamente irreversibles; gastarlo en algo que se deshace con un tap es fricción sin contrapartida, y lo deja desgastado para el día que exista una acción que sí lo amerite.
-- Un admin dado de baja sigue en el listado, marcado como inactivo, con la acción de reactivar en su fila. Desaparecer de la lista al desactivar hace creer que se borró.
+- Un admin sin socio vinculado dado de baja sigue en el listado, marcado como inactivo, con la acción de reactivar en su fila. Desaparecer de la lista al desactivar hace creer que se borró. El vinculado a un socio es la excepción de arriba: el snackbar dice adónde fue.
+- Una baja que no recibe respuesta a tiempo se relee: si el admin ya figura inactivo, o el vinculado ya no figura, cuenta como hecha.
 - **No hace falta lógica defensiva contra la auto-baja del superAdmin**: el listado de la API nunca devuelve esa cuenta, así que no existe la fila que se podría tocar por error.
 
 **Listado** (`/admin/admins`): activos primero y después los dados de baja. Dentro de cada bloque, los vinculados a un socio por apellido y nombre (sin acentos) y al final los sin vincular por DNI numérico: el orden sigue lo que se ve en la fila. Cada fila muestra el nombre del socio vinculado o, si no tiene, "DNI 30.222.333"; el email (o "Sin email") y, solo si está dado de baja, el badge Inactivo. Tocar la fila abre la edición; las filas dadas de baja suman *Reactivar*. FAB extendido *Nuevo administrador*. Estados de §5: skeleton, vacío con mensaje y error con *Reintentar*.
@@ -605,6 +608,7 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | ✅ Entregada (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
 | E11 | Recuperar contraseña (informativa) | No bloquea | ✅ Entregada (PR #14). El primer ingreso del socio (`/login/activate`) no es parte de E11: va con E12+ |
 | E12a | Cuenta del socio para la app: el admin la crea y le restablece la contraseña desde la ficha del socio | No bloquea: usa el PR #33 de la API, **todavía abierto** | 🚧 En revisión (PR #29) |
+| E12b | Admin ↔ socio: la baja de un admin vinculado lo deja como socio, y el superAdmin hace administrador a un socio | No bloquea: usa el PR #35 de la API, **todavía abierto** | 🚧 En revisión |
 | E12+ | Superficie del socio completa, incluido el primer ingreso | **Bloqueada** | — |
 
 ### E1 — Migración de paleta y theming
@@ -835,6 +839,19 @@ Primer paso de la etapa 3: sin cuenta no hay superficie del socio. **Reemplaza a
 **Pendiente** (próximo corte, [backend_api.md](backend_api.md) §10): cortar la cuenta al dar de baja al socio, sincronizar el DNI de la cuenta, el cambio de contraseña del primer ingreso, y la superficie del socio.
 
 **Terminado cuando**: con `memberAppEnabled`, el admin crea la cuenta de un socio activo con DNI desde su ficha y le restablece la contraseña; sin DNI la card lo pide, sin botón; un socio administrador muestra su cuenta sin acciones; sin el flag, o con el socio dado de baja y sin cuenta, la card no aparece; un fallo de la cuenta no tapa la ficha y se reintenta desde la card; un `409` se explica y la card se recarga; hay tests del mapeo, del fake, del repositorio, de los casos de uso, del Cubit y del flujo en la ficha.
+
+### E12b — Admin ↔ socio
+
+Sigue a E12a y consume el PR #35 de la API (abierto, apilado sobre el #33). Un admin vinculado a un socio es la misma cuenta que la del socio: la baja le saca el rol, no la cuenta, y la promoción se lo devuelve.
+
+- **Baja del admin vinculado** (§4.3): diálogo y snackbar propios, y sale del listado. Se decide por `memberId`, no por el `role` de la respuesta.
+- ***Hacer administrador*** en la card de la ficha del socio (§4.2.1), solo para el superAdmin y con el socio activo. `POST /api/admins/promote` y la card se relee.
+- **Un timeout no se da por fallo sin releer**, en la baja (lista de admins) y en la promoción (cuenta del socio), como en las reservas.
+- **Fakes**: el de admins y el de cuentas de socio comparten un store en memoria de cuentas (`FakeUserAccountStore`), como `user_account` en la API.
+
+**Pendiente**: cuando el #33 sume un `409` propio para el alta de un admin con un socio que ya tiene cuenta de socio, el formulario de alta tiene que llevar a *Hacer administrador*.
+
+**Terminado cuando**: la baja de un admin vinculado usa su diálogo, dice que sigue como socio y lo saca del listado, y su ficha muestra la cuenta de socio; la de un admin sin socio sigue igual; el superAdmin hace administrador a un socio activo con cuenta desde su ficha, y un admin no ve la acción; un timeout que entró cuenta como hecho; hay tests del fake, del data source, del repositorio, de los casos de uso, del Cubit y de los dos flujos.
 
 El orden E4 → E5 → E6 → E10 es intencional: listado antes de escrituras, y el reporte al final porque lista los pagos que E6 registra y depende de un filtro que el backend todavía no tiene.
 

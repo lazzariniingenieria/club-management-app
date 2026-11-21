@@ -44,4 +44,7 @@ class AdminModel extends Admin {
 
   static Map<String, dynamic> bodyForPassword(String newPassword) =>
       {newPasswordKey: newPassword};
+
+  static Map<String, dynamic> bodyForPromotion(int memberId) =>
+      {_memberIdKey: memberId};
 }

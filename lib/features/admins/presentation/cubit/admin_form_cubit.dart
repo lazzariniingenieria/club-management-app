@@ -3,6 +3,7 @@ import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/errors/failure_messages.dart';
 import '../../../../core/errors/failures.dart';
+import '../../domain/entities/admin.dart';
 import '../../domain/entities/admin_draft.dart';
 import '../../domain/usecases/reset_admin_password_use_case.dart';
 import '../../domain/usecases/save_admin_use_case.dart';
@@ -37,10 +38,10 @@ class AdminFormCubit extends Cubit<AdminFormState> {
     );
   }
 
-  Future<void> setActive(int adminId, {required bool isActive}) {
+  Future<void> setActive(Admin admin, {required bool isActive}) {
     return _submit(
-      () => _setAdminActive(adminId, isActive: isActive),
-      isActive ? AdminFormOutcome.reactivated : AdminFormOutcome.deactivated,
+      () => _setAdminActive(admin, isActive: isActive),
+      _toggleOutcome(admin, isActive: isActive),
     );
   }
 
@@ -60,6 +61,17 @@ class AdminFormCubit extends Cubit<AdminFormState> {
     if (isClosed) return;
 
     emit(result.fold<AdminFormState>(_stateFor, (_) => AdminFormSaved(outcome)));
+  }
+
+  static AdminFormOutcome _toggleOutcome(
+    Admin admin, {
+    required bool isActive,
+  }) {
+    if (isActive) return AdminFormOutcome.reactivated;
+
+    return admin.isLinkedToMember
+        ? AdminFormOutcome.keptAsMember
+        : AdminFormOutcome.deactivated;
   }
 
   static AdminFormState _stateFor(Failure failure) {

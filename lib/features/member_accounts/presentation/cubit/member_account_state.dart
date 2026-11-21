@@ -19,11 +19,12 @@ class MemberAccountDisabled extends MemberAccountState {
 
 class MemberAccountReady extends MemberAccountState {
   final MemberAccount? account;
+  final bool isSaving;
 
-  const MemberAccountReady(this.account);
+  const MemberAccountReady(this.account, {this.isSaving = false});
 
   @override
-  List<Object?> get props => [account];
+  List<Object?> get props => [account, isSaving];
 }
 
 class MemberAccountFailure extends MemberAccountState {

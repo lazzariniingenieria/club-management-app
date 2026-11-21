@@ -15,6 +15,8 @@ abstract class AdminRemoteDataSource {
 
   Future<void> setAdminActive(int adminId, {required bool isActive});
 
+  Future<void> promoteMember(int memberId);
+
   Future<void> resetPassword(int adminId, String newPassword);
 
   Future<void> changeOwnPassword(String newPassword);
@@ -71,6 +73,14 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
       isActive
           ? ApiConstants.adminReactivation(adminId)
           : ApiConstants.adminDeactivation(adminId),
+    );
+  }
+
+  @override
+  Future<void> promoteMember(int memberId) {
+    return _writer.post(
+      ApiConstants.adminPromotion,
+      AdminModel.bodyForPromotion(memberId),
     );
   }
 

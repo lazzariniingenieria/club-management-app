@@ -72,4 +72,26 @@ void main() {
       );
     });
   });
+
+  group('promoteMember', () {
+    test('posts the member to the promotion route', () async {
+      final dataSource = buildDataSource((_, __) => jsonResponse(200, {}));
+
+      await dataSource.promoteMember(34);
+
+      final sent = adapter.requests.single;
+      expect(sent.method, 'POST');
+      expect(sent.path, ApiConstants.adminPromotion);
+      expect(sent.data, {'memberId': 34});
+    });
+
+    test('a member without a member account is not found', () async {
+      final dataSource = buildDataSource((_, __) => jsonResponse(404));
+
+      await expectLater(
+        dataSource.promoteMember(34),
+        throwsA(isA<NotFoundException>()),
+      );
+    });
+  });
 }

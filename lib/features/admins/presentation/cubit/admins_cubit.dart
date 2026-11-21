@@ -46,7 +46,7 @@ class AdminsCubit extends Cubit<AdminsState> {
   }
 
   Future<Failure?> reactivate(Admin admin) async {
-    final result = await _setAdminActive(admin.id, isActive: true);
+    final result = await _setAdminActive(admin, isActive: true);
 
     return result.getLeft().toNullable();
   }

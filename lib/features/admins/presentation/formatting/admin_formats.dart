@@ -7,4 +7,10 @@ abstract final class AdminFormats {
   static String displayName(Admin admin, Member? linkedMember) =>
       linkedMember?.fullName ??
       AppStrings.memberDni(DisplayFormats.dni(admin.dni));
+
+  static String displayNameAmong(Admin admin, List<Member> members) {
+    final linked = members.where((member) => member.id == admin.memberId);
+
+    return displayName(admin, linked.firstOrNull);
+  }
 }
