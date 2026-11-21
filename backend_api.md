@@ -10,6 +10,8 @@ Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, 
 
 **El DNI opcional del socio y el nombre único** (§5 y §8) vienen del [PR #30](https://github.com/lazzariniingenieria/club-management-api/pull/30) de la API. **Está en `develop` (test) desde el 2026-11-16 (`1394a59`), y todavía no en `main` (producción).**
 
+**La cuenta del socio para la app** (`/api/members/{memberId}/account` y `memberAppEnabled` en `/api/clubs/me`, §5) viene del [PR #33](https://github.com/lazzariniingenieria/club-management-api/pull/33) de la API. **Todavía está abierto (draft): no está en `develop` ni en `main`.**
+
 **Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/` (incluido `JwtAuthenticationFilter`), `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
 **Qué no va acá**: pantallas, flujos y entregas van en [app_flows.md](app_flows.md); reglas de código, en [CLAUDE.md](CLAUDE.md).
@@ -121,6 +123,7 @@ Cortan así todas las sesiones de una cuenta, y además le revocan los refresh t
 | `PATCH /api/auth/me/password` | `ADMIN`, `SUPER_ADMIN` |
 | `/api/admins/**`, incluido `PATCH /api/admins/{id}/password` | **solo `SUPER_ADMIN`** |
 | `/api/members/**`, `/api/family-groups/**`, `/api/payments/**`, `/api/courts/**`, `/api/reservations/**`, `/api/recurring-slots/**` | `ADMIN`, `SUPER_ADMIN` |
+| `/api/members/{memberId}/account` y `PATCH …/account/password` (PR #33), dentro de `/api/members/**` | `ADMIN`, `SUPER_ADMIN`: un token `MEMBER` → `403` |
 | `/api/clubs/me` (`GET` y `PATCH`) | `ADMIN`, `SUPER_ADMIN` |
 
 **Un token con `role = MEMBER` no entra a ningún endpoint implementado.** Puede autenticarse y nada más.
@@ -138,9 +141,9 @@ El envelope sale siempre como `application/json`, aunque el pedido haya mandado 
 
 | Status | Cuándo |
 | :--- | :--- |
-| `400` | Validación fallida (`details` por campo), body ilegible, `paidByMemberId` fuera del grupo familiar, `periodsCovered` con repetidos, rango `from` > `to` en la búsqueda de pagos o `paidFrom` > `paidTo` en el reporte, query param con un valor que no se puede parsear |
+| `400` | Validación fallida (`details` por campo), body ilegible, `paidByMemberId` fuera del grupo familiar, `periodsCovered` con repetidos, rango `from` > `to` en la búsqueda de pagos o `paidFrom` > `paidTo` en el reporte, query param con un valor que no se puede parsear, el alta de la cuenta de un socio en un club sin `memberAppEnabled`, dado de baja o sin DNI (§5) |
 | `404` | El recurso no existe **en tu club** — indistinguible de uno de otro club, porque todo filtra por el `clubId` del token. Aplica a socios, grupos, pagos y admins |
-| `409` | DNI ya usado en el club, nombre y apellido que ya tiene otro socio (PR #30), un período que el socio ya tiene pago, un pago que ya estaba anulado, un socio que ya tiene grupo al crear un grupo con `memberIds`, o cualquier otra violación de constraint |
+| `409` | DNI ya usado en el club, nombre y apellido que ya tiene otro socio (PR #30), un socio que ya tiene cuenta al crearle una (PR #33), un período que el socio ya tiene pago, un pago que ya estaba anulado, un socio que ya tiene grupo al crear un grupo con `memberIds`, o cualquier otra violación de constraint |
 | `500` | Excepción no manejada |
 
 ---
@@ -211,6 +214,45 @@ El envelope sale siempre como `application/json`, aunque el pedido haya mandado 
 **`PATCH /api/admins/{id}/password`** — reset de la contraseña **de otro admin**, solo `SUPER_ADMIN` (un `ADMIN` recibe `403`). `{ "newPassword": "..." }`, con las mismas reglas que la contraseña inicial. Registra `sessions_revoked_at` y revoca los refresh tokens de esa cuenta: sus sesiones se cortan en el próximo request (§3). Devuelve el `AdminResponse`. Busca la cuenta con `role = ADMIN`, así que **con el id del SUPER_ADMIN da `404`**: el SUPER_ADMIN cambia la suya con `/api/auth/me/password`, y si la olvida, se cambia directamente en la base.
 
 **`PATCH /api/auth/me/password`** — cambio de contraseña **de la cuenta logueada**, para `ADMIN` y `SUPER_ADMIN` (`MEMBER` → `403`). Body `{ "newPassword": "..." }`, con las mismas reglas que la contraseña inicial y sin pedir la actual (decisión de producto). Responde **`204` sin body**. Registra `sessions_revoked_at` y revoca los refresh tokens: se cierran todas las sesiones de la cuenta, incluida la que hizo el cambio (§3).
+
+### Cuenta del socio — `/api/members/{memberId}/account`
+
+PR #33, **todavía abierto**. `ADMIN` y `SUPER_ADMIN`. La cuenta `MEMBER` **no se auto-registra**: la crea un admin para un socio ya cargado y le da la contraseña inicial en persona, igual que el SUPER_ADMIN con los admins.
+
+| Verbo | Ruta | Respuesta |
+| :--- | :--- | :--- |
+| `GET` | `/api/members/{memberId}/account` | `200` + `MemberAccountResponse` · **`204` sin cuerpo** · `404` |
+| `POST` | `/api/members/{memberId}/account` | `201` + `MemberAccountResponse` · `400` · `404` · `409` |
+| `PATCH` | `/api/members/{memberId}/account/password` | `200` + `MemberAccountResponse` · `400` · `404` |
+
+```json
+{ "id": 40, "memberId": 34, "dni": "30111222", "role": "MEMBER", "active": true,
+  "createdAt": "2026-11-18T15:00:00Z", "updatedAt": "2026-11-18T15:00:00Z",
+  "createdByUserId": 12, "updatedByUserId": 12 }
+```
+
+`id` es el de la cuenta (`user_account`), no el del socio. `dni` es **el de la cuenta**, con el que ingresa: se copia del socio al crearla y no se sincroniza después (§9). `role` es `MEMBER` o `ADMIN`: un socio que ya es administrador ingresa con esa cuenta, y el `GET` la devuelve igual.
+
+**`GET`** devuelve la cuenta `MEMBER` o `ADMIN` vinculada al socio, **`204` sin cuerpo si no tiene** y `404` si el socio no es del club. No mira `memberAppEnabled` ni el estado del socio.
+
+**`POST`** recibe `{ "password": "s3cr3t123" }`, con las mismas reglas que la contraseña de un admin (de 8 caracteres a 72 bytes UTF-8). Crea la cuenta con `role = MEMBER` y el DNI del socio. Valida en este orden:
+
+| Condición | Status |
+| :--- | :--- |
+| Body inválido | `400` con `details` (`"password: …"`) |
+| El club no tiene `memberAppEnabled` | `400` |
+| El socio no es del club | `404` |
+| El socio está dado de baja | `400` |
+| El socio no tiene DNI | `400` |
+| El socio ya tiene cuenta, de cualquier rol | `409` |
+| Otra cuenta del club usa ese DNI | `409` |
+| Dos altas simultáneas | `409` genérico de constraint |
+
+Sin `code` estable (§4), los tres `400` y los dos `409` solo se distinguen leyendo el `message`: la app no lo hace.
+
+**`PATCH /password`** recibe `{ "newPassword": "..." }`, mismas reglas. Registra `sessions_revoked_at` y revoca los refresh tokens de la cuenta: las sesiones abiertas del socio se cortan en el próximo request (§3). `404` si el socio no es del club **o si no tiene una cuenta `MEMBER`** (ninguna, o la suya es `ADMIN`: esa se restablece por `/api/admins/{id}/password`). No mira `memberAppEnabled` ni el estado del socio.
+
+Solo el alta mira `memberAppEnabled`; el login de un `MEMBER` no. Dar de baja a un socio **todavía no corta su cuenta** (§10).
 
 ### Canchas — `/api/courts`
 
@@ -360,12 +402,14 @@ Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistingui
 
 ```json
 { "id": 1, "name": "Club 1", "monthlyFeeAmount": 15000.00, "courtsEnabled": false,
-  "updatedAt": "...", "updatedByUserId": 1 }
+  "memberAppEnabled": false, "updatedAt": "...", "updatedByUserId": 1 }
 ```
 
 `GET` devuelve el club del token. `monthlyFeeAmount` es la **cuota de referencia** y es nullable: un club recién migrado no la tiene cargada. El `name` lo pone la migración como `"Club <id>"` hasta que se configure por entorno.
 
 `courtsEnabled` (PR #25) dice si el club tiene habilitada la etapa de canchas. Es `false` hasta que se prende en la base; no hay endpoint para cambiarlo. Una API sin el PR #25 no manda el campo: la app lo lee como `false`.
+
+`memberAppEnabled` (PR #33) dice si el club tiene habilitada la app del socio: sin él, `POST /api/members/{memberId}/account` da `400`. Es `false` hasta que se prende en la base; no hay endpoint para cambiarlo. Una API sin el PR #33 no manda el campo: la app lo lee como `false`. También sale en la respuesta del `PATCH`.
 
 `PATCH` (`ADMIN` y `SUPER_ADMIN`) recibe `{ "monthlyFeeAmount": 16000 }` (> 0, hasta 8 enteros y 2 decimales); mandarlo en `null` borra la cuota de referencia. Es solo una referencia: **no cambia ningún pago** ni la forma de calcular la mora, y `POST /api/payments` sigue exigiendo el `amount` explícito.
 
@@ -479,7 +523,7 @@ daysOverdue       = max(0, días entre coverageStart y hoy)
 
 **Seis tablas** (migraciones `V1`–`V13`): `user_account`, `member`, `family_group`, `refresh_token`, `payment` y `club`; con el PR #25, siete (`V14` crea `court`), y con el #26, ocho (`V15` crea `court_block`), con el #27, nueve (`V16` crea `reservation` y habilita `btree_gist`), y con el #28, diez (`V17` crea `recurring_slot` y suma `reservation.recurring_slot_id`). El diseño de nueve tablas del `README` del backend es el plan, no el estado.
 
-**`club`** tiene `name`, `address`, `courts_enabled`, `member_app_enabled` y `monthly_fee_amount` (la cuota de referencia, nullable y > 0). `member.club_id` y `user_account.club_id` ya tienen FK a esa tabla; cada query sigue filtrando por el `clubId` del token, y las hojas quedan alcanzadas vía `member_id` / `user_account_id`. **`courts_enabled` sale como `courtsEnabled` en `GET /api/clubs/me` desde el PR #25; `member_app_enabled` no lo expone ningún endpoint.**
+**`club`** tiene `name`, `address`, `courts_enabled`, `member_app_enabled` y `monthly_fee_amount` (la cuota de referencia, nullable y > 0). `member.club_id` y `user_account.club_id` ya tienen FK a esa tabla; cada query sigue filtrando por el `clubId` del token, y las hojas quedan alcanzadas vía `member_id` / `user_account_id`. **`courts_enabled` sale como `courtsEnabled` en `GET /api/clubs/me` desde el PR #25, y `member_app_enabled` como `memberAppEnabled` desde el PR #33 (abierto).**
 
 **`court`** (PR #25) tiene `club_id` (FK a `club`), `name`, `type` nullable, `opening_time`, `closing_time`, `active` y las cuatro columnas de auditoría.
 
@@ -493,7 +537,7 @@ Constraints que el cliente ve como comportamiento HTTP:
 | :--- | :--- |
 | `user_account UNIQUE (club_id, dni)` · `member UNIQUE (club_id, dni)` | El `409` de DNI duplicado. Único **por club**, no global: por eso el login pide el club. `member.dni` es nullable desde `V18` (PR #30) y varios `NULL` no chocan; `user_account.dni` sigue siendo obligatorio |
 | `member UNIQUE (club_id, LOWER(first_name), LOWER(last_name))` (`V19`, PR #30) | El `409` de nombre y apellido repetidos en `/api/members` |
-| `user_account UNIQUE (member_id)` | Un socio no puede tener dos cuentas — el segundo `409` de `/api/admins`. Varios `NULL` sí se permiten |
+| `user_account UNIQUE (member_id)` | Un socio no puede tener dos cuentas — el segundo `409` de `/api/admins` y el `409` de la cuenta del socio que ya tiene una. Varios `NULL` sí se permiten |
 | `CHECK (role <> 'SUPER_ADMIN' OR member_id IS NULL)` | El `memberId` del super admin es siempre `null` |
 | `CHECK (amount > 0)` en `payment` | Refuerza la validación del `POST` |
 | `court UNIQUE (club_id, LOWER(name))` · `CHECK (closing_time > opening_time)` (`V14`) | El `409` de nombre repetido aun con dos altas a la vez, y el `400` de horario como última defensa |
@@ -536,6 +580,7 @@ Lo que es fácil codear mal porque el contrato dice otra cosa de la que uno espe
 | Un bloqueo que pisa reservas sin mandar sus ids da `409` y no crea nada | Bloquear "como antes" sobre una cancha con reservas falla: siempre hay que pedir la vista previa primero | 5 |
 | El `409` de un turno fijo puede venir sin `details` | Si llegan dos altas a la vez no hay fechas para mostrar: hace falta un mensaje genérico | 5 |
 | Cancelar una reserva ya cancelada da `409` | Mostrar un error cuando otro admin ya la había cancelado. La app la toma como cancelada | 5 |
+| El DNI de la cuenta del socio no sigue al del socio | Editar el DNI del socio no cambia con qué ingresa: el que vale para el login es el `dni` de la cuenta, no el del socio | 5 |
 
 ---
 
@@ -558,8 +603,9 @@ Verificado por ausencia en `develop`. La columna de entregas refiere a [app_flow
 | Mostrar a un ADMIN quién cargó o anuló un pago: `recordedByUserId` y `voidedByUserId` no se pueden traducir a una persona (`GET /api/admins` es solo para SUPER_ADMIN y un admin no tiene nombre) | "Quién lo cargó" en el detalle del pago |
 | Datos de contacto del club en `GET /api/clubs/me` | El canal de contacto de Recuperar contraseña (E11) |
 | Asignar grupo en el alta y en la edición de forma pareja: `POST /api/members` acepta `familyGroupId` y `PATCH` no | Nada hoy: el grupo se arma desde las cuotas del socio (E6.5) |
-| Reset de contraseña de un **socio** por un ADMIN / SUPER_ADMIN | E12+ — existe solo para cuentas de admin (§5); un socio todavía no tiene cuenta |
-| Alta de la cuenta de un socio por un ADMIN, con contraseña inicial, y un flag que obligue a cambiarla en el primer ingreso. No hay auto-registro: la cuenta la crea un admin (decisión del 2026-11-15) | Cuentas de socio y el primer ingreso en `/login/activate` (E12+) |
+| Flag de "debe cambiar la contraseña en el próximo ingreso" | El cambio de contraseña del primer ingreso del socio en `/login/activate` (E12+) |
+| Cortar la cuenta del socio al darlo de baja (hoy `PATCH /api/members/{id}/deactivate` no toca su `user_account`) y dar de baja la cuenta de un socio | El próximo corte de la cuenta del socio (E12a) |
+| Sincronizar el DNI de la cuenta del socio cuando se edita el del socio | El próximo corte de la cuenta del socio (E12a): hoy se ve el DNI de la cuenta (§9) |
 | Cualquier endpoint que acepte un token `MEMBER` (§4) | **E12+ completa** |
 | `POST /api/auth/logout` con revocación | Nada: el logout es local, y el refresh descartado vence solo |
 | Listado de clubes y nombre real configurado | Selector de club. `GET /api/clubs/me` ya da el club del token, con un nombre provisorio |

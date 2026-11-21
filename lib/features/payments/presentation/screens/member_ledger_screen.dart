@@ -17,6 +17,8 @@ import '../../../../shared/widgets/app_snack_bar.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admin/presentation/widgets/admin_scaffold.dart';
 import '../../../family_groups/presentation/widgets/family_group_card.dart';
+import '../../../member_accounts/presentation/cubit/member_account_cubit.dart';
+import '../../../member_accounts/presentation/widgets/member_account_card.dart';
 import '../../domain/entities/billing_month.dart';
 import '../../domain/entities/member_ledger.dart';
 import '../../domain/entities/payment.dart';
@@ -39,8 +41,16 @@ class MemberLedgerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<MemberLedgerCubit>(
-      create: (_) => sl<MemberLedgerCubit>()..load(memberId),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<MemberLedgerCubit>(
+          create: (_) => sl<MemberLedgerCubit>()..load(memberId),
+        ),
+        BlocProvider<MemberAccountCubit>(
+          lazy: false,
+          create: (_) => sl<MemberAccountCubit>()..load(memberId),
+        ),
+      ],
       child: AdminScaffold(
         title: AppStrings.ledgerTitle,
         body: _MemberLedgerView(memberId: memberId, receipt: receipt),
@@ -124,13 +134,20 @@ class _LedgerContent extends StatelessWidget {
     required this.onRegister,
   });
 
+  Future<void> _refresh(BuildContext context) async {
+    await Future.wait([
+      context.read<MemberLedgerCubit>().reload(),
+      context.read<MemberAccountCubit>().reload(),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Expanded(
           child: RefreshIndicator(
-            onRefresh: context.read<MemberLedgerCubit>().reload,
+            onRefresh: () => _refresh(context),
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
@@ -168,6 +185,7 @@ class _LedgerSummary extends StatelessWidget {
         FeeStandingCard(ledger: ledger),
         const SizedBox(height: AppSpacing.md),
         _LedgerFamilyGroup(ledger: ledger),
+        MemberAccountCard(member: ledger.member),
         const SizedBox(height: AppSpacing.xl),
       ],
     );

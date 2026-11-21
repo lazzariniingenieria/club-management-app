@@ -44,6 +44,35 @@ void main() {
     expect(club.courtsEnabled, isFalse);
   });
 
+  test('reads whether the club has the member app enabled', () {
+    final club = ClubModel.fromJson(const {
+      'id': 1,
+      'name': 'Club 1',
+      'monthlyFeeAmount': null,
+      'memberAppEnabled': true,
+    });
+
+    expect(club.memberAppEnabled, isTrue);
+  });
+
+  test('an API without the member app flag leaves it off', () {
+    final club = ClubModel.fromJson(const {
+      'id': 1,
+      'name': 'Club 1',
+      'monthlyFeeAmount': null,
+      'courtsEnabled': true,
+    });
+
+    expect(club.memberAppEnabled, isFalse);
+  });
+
+  test('two clubs that differ only in the member app flag are not equal', () {
+    const enabled = ClubModel(id: 1, name: 'Club 1', memberAppEnabled: true);
+    const disabled = ClubModel(id: 1, name: 'Club 1');
+
+    expect(enabled, isNot(disabled));
+  });
+
   test('sends whole pesos without decimals and null to clear', () {
     expect(ClubModel.bodyForMonthlyFee(1600000), {'monthlyFeeAmount': 16000});
     expect(ClubModel.bodyForMonthlyFee(1600050), {'monthlyFeeAmount': 16000.5});
