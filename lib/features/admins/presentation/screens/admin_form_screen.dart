@@ -6,6 +6,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/formatters/digit_layout_formatter.dart';
+import '../../../../shared/validation/dni_rules.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_notice.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
@@ -237,14 +238,20 @@ class _DniField extends StatelessWidget {
         labelText: AppStrings.adminFormDni,
         prefixIcon: Icon(Icons.badge_outlined),
       ),
-      validator: (value) => _messageFor(
-        MemberDraftRules.validate(
-          MemberField.dni,
-          DigitLayouts.digitsOf(value ?? ''),
-        ),
+      validator: (value) => _dniMessageFor(
+        DniRules.validate(DigitLayouts.digitsOf(value ?? '')),
       ),
     );
   }
+}
+
+String? _dniMessageFor(DniError? error) {
+  return switch (error) {
+    DniError.required => AppStrings.memberFormRequiredField,
+    DniError.nonNumeric => AppStrings.memberFormDniOnlyDigits,
+    DniError.invalidLength => AppStrings.dniInvalidLength,
+    null => null,
+  };
 }
 
 class _EmailField extends StatelessWidget {

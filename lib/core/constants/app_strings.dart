@@ -111,7 +111,7 @@ class AppStrings {
   static const String memberFormEditTitle = 'Editar socio';
   static const String memberFormFirstName = 'Nombre';
   static const String memberFormLastName = 'Apellido';
-  static const String memberFormDni = 'DNI';
+  static const String memberFormDni = 'DNI (opcional)';
   static const String memberFormPhone = 'Teléfono (opcional)';
   static const String memberFormEmail = 'Email (opcional)';
   static const String memberFormRequiredField = 'Este dato es obligatorio';
@@ -122,6 +122,10 @@ class AppStrings {
       'Revisá el email: le falta el @ o el dominio';
   static const String memberFormDniTaken =
       'Ya hay un socio con este DNI en el club';
+  static const String memberFormNameTaken =
+      'Ya hay un socio con este nombre y apellido en el club';
+  static const String memberFormDniOrNameTaken =
+      'Ya hay un socio con este DNI o con este nombre y apellido';
   static const String memberFormSaveCreation = 'Crear socio';
   static const String memberFormSaveEdition = 'Guardar cambios';
   static const String memberFormCreated = 'Socio creado';
@@ -183,6 +187,8 @@ class AppStrings {
   static const String memberUpToDateBadge = 'Al día';
 
   static String memberDni(String dni) => 'DNI $dni';
+
+  static const String memberWithoutDni = 'Sin DNI';
 
   static String daysOverdueBadge(int days) =>
       days == 1 ? '1 día de mora' : '$days días de mora';

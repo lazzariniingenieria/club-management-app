@@ -111,13 +111,82 @@ void main() {
     verify(() => createMember(any())).called(1);
   });
 
-  test('turns a taken dni into the field error, not into a snack bar',
+  test('a conflict with a dni sent may be the dni or the name, never a snack',
       () async {
     stubCreate(const Left(ConflictFailure('Duplicated dni')));
 
     await cubit.save(draft);
 
-    expect(cubit.state, const MemberFormDuplicatedDni());
+    expect(cubit.state, const MemberFormDuplicatedDniOrName());
+  });
+
+  test('a conflict without a dni sent can only be the name', () async {
+    stubCreate(const Left(ConflictFailure('Duplicated name')));
+
+    await cubit.save(
+      const MemberDraft(firstName: 'Ana', lastName: 'Álvarez', dni: ''),
+    );
+
+    expect(cubit.state, const MemberFormDuplicatedName());
+  });
+
+  group('a conflict while editing', () {
+    const original = MemberDraft(
+      firstName: 'Eva',
+      lastName: 'Álvarez',
+      dni: '30111222',
+    );
+
+    Future<void> saveEdition(MemberDraft draft) async {
+      stubUpdate(const Left(ConflictFailure('Duplicated')));
+
+      await cubit.save(draft, memberId: 7, original: original);
+    }
+
+    test('with the dni unchanged can only be the name', () async {
+      await saveEdition(
+        const MemberDraft(
+          firstName: 'Ana',
+          lastName: 'Álvarez',
+          dni: ' 30111222 ',
+        ),
+      );
+
+      expect(cubit.state, const MemberFormDuplicatedName());
+    });
+
+    test('with the dni removed can only be the name', () async {
+      await saveEdition(
+        const MemberDraft(firstName: 'Ana', lastName: 'Álvarez', dni: ''),
+      );
+
+      expect(cubit.state, const MemberFormDuplicatedName());
+    });
+
+    test('with the name unchanged, even in another case, can only be the dni',
+        () async {
+      await saveEdition(
+        const MemberDraft(
+          firstName: 'EVA',
+          lastName: 'álvarez ',
+          dni: '30999888',
+        ),
+      );
+
+      expect(cubit.state, const MemberFormDuplicatedDni());
+    });
+
+    test('with the dni and the name changed may be either of them', () async {
+      await saveEdition(
+        const MemberDraft(
+          firstName: 'Ana',
+          lastName: 'Álvarez',
+          dni: '30999888',
+        ),
+      );
+
+      expect(cubit.state, const MemberFormDuplicatedDniOrName());
+    });
   });
 
   test('turns any other failure into its Spanish message', () async {

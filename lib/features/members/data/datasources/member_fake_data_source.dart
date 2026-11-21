@@ -42,13 +42,14 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
   Future<void> createMember(MemberDraft draft) async {
     await Future<void>.delayed(latency);
     _rejectDuplicatedDni(draft.dni);
+    _rejectDuplicatedName(draft);
 
     _roster.add(
       MemberModel(
         id: _nextId(),
         firstName: draft.firstName,
         lastName: draft.lastName,
-        dni: draft.dni,
+        dni: _orNull(draft.dni),
         status: MemberStatus.active,
         daysOverdue: 0,
         phone: _orNull(draft.phone),
@@ -62,6 +63,7 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
   Future<void> updateMember(int memberId, MemberDraft draft) async {
     await Future<void>.delayed(latency);
     _rejectDuplicatedDni(draft.dni, keeping: memberId);
+    _rejectDuplicatedName(draft, keeping: memberId);
 
     _replace(
       memberId,
@@ -69,7 +71,7 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
         id: current.id,
         firstName: draft.firstName,
         lastName: draft.lastName,
-        dni: draft.dni,
+        dni: _orNull(draft.dni),
         status: current.status,
         daysOverdue: current.daysOverdue,
         phone: _orNull(draft.phone),
@@ -168,12 +170,28 @@ class MemberFakeDataSource implements MemberRemoteDataSource {
   }
 
   void _rejectDuplicatedDni(String dni, {int? keeping}) {
+    if (dni.isEmpty) return;
+
     for (final member in _roster) {
       if (member.dni == dni && member.id != keeping) {
         throw ConflictException('Duplicated dni');
       }
     }
   }
+
+  void _rejectDuplicatedName(MemberDraft draft, {int? keeping}) {
+    final fullName = _fullNameKey(draft.firstName, draft.lastName);
+
+    for (final member in _roster) {
+      final memberFullName = _fullNameKey(member.firstName, member.lastName);
+      if (memberFullName == fullName && member.id != keeping) {
+        throw ConflictException('Duplicated name');
+      }
+    }
+  }
+
+  static String _fullNameKey(String firstName, String lastName) =>
+      '${firstName.toLowerCase()}|${lastName.toLowerCase()}';
 
   int _nextId() {
     var highestId = 0;

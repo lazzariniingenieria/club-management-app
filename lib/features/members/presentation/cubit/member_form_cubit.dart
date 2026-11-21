@@ -23,7 +23,11 @@ class MemberFormCubit extends Cubit<MemberFormState> {
         _setMemberActive = setMemberActive,
         super(const MemberFormEditing());
 
-  Future<void> save(MemberDraft draft, {int? memberId}) async {
+  Future<void> save(
+    MemberDraft draft, {
+    int? memberId,
+    MemberDraft? original,
+  }) async {
     if (state is MemberFormSubmitting) return;
     emit(const MemberFormSubmitting());
 
@@ -35,7 +39,28 @@ class MemberFormCubit extends Cubit<MemberFormState> {
     _emitOutcome(
       result,
       memberId == null ? MemberFormOutcome.created : MemberFormOutcome.updated,
+      conflict: _conflictOf(trimmed, original?.trimmed()),
     );
+  }
+
+  static MemberFormState _conflictOf(MemberDraft sent, MemberDraft? original) {
+    if (sent.dni.isEmpty || sent.dni == original?.dni) {
+      return const MemberFormDuplicatedName();
+    }
+    if (original != null && _haveSameFullName(sent, original)) {
+      return const MemberFormDuplicatedDni();
+    }
+
+    return const MemberFormDuplicatedDniOrName();
+  }
+
+  static bool _haveSameFullName(MemberDraft sent, MemberDraft original) {
+    final sameFirstName =
+        sent.firstName.toLowerCase() == original.firstName.toLowerCase();
+    final sameLastName =
+        sent.lastName.toLowerCase() == original.lastName.toLowerCase();
+
+    return sameFirstName && sameLastName;
   }
 
   Future<void> setActive(int memberId, {required bool isActive}) async {
@@ -52,17 +77,23 @@ class MemberFormCubit extends Cubit<MemberFormState> {
     );
   }
 
-  void _emitOutcome(Either<Failure, void> result, MemberFormOutcome outcome) {
+  void _emitOutcome(
+    Either<Failure, void> result,
+    MemberFormOutcome outcome, {
+    MemberFormState? conflict,
+  }) {
     if (isClosed) return;
 
-    final MemberFormState next =
-        result.fold(_failureFrom, (_) => MemberFormSaved(outcome));
+    final MemberFormState next = result.fold(
+      (failure) => _failureFrom(failure, conflict),
+      (_) => MemberFormSaved(outcome),
+    );
 
     emit(next);
   }
 
-  MemberFormState _failureFrom(Failure failure) {
-    if (failure is ConflictFailure) return const MemberFormDuplicatedDni();
+  MemberFormState _failureFrom(Failure failure, MemberFormState? conflict) {
+    if (failure is ConflictFailure && conflict != null) return conflict;
 
     return MemberFormFailure(failure.userMessage);
   }

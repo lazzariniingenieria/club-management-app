@@ -354,7 +354,7 @@ void main() {
     testWidgets('finds a member by dni', (tester) async {
       await openPicker(tester);
 
-      await tester.enterText(find.byType(TextField), roster[1].dni);
+      await tester.enterText(find.byType(TextField), roster[1].dni!);
       await settleSession(tester);
 
       expect(find.text('Ana Álvarez'), findsOneWidget);

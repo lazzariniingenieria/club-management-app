@@ -78,7 +78,7 @@ void main() {
     final duplicated = MemberDraft(
       firstName: 'Ana',
       lastName: 'Nueva',
-      dni: seeded.dni,
+      dni: seeded.dni!,
     );
 
     final result = await repository.createMember(duplicated);

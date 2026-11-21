@@ -37,6 +37,8 @@ abstract final class MemberDraftRules {
   }
 
   static MemberFieldError? _validateDni(String value) {
+    if (value.isEmpty) return null;
+
     return switch (DniRules.validate(value)) {
       DniError.required => MemberFieldError.required,
       DniError.nonNumeric => MemberFieldError.nonNumericDni,

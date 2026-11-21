@@ -48,7 +48,7 @@ El **superAdmin comparte el shell del admin**: su único delta es la gestión de
 | :--- | :--- | :--- |
 | Splash / Bootstrap | `/` | ✅ Implementada — resuelve sesión persistida y redirige (§3.1.1) |
 | Login | `/login` | ✅ Implementada |
-| Registro del socio | `/login/activate` | E12+ — el socio se registra con su DNI y la API lo empareja con el socio que ya cargó el admin (documento técnico V6, Etapa 3). El botón *Es mi primera vez aquí* ya está en el login, deshabilitado |
+| Primer ingreso | `/login/activate` | A construir, **y ya no es un auto-registro** (decisión del 2026-11-15): la cuenta del socio la crea un admin, que le da la contraseña inicial, igual que el super admin con los admins. Qué hace esta pantalla queda por definir junto con E12+ — la candidata es el cambio de contraseña del primer ingreso, que necesita un flag que la API no tiene ([backend_api.md](backend_api.md) §10). El CTA `AppStrings.loginFirstTimeUser` ya existe |
 | Recuperar contraseña | `/login/forgot` | ✅ Implementada — **pantalla informativa**, no formulario (§3.1.2) |
 
 #### 3.1.1 Splash — no es una pantalla instantánea
@@ -213,7 +213,9 @@ Inicio ──[Total de socios ⇒ chip Todos ]──►
 
 - La búsqueda y el filtrado hoy los resuelve el cliente sobre el padrón completo, porque la API devuelve la lista entera sin paginar ni filtrar. Sirve con los ~245 socios del club; cuando el backend exponga paginación, el listado pasa a "cargando más" al pie y el mapeo no cambia.
 - El DNI duplicado lo valida el backend y se muestra en el campo, no en un snackbar genérico (E5).
+- **Nombre y apellido no se repiten en el club** (2026-11-15), tenga o no DNI el socio: como el DNI puede faltar, el nombre es lo único que todos tienen para identificarse. Lo valida el backend. Si el envío iba sin DNI, el aviso va debajo del apellido: "Ya hay un socio con este nombre y apellido en el club". En la edición también va ahí si el DNI no cambió, porque la API no compara al socio consigo mismo; y si lo que no cambió es el nombre y apellido (sin mirar mayúsculas), va debajo del DNI: "Ya hay un socio con este DNI en el club". En el resto de los casos (un alta con DNI, o una edición que cambió los dos) la API no deja saber cuál de los dos chocó, así que el aviso va debajo del DNI y nombra los dos: "Ya hay un socio con este DNI o con este nombre y apellido". Se borra al tocar nombre, apellido o DNI, aunque el campo que lo muestra no se haya tocado. Dos personas que de verdad se llaman igual se cargan distinguiéndolas en el nombre (segundo nombre, "(h)").
 - **El DNI se escribe, pero casi no se muestra** (revisión en el celular, 2026-10-31): no es un dato que el admin quiera leer a cada rato. Se ve en los formularios, en la fila de un administrador sin socio vinculado (es lo único que lo identifica) y, en los buscadores para elegir un socio (registrar pago, armar grupo, vincular admin), **solo cuando hay otro socio con el mismo nombre y apellido**. La búsqueda por DNI sigue funcionando aunque no se vea.
+- **El DNI del socio es opcional** (2026-11-15): algunos socios no quieren darlo al asociarse. El formulario lo pide como "DNI (opcional)", vacío se guarda sin DNI y, si se escribe, valen las mismas reglas de siempre. Se completa más adelante desde *Editar socio*, a más tardar cuando el socio pida una cuenta para la app. Donde se mostraría el DNI de un socio que no lo tiene, dice "Sin DNI". **El DNI de un administrador sigue siendo obligatorio**: es con lo que ingresa.
 - **El DNI acepta de 6 a 8 dígitos**, en el login y en las altas: 7 u 8 es lo normal (los de extranjeros también tienen 8) y 6 cubre las LE/LC más viejas. La API acepta hasta 20, así que la regla es del cliente.
 - Al volver de un alta exitosa el listado refresca y hace scroll al socio creado.
 - El listado se recarga solo cuando el padrón cambia (alta, edición, baja o reactivación), venga el cambio de donde venga: un alta hecha desde el Inicio ya aparece al abrir Socios, sin pull-to-refresh. La recarga conserva búsqueda y chip.
@@ -474,7 +476,7 @@ Estructura de [app_router.dart](lib/core/router/app_router.dart), construida en 
 ```
 GoRouter
 ├── /                              → SplashScreen (resuelve sesión)
-├── /login                          (+ /forgot ← E11; /activate ← registro del socio, E12+)
+├── /login                          (+ /forgot ← E11; /activate ← primer ingreso del socio, E12+)
 ├── /member                         → superficie del socio en preparación
 ├── StatefulShellRoute (admin + superAdmin)
 │   ├── branch: /admin              → Inicio
@@ -586,8 +588,8 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E9c | Agenda del día y reservas puntuales: reservar y cancelar | No bloquea: usa el PR #27 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #24) |
 | E9d | Turnos fijos y bloqueo con reservas afectadas | No bloquea: usa los PR #28 y #29 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #25 a #27) |
 | E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | ✅ Entregada (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
-| E11 | Recuperar contraseña (informativa) | No bloquea | ✅ Entregada (PR #14). El registro del socio (`/login/activate`) no es parte de E11: va con E12+ |
-| E12+ | Superficie del socio completa, incluido el registro con DNI | **Bloqueada** | — |
+| E11 | Recuperar contraseña (informativa) | No bloquea | ✅ Entregada (PR #14). El primer ingreso del socio (`/login/activate`) no es parte de E11: va con E12+ |
+| E12+ | Superficie del socio completa, incluido el primer ingreso | **Bloqueada** | — |
 
 ### E1 — Migración de paleta y theming
 
@@ -660,7 +662,7 @@ Las dos primeras pantallas de escritura de la app. El contrato está en [backend
 
 **Formato mientras se escribe**: el DNI se agrupa con puntos (`30.111.222`) y el teléfono lleva un guion después de la característica (`3498-462578`, `342-4123456`, `11-55667788`), solo para leerlos mejor. La característica se detecta con las reglas del plan de numeración que publica `libphonenumber`, porque su largo (2, 3 o 4 dígitos) no se deduce de los primeros dígitos solos: el guion aparece recién cuando la característica queda definida. Los dos campos aceptan únicamente dígitos y **viajan a la API sin separadores**: el DNI tiene que coincidir con el de la base para que la búsqueda y el `409` de duplicado funcionen, y el teléfono se guarda con el mismo criterio.
 
-**Errores del servidor**: el 409 de DNI duplicado se mapea al campo `dni` **por el status code**, nunca por el texto del mensaje, porque la API no expone un código de error estable ([backend_api.md](backend_api.md) §4). En este endpoint alcanza: el DNI es la única restricción que puede chocar. El resto de los campos conserva lo cargado.
+**Errores del servidor**: el 409 de DNI duplicado se mapea al campo `dni` **por el status code**, nunca por el texto del mensaje, porque la API no expone un código de error estable ([backend_api.md](backend_api.md) §4). Desde el 2026-11-15 chocan dos cosas, el DNI y el nombre y apellido: sin DNI en el envío solo puede ser el nombre, en la edición lo que no cambió descarta a uno de los dos, y si no el aviso nombra los dos (§4.1). El resto de los campos conserva lo cargado.
 
 **Terminado cuando**: alta y edición funcionan contra fakes y contra la API, el DNI duplicado se muestra en el campo, abandonar con cambios pide confirmación, y hay tests de widget de la validación y unitarios del mapeo DTO ↔ dominio.
 

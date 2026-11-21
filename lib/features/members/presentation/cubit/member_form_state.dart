@@ -26,8 +26,16 @@ class MemberFormSaved extends MemberFormState {
   List<Object?> get props => [outcome];
 }
 
+class MemberFormDuplicatedName extends MemberFormState {
+  const MemberFormDuplicatedName();
+}
+
 class MemberFormDuplicatedDni extends MemberFormState {
   const MemberFormDuplicatedDni();
+}
+
+class MemberFormDuplicatedDniOrName extends MemberFormState {
+  const MemberFormDuplicatedDniOrName();
 }
 
 class MemberFormFailure extends MemberFormState {

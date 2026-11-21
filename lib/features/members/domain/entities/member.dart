@@ -6,9 +6,9 @@ class Member extends Equatable {
   final int id;
   final String firstName;
   final String lastName;
-  final String dni;
   final MemberStatus status;
   final int daysOverdue;
+  final String? dni;
   final String? phone;
   final String? email;
   final int? familyGroupId;
@@ -18,9 +18,9 @@ class Member extends Equatable {
     required this.id,
     required this.firstName,
     required this.lastName,
-    required this.dni,
     required this.status,
     required this.daysOverdue,
+    this.dni,
     this.phone,
     this.email,
     this.familyGroupId,
@@ -44,7 +44,7 @@ class Member extends Equatable {
     final normalizedQuery = _withoutAccents(query.trim().toLowerCase());
     if (normalizedQuery.isEmpty) return true;
 
-    final haystack = '${_withoutAccents(fullName.toLowerCase())} $dni';
+    final haystack = '${_withoutAccents(fullName.toLowerCase())} ${dni ?? ''}';
 
     return haystack.contains(normalizedQuery);
   }
