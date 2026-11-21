@@ -3,7 +3,7 @@ import 'package:club_management_app/core/di/injection_container.dart' as di;
 import 'package:club_management_app/core/errors/exceptions.dart';
 import 'package:club_management_app/core/router/app_router.dart';
 import 'package:club_management_app/core/router/app_routes.dart';
-import 'package:club_management_app/features/admins/data/datasources/admin_fake_data_source.dart';
+import 'package:club_management_app/features/admins/data/datasources/fake_user_account_store.dart';
 import 'package:club_management_app/features/auth/domain/entities/user.dart';
 import 'package:club_management_app/features/club/data/datasources/club_fake_data_source.dart';
 import 'package:club_management_app/features/member_accounts/data/datasources/member_account_fake_data_source.dart';
@@ -25,7 +25,7 @@ class ScriptedAccountSource extends MemberAccountFakeDataSource {
   ScriptedAccountSource(MemberFakeDataSource members)
       : super(
           members: members,
-          admins: AdminFakeDataSource(latency: Duration.zero),
+          accounts: FakeUserAccountStore(),
           club: ClubFakeDataSource(latency: Duration.zero),
           latency: Duration.zero,
         );
@@ -81,10 +81,11 @@ void main() {
     int memberId, {
     ScriptedAccountSource? accounts,
     ClubFakeDataSource? club,
+    UserRole signedInAs = UserRole.admin,
   }) async {
     await bootApp(
       tester,
-      signedInAs: UserRole.admin,
+      signedInAs: signedInAs,
       memberSource: members,
       memberAccountSource: accounts,
       clubSource: club,
@@ -242,5 +243,71 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(accounts.loads, loadsBeforeClosing + 1);
+  });
+
+  group('making a member an admin', () {
+    Future<String> nameOf(WidgetTester tester, int memberId) async {
+      final member = await tester.runAsync(() => members.fetchMember(memberId));
+
+      return member!.fullName;
+    }
+
+    testWidgets('the super admin promotes a member with the same account', (
+      tester,
+    ) async {
+      await openLedger(
+        tester,
+        memberWithAccount,
+        signedInAs: UserRole.superAdmin,
+      );
+      final name = await nameOf(tester, memberWithAccount);
+
+      await tapCardAction(tester, AppStrings.memberAccountPromoteAction);
+      expect(
+        find.text(AppStrings.memberAccountPromoteTitle(name)),
+        findsOneWidget,
+      );
+      expect(find.text(AppStrings.memberAccountPromoteMessage), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(AppStrings.memberAccountPromoteAction),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.memberAccountPromoted(name)), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(AppStrings.memberAccountAdmin),
+        -200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(AppStrings.memberAccountAdmin), findsOneWidget);
+      expect(find.text(AppStrings.memberAccountPromoteAction), findsNothing);
+    });
+
+    testWidgets('an admin cannot promote members', (tester) async {
+      await openLedger(tester, memberWithAccount);
+
+      expect(find.text(AppStrings.memberAccountResetAction), findsOneWidget);
+      expect(find.text(AppStrings.memberAccountPromoteAction), findsNothing);
+    });
+
+    testWidgets('a deactivated member is not offered to be an admin', (
+      tester,
+    ) async {
+      await tester.runAsync(
+        () => members.setMemberActive(memberWithAccount, isActive: false),
+      );
+
+      await openLedger(
+        tester,
+        memberWithAccount,
+        signedInAs: UserRole.superAdmin,
+      );
+
+      expect(find.text(AppStrings.memberAccountResetAction), findsOneWidget);
+      expect(find.text(AppStrings.memberAccountPromoteAction), findsNothing);
+    });
   });
 }

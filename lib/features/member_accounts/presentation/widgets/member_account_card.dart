@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/errors/failure_messages.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -10,8 +11,12 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/formatters/display_formats.dart';
 import '../../../../shared/widgets/app_secondary_button.dart';
 import '../../../../shared/widgets/app_snack_bar.dart';
+import '../../../../shared/widgets/confirmation_dialog.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../admins/presentation/widgets/new_password_sheet.dart';
+import '../../../auth/domain/entities/user.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../members/domain/entities/member.dart';
 import '../../domain/entities/member_account.dart';
 import '../cubit/member_account_cubit.dart';
@@ -67,6 +72,30 @@ class MemberAccountCard extends StatelessWidget {
     if (context.mounted) showAppSnackBar(context, doneMessage);
   }
 
+  Future<void> _promote(BuildContext context) async {
+    final cubit = context.read<MemberAccountCubit>();
+    final confirmed = await ConfirmationDialog.show(
+      context,
+      ConfirmationDialog(
+        title: AppStrings.memberAccountPromoteTitle(member.fullName),
+        message: AppStrings.memberAccountPromoteMessage,
+        confirmLabel: AppStrings.memberAccountPromoteAction,
+      ),
+    );
+    if (!confirmed) return;
+
+    final failure = await cubit.promoteToAdmin();
+    if (!context.mounted) return;
+    if (failure == null) {
+      return showAppSnackBar(
+        context,
+        AppStrings.memberAccountPromoted(member.fullName),
+      );
+    }
+    showAppSnackBar(context, failure.userMessage, isError: true);
+    await cubit.reloadIfStale();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<MemberAccountCubit, MemberAccountState>(
@@ -91,16 +120,24 @@ class MemberAccountCard extends StatelessWidget {
           subtitle: isOffline
               ? AppStrings.memberAccountLoadOffline
               : AppStrings.memberAccountLoadServer,
-          actionLabel: AppStrings.retryAction,
-          onAction: context.read<MemberAccountCubit>().reload,
+          actions: [
+            _CardAction(
+              AppStrings.retryAction,
+              context.read<MemberAccountCubit>().reload,
+            ),
+          ],
         ),
-      MemberAccountReady(account: final account?) =>
-        _existingAccountContent(context, account),
+      MemberAccountReady(account: final account?, :final isSaving) =>
+        _existingAccountContent(context, account, isSaving: isSaving),
       MemberAccountReady() => _missingAccountContent(context),
     };
   }
 
-  Widget _existingAccountContent(BuildContext context, MemberAccount account) {
+  Widget _existingAccountContent(
+    BuildContext context,
+    MemberAccount account, {
+    required bool isSaving,
+  }) {
     if (!account.canResetPassword) {
       return const _AccountCardBody(title: AppStrings.memberAccountAdmin);
     }
@@ -108,9 +145,24 @@ class MemberAccountCard extends StatelessWidget {
     return _AccountCardBody(
       title:
           AppStrings.memberAccountSignsInWith(DisplayFormats.dni(account.dni)),
-      actionLabel: AppStrings.memberAccountResetAction,
-      onAction: () => _resetPassword(context),
+      actions: [
+        _CardAction(
+          AppStrings.memberAccountResetAction,
+          isSaving ? null : () => _resetPassword(context),
+        ),
+        if (member.isActive && _canManageAdmins(context))
+          _CardAction(
+            AppStrings.memberAccountPromoteAction,
+            isSaving ? null : () => _promote(context),
+          ),
+      ],
     );
+  }
+
+  static bool _canManageAdmins(BuildContext context) {
+    final auth = context.watch<AuthBloc>().state;
+
+    return auth is AuthAuthenticated && auth.user.role.canManageAdmins;
   }
 
   Widget? _missingAccountContent(BuildContext context) {
@@ -124,8 +176,12 @@ class MemberAccountCard extends StatelessWidget {
 
     return _AccountCardBody(
       title: AppStrings.memberAccountNone,
-      actionLabel: AppStrings.memberAccountCreateAction,
-      onAction: () => _create(context),
+      actions: [
+        _CardAction(
+          AppStrings.memberAccountCreateAction,
+          () => _create(context),
+        ),
+      ],
     );
   }
 }
@@ -155,32 +211,35 @@ class _AccountCardFrame extends StatelessWidget {
   }
 }
 
+class _CardAction {
+  final String label;
+  final VoidCallback? onPressed;
+
+  const _CardAction(this.label, this.onPressed);
+}
+
 class _AccountCardBody extends StatelessWidget {
   final String title;
   final String? subtitle;
-  final String? actionLabel;
-  final VoidCallback? onAction;
+  final List<_CardAction> actions;
 
   const _AccountCardBody({
     required this.title,
     this.subtitle,
-    this.actionLabel,
-    this.onAction,
+    this.actions = const [],
   });
 
   @override
   Widget build(BuildContext context) {
-    final label = actionLabel;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         MergeSemantics(
           child: _AccountHeading(title: title, subtitle: subtitle),
         ),
-        if (label != null) ...[
+        for (final action in actions) ...[
           const SizedBox(height: AppSpacing.md),
-          AppSecondaryButton(label: label, onPressed: onAction),
+          AppSecondaryButton(label: action.label, onPressed: action.onPressed),
         ],
       ],
     );

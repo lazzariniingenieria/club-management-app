@@ -204,4 +204,56 @@ void main() {
       );
     });
   });
+
+  group('deactivating an admin', () {
+    Future<void> deactivate(WidgetTester tester, String row) async {
+      await tester.tap(find.text(row));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(AppStrings.adminDeactivate));
+      await tester.tap(find.text(AppStrings.adminDeactivate));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> confirm(WidgetTester tester) async {
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(AppStrings.adminDeactivate),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('linked to a member keeps them as a member', (tester) async {
+      await openAdmins(tester);
+
+      await deactivate(tester, 'Juan Álvarez');
+      expect(
+        find.text(AppStrings.adminDeactivateLinkedTitle('Juan Álvarez')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(AppStrings.adminDeactivateLinkedMessage),
+        findsOneWidget,
+      );
+      await confirm(tester);
+
+      expect(
+        find.text(AppStrings.adminKeptAsMember('Juan Álvarez')),
+        findsOneWidget,
+      );
+      expect(find.text('Juan Álvarez'), findsNothing);
+    });
+
+    testWidgets('without a member stays listed as inactive', (tester) async {
+      await openAdmins(tester);
+
+      await deactivate(tester, AppStrings.memberDni('11.111.111'));
+      expect(find.text(AppStrings.adminDeactivateMessage), findsOneWidget);
+      await confirm(tester);
+
+      expect(find.text(AppStrings.adminDeactivated), findsOneWidget);
+      expect(find.text(AppStrings.adminReactivateShort), findsNWidgets(2));
+    });
+  });
 }

@@ -25,6 +25,8 @@ abstract final class ApiConstants {
 
   static String admin(int adminId) => '$admins/$adminId';
 
+  static const String adminPromotion = '$admins/promote';
+
   static String adminPassword(int adminId) => '${admin(adminId)}/password';
 
   static String adminDeactivation(int adminId) => '${admin(adminId)}/deactivate';

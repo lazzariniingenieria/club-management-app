@@ -12,6 +12,7 @@ import '../../features/admin/presentation/cubit/admin_home_cubit.dart';
 import '../../features/admin/presentation/cubit/admin_profile_cubit.dart';
 import '../../features/admin/presentation/cubit/courts_enabled_cubit.dart';
 import '../../features/admins/data/datasources/admin_fake_data_source.dart';
+import '../../features/admins/data/datasources/fake_user_account_store.dart';
 import '../../features/admins/data/datasources/admin_remote_data_source.dart';
 import '../../features/admins/data/repositories/admin_repository_impl.dart';
 import '../../features/admins/domain/repositories/admin_repository.dart';
@@ -82,6 +83,7 @@ import '../../features/member_accounts/data/repositories/member_account_reposito
 import '../../features/member_accounts/domain/repositories/member_account_repository.dart';
 import '../../features/member_accounts/domain/usecases/create_member_account_use_case.dart';
 import '../../features/member_accounts/domain/usecases/load_member_account_use_case.dart';
+import '../../features/member_accounts/domain/usecases/promote_member_to_admin_use_case.dart';
 import '../../features/member_accounts/domain/usecases/reset_member_account_password_use_case.dart';
 import '../../features/member_accounts/presentation/cubit/member_account_cubit.dart';
 import '../../features/members/data/datasources/member_fake_data_source.dart';
@@ -393,7 +395,11 @@ void _registerAdmins() {
 void _registerMemberAccounts() {
   sl.registerLazySingleton<MemberAccountRemoteDataSource>(
     () => AppEnvironment.usesFakeDataSources
-        ? MemberAccountFakeDataSource(members: sl(), admins: sl(), club: sl())
+        ? MemberAccountFakeDataSource(
+            members: sl(),
+            club: sl(),
+            accounts: _fakeAccounts(),
+          )
         : MemberAccountRemoteDataSourceImpl(sl(), sl()),
   );
   sl.registerLazySingleton<MemberAccountRepository>(
@@ -403,6 +409,9 @@ void _registerMemberAccounts() {
   sl.registerLazySingleton(() => LoadMemberAccountUseCase(sl()));
   sl.registerLazySingleton(() => CreateMemberAccountUseCase(sl()));
   sl.registerLazySingleton(() => ResetMemberAccountPasswordUseCase(sl()));
+  sl.registerLazySingleton(
+    () => PromoteMemberToAdminUseCase(admins: sl(), accounts: sl()),
+  );
 
   sl.registerFactory(
     () => MemberAccountCubit(
@@ -410,8 +419,17 @@ void _registerMemberAccounts() {
       loadAccount: sl(),
       createAccount: sl(),
       resetPassword: sl(),
+      promoteToAdmin: sl(),
     ),
   );
+}
+
+FakeUserAccountStore _fakeAccounts() {
+  final admins = sl<AdminRemoteDataSource>();
+
+  return admins is AdminFakeDataSource
+      ? admins.accounts
+      : FakeUserAccountStore();
 }
 
 void _registerCourts() {

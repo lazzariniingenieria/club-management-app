@@ -55,6 +55,14 @@ class AdminRepositoryImpl implements AdminRepository {
   }
 
   @override
+  Future<Either<Failure, void>> promoteMember(int memberId) {
+    return _guardChange(
+      'promoteMember',
+      () => remoteDataSource.promoteMember(memberId),
+    );
+  }
+
+  @override
   Future<Either<Failure, void>> resetPassword(int adminId, String newPassword) {
     return _guard(
       'resetPassword',
@@ -75,7 +83,10 @@ class AdminRepositoryImpl implements AdminRepository {
     Future<void> Function() run,
   ) async {
     final result = await _guard(operation, run);
-    if (result.isRight()) _adminChanges.add(null);
+    final failure = result.getLeft().toNullable();
+    final mayHaveChanged =
+        failure is ResponseTimeoutFailure || failure is NotFoundFailure;
+    if (result.isRight() || mayHaveChanged) _adminChanges.add(null);
 
     return result;
   }

@@ -954,6 +954,14 @@ class AppStrings {
 
   static String adminDeactivateTitle(String name) => '¿Dar de baja a $name?';
 
+  static const String adminDeactivateLinkedMessage =
+      'Dejará de ser administrador y podrá seguir usando la app como socio.';
+
+  static String adminDeactivateLinkedTitle(String name) =>
+      '¿Dar de baja a $name como administrador?';
+
+  static String adminKeptAsMember(String name) => '$name sigue como socio';
+
   static String adminReactivateTitle(String name) => '¿Reactivar a $name?';
 
   static const String adminProfileTitle = 'Perfil';
@@ -1028,6 +1036,16 @@ class AppStrings {
   static const String memberAccountResetNotice =
       'Se cierran sus sesiones abiertas. Dale la contraseña nueva en persona.';
   static const String memberAccountResetDone = 'Contraseña restablecida';
+
+  static const String memberAccountPromoteAction = 'Hacer administrador';
+  static const String memberAccountPromoteMessage =
+      'Va a ingresar con el mismo DNI y contraseña.';
+
+  static String memberAccountPromoteTitle(String name) =>
+      '¿Hacer administrador a $name?';
+
+  static String memberAccountPromoted(String name) =>
+      '$name ya es administrador';
 
   static String memberAccountSignsInWith(String dni) =>
       'Ingresa con el DNI $dni';

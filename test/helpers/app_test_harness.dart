@@ -5,6 +5,7 @@ import 'package:club_management_app/features/admin/data/datasources/admin_summar
 import 'package:club_management_app/features/admin/data/datasources/admin_summary_remote_data_source.dart';
 import 'package:club_management_app/features/admin/presentation/cubit/admin_family_groups_cubit.dart';
 import 'package:club_management_app/features/admins/data/datasources/admin_fake_data_source.dart';
+import 'package:club_management_app/features/admins/data/datasources/fake_user_account_store.dart';
 import 'package:club_management_app/features/admins/data/datasources/admin_remote_data_source.dart';
 import 'package:club_management_app/features/club/data/datasources/club_fake_data_source.dart';
 import 'package:club_management_app/features/club/data/datasources/club_remote_data_source.dart';
@@ -145,8 +146,8 @@ Future<InMemorySecureStorage> bootApp(
         memberAccountSource ??
         MemberAccountFakeDataSource(
           members: di.sl(),
-          admins: di.sl(),
           club: di.sl(),
+          accounts: _fakeAccounts(),
           latency: Duration.zero,
         ),
   );
@@ -181,6 +182,14 @@ Future<InMemorySecureStorage> bootApp(
   await settleSession(tester);
 
   return storage;
+}
+
+FakeUserAccountStore _fakeAccounts() {
+  final admins = di.sl<AdminRemoteDataSource>();
+
+  return admins is AdminFakeDataSource
+      ? admins.accounts
+      : FakeUserAccountStore();
 }
 
 ReservationFakeDataSource? _fakeReservations() {

@@ -18,6 +18,7 @@ import '../../domain/entities/admin_draft.dart';
 import '../../domain/entities/admin_password_rules.dart';
 import '../cubit/admin_form_cubit.dart';
 import '../cubit/admin_form_state.dart';
+import '../formatting/admin_formats.dart';
 import '../widgets/admin_account_actions.dart';
 import '../widgets/linked_member_field.dart';
 import '../widgets/new_password_sheet.dart';
@@ -67,6 +68,14 @@ class _AdminFormState extends State<_AdminForm> {
 
   Admin? get _admin => widget.args.admin;
 
+  String get _adminName {
+    final admin = _admin;
+
+    return admin == null
+        ? ''
+        : AdminFormats.displayNameAmong(admin, widget.args.members);
+  }
+
   AdminDraft get _draft => AdminDraft(
         dni: DigitLayouts.digitsOf(_dni.text),
         email: _email.text,
@@ -99,7 +108,7 @@ class _AdminFormState extends State<_AdminForm> {
   void _onStateChanged(BuildContext context, AdminFormState state) {
     switch (state) {
       case AdminFormSaved(:final outcome):
-        showAppSnackBar(context, _outcomeMessage(outcome));
+        showAppSnackBar(context, _outcomeMessage(outcome, _adminName));
         context.pop();
       case AdminFormFailure(:final message):
         showAppSnackBar(context, message, isError: true);
@@ -197,11 +206,12 @@ class _AdminFormState extends State<_AdminForm> {
   }
 }
 
-String _outcomeMessage(AdminFormOutcome outcome) {
+String _outcomeMessage(AdminFormOutcome outcome, String adminName) {
   return switch (outcome) {
     AdminFormOutcome.created => AppStrings.adminFormCreated,
     AdminFormOutcome.updated => AppStrings.adminFormUpdated,
     AdminFormOutcome.deactivated => AppStrings.adminDeactivated,
+    AdminFormOutcome.keptAsMember => AppStrings.adminKeptAsMember(adminName),
     AdminFormOutcome.reactivated => AppStrings.adminReactivated,
   };
 }

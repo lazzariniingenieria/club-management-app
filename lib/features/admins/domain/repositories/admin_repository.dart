@@ -18,6 +18,8 @@ abstract class AdminRepository {
     required bool isActive,
   });
 
+  Future<Either<Failure, void>> promoteMember(int memberId);
+
   Future<Either<Failure, void>> resetPassword(int adminId, String newPassword);
 
   Future<Either<Failure, void>> changeOwnPassword(String newPassword);

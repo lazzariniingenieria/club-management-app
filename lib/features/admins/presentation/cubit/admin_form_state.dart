@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum AdminFormOutcome { created, updated, deactivated, reactivated }
+enum AdminFormOutcome { created, updated, deactivated, keptAsMember, reactivated }
 
 sealed class AdminFormState extends Equatable {
   const AdminFormState();
