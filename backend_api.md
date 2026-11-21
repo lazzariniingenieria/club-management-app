@@ -12,6 +12,8 @@ Fuente de verdad única de lo que la API expone. Ante una duda sobre endpoints, 
 
 **La cuenta del socio para la app** (`/api/members/{memberId}/account` y `memberAppEnabled` en `/api/clubs/me`, §5) viene del [PR #33](https://github.com/lazzariniingenieria/club-management-api/pull/33) de la API. **Todavía está abierto (draft): no está en `develop` ni en `main`.**
 
+**La baja de un admin vinculado a un socio y la promoción de un socio a admin** (`PATCH /api/admins/{id}/deactivate`, `POST /api/admins/promote` y `role` en `AdminResponse`, §5) vienen del [PR #35](https://github.com/lazzariniingenieria/club-management-api/pull/35) de la API, apilado sobre el #33. **Todavía está abierto: no está en `develop` ni en `main`.**
+
 **Cómo se refresca**: releer `controller/`, `dto/`, `entity/`, `security/` (incluido `JwtAuthenticationFilter`), `config/SecurityConfig`, `exception/GlobalExceptionHandler` y `db/migration/` — eso es todo el contrato. Actualizar lo que cambió y mover el commit de arriba.
 
 **Qué no va acá**: pantallas, flujos y entregas van en [app_flows.md](app_flows.md); reglas de código, en [CLAUDE.md](CLAUDE.md).
@@ -193,7 +195,7 @@ El envelope sale siempre como `application/json`, aunque el pedido haya mandado 
 
 ### Administradores — `/api/admins` · solo `SUPER_ADMIN`
 
-`POST` (`201`), `GET` listado, `GET /{id}`, `PATCH /{id}`, `PATCH /{id}/deactivate` y `/reactivate`.
+`POST` (`201`), `GET` listado, `GET /{id}`, `PATCH /{id}`, `PATCH /{id}/deactivate` y `/reactivate`, y `POST /promote` (PR #35).
 
 ```json
 { "id": 12, "dni": "30222333", "email": "admin@example.com", "memberId": 5,
@@ -201,7 +203,7 @@ El envelope sale siempre como `application/json`, aunque el pedido haya mandado 
   "createdByUserId": 1, "updatedByUserId": 1 }
 ```
 
-**No trae `role`** (siempre es `ADMIN`) y modela la baja como **`active` booleano**, no con el enum `status` de `member`: el mapeo a dominio tiene que normalizar los dos shapes.
+**Sin el PR #35 no trae `role`**; con él trae `role` (`ADMIN`, o `MEMBER` en la respuesta de la baja de un admin vinculado a un socio). La app no lo lee: el resultado de la baja se deduce de `memberId`. Modela la baja como **`active` booleano**, no con el enum `status` de `member`: el mapeo a dominio tiene que normalizar los dos shapes.
 
 **`POST`** — `dni` requerido (≤ 20, único entre las cuentas del club), `password` requerida (**de 8 caracteres a 72 bytes UTF-8**: `@MaxUtf8Bytes`, porque BCrypt ignora lo que sigue; las letras con tilde y la ñ cuentan como dos), `email` y `memberId` opcionales. O sea que **la contraseña inicial la define el SUPER_ADMIN**: la API no genera ninguna. El `role` lo fija el servidor en `ADMIN`.
 
@@ -210,6 +212,8 @@ El envelope sale siempre como `application/json`, aunque el pedido haya mandado 
 **El listado solo devuelve `role = ADMIN`.** El `SUPER_ADMIN` es una única cuenta seedeada en base y nunca aparece, así que no existe la fila que se podría dar de baja por error. Los admins dados de baja sí siguen en el listado, con `active: false`.
 
 **Dos fuentes de `409` acá**: DNI repetido, y `memberId` ya tomado por otra cuenta (`UNIQUE (member_id)`). Sin `code` estable (§4), distinguirlas obliga a leer el `message`. Un `memberId` que no es un socio del club da `404`.
+
+**`POST /api/admins/promote`** (PR #35) — convierte la cuenta `MEMBER` de un socio en `ADMIN`: la misma cuenta, con el mismo DNI y la misma contraseña. Body `{ "memberId": 34 }`. `200` + `AdminResponse` con `role: "ADMIN"`. Revoca las sesiones del socio: el token viejo trae el rol anterior. `400` sin `memberId`, `404` si el socio no es del club **o no tiene cuenta `MEMBER`** (ninguna, o ya es `ADMIN`). El email se carga después con `PATCH /{id}`. No mira si el socio está dado de baja.
 
 **`PATCH /api/admins/{id}/password`** — reset de la contraseña **de otro admin**, solo `SUPER_ADMIN` (un `ADMIN` recibe `403`). `{ "newPassword": "..." }`, con las mismas reglas que la contraseña inicial. Registra `sessions_revoked_at` y revoca los refresh tokens de esa cuenta: sus sesiones se cortan en el próximo request (§3). Devuelve el `AdminResponse`. Busca la cuenta con `role = ADMIN`, así que **con el id del SUPER_ADMIN da `404`**: el SUPER_ADMIN cambia la suya con `/api/auth/me/password`, y si la olvida, se cambia directamente en la base.
 
@@ -398,6 +402,8 @@ Una cuenta con `active: false` **no puede loguear**, y el rechazo es indistingui
 
 **La baja de un admin es inmediata.** `PATCH /api/admins/{id}/deactivate` pone `active = false`, registra `sessions_revoked_at` y revoca sus refresh tokens: su próximo request da `401`, el refresh también, y la sesión se cierra (§3). Reactivar no le devuelve las sesiones cortadas: vuelve a ingresar.
 
+**Con el PR #35, la baja de un admin vinculado a un socio no lo deja sin cuenta**: la cuenta pasa a `role = MEMBER` y sigue activa, con la misma contraseña, y sus sesiones se cortan igual. Sale de `GET /api/admins`, `GET /api/admins/{id}` da `404`, y `GET /api/members/{memberId}/account` la devuelve como cuenta de socio. Se vuelve a hacer admin con `POST /api/admins/promote`. Un admin sin socio vinculado se da de baja como siempre.
+
 ### Club — `/api/clubs/me`
 
 ```json
@@ -580,6 +586,7 @@ Lo que es fácil codear mal porque el contrato dice otra cosa de la que uno espe
 | Un bloqueo que pisa reservas sin mandar sus ids da `409` y no crea nada | Bloquear "como antes" sobre una cancha con reservas falla: siempre hay que pedir la vista previa primero | 5 |
 | El `409` de un turno fijo puede venir sin `details` | Si llegan dos altas a la vez no hay fechas para mostrar: hace falta un mensaje genérico | 5 |
 | Cancelar una reserva ya cancelada da `409` | Mostrar un error cuando otro admin ya la había cancelado. La app la toma como cancelada | 5 |
+| La baja de un admin vinculado a un socio lo saca del listado (PR #35) | Esperarlo inactivo en `GET /api/admins`: pasó a ser una cuenta de socio. Un reintento de esa baja da `404` | 5 |
 | El DNI de la cuenta del socio no sigue al del socio | Editar el DNI del socio no cambia con qué ingresa: el que vale para el login es el `dni` de la cuenta, no el del socio | 5 |
 
 ---
