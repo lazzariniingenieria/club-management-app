@@ -34,6 +34,14 @@ import '../../features/payments/presentation/screens/payment_member_picker_scree
 import '../../features/payments/presentation/screens/register_payment_screen.dart';
 import '../../features/reports/presentation/screens/club_metrics_screen.dart';
 import '../../features/reports/presentation/screens/payment_report_screen.dart';
+import '../../features/courts/presentation/screens/court_block_review_args.dart';
+import '../../features/courts/presentation/screens/court_block_review_screen.dart';
+import '../../features/recurring_slots/presentation/screens/recurring_slot_confirmation_args.dart';
+import '../../features/recurring_slots/presentation/screens/recurring_slot_confirmation_screen.dart';
+import '../../features/recurring_slots/presentation/screens/recurring_slot_detail_args.dart';
+import '../../features/recurring_slots/presentation/screens/recurring_slot_detail_screen.dart';
+import '../../features/recurring_slots/presentation/screens/recurring_slot_form_screen.dart';
+import '../../features/recurring_slots/presentation/screens/recurring_slots_screen.dart';
 import '../../features/reservations/presentation/screens/agenda_screen.dart';
 import '../../features/reservations/presentation/screens/reservation_confirmation_args.dart';
 import '../../features/reservations/presentation/screens/reservation_confirmation_screen.dart';
@@ -247,6 +255,14 @@ class AppRouter {
           CourtBlockFormScreen(court: state.extra as Court),
     ),
     GoRoute(
+      path: AppRoutes.adminCourtBlockReviewPattern,
+      redirect: (context, state) =>
+          state.extra is CourtBlockReviewArgs ? null : AppRoutes.adminCourts,
+      builder: (context, state) => CourtBlockReviewScreen(
+        args: state.extra as CourtBlockReviewArgs,
+      ),
+    ),
+    GoRoute(
       path: AppRoutes.adminReservationCreation,
       builder: (context, state) => ReservationFormScreen(
         initialDay: state.extra is DateTime
@@ -261,6 +277,32 @@ class AppRouter {
           : AppRoutes.adminReservations,
       builder: (context, state) => ReservationConfirmationScreen(
         args: state.extra as ReservationConfirmationArgs,
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.adminRecurringSlots,
+      builder: (context, state) => const RecurringSlotsScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.adminRecurringSlotCreation,
+      builder: (context, state) => const RecurringSlotFormScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.adminRecurringSlotConfirmation,
+      redirect: (context, state) => state.extra is RecurringSlotConfirmationArgs
+          ? null
+          : AppRoutes.adminRecurringSlots,
+      builder: (context, state) => RecurringSlotConfirmationScreen(
+        args: state.extra as RecurringSlotConfirmationArgs,
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.adminRecurringSlotDetail,
+      redirect: (context, state) => state.extra is RecurringSlotDetailArgs
+          ? null
+          : AppRoutes.adminRecurringSlots,
+      builder: (context, state) => RecurringSlotDetailScreen(
+        args: state.extra as RecurringSlotDetailArgs,
       ),
     ),
     GoRoute(

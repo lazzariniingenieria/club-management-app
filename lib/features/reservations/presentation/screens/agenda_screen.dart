@@ -40,6 +40,7 @@ class AgendaScreen extends StatelessWidget {
         child: const AdminScaffold(
           title: AppStrings.agendaTitle,
           showsRoleBadge: true,
+          actions: [_RecurringSlotsButton()],
           floatingActionButton: _NewReservationButton(),
           body: _AgendaBody(),
         ),
@@ -73,6 +74,19 @@ class _FollowRequestedDayState extends State<_FollowRequestedDay> {
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+class _RecurringSlotsButton extends StatelessWidget {
+  const _RecurringSlotsButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: () => context.push(AppRoutes.adminRecurringSlots),
+      icon: const Icon(Icons.event_repeat_rounded),
+      label: const Text(AppStrings.recurringSlotsAction),
+    );
+  }
 }
 
 class _NewReservationButton extends StatelessWidget {
@@ -292,29 +306,48 @@ class _ReservationTile extends StatelessWidget {
     required this.agenda,
   });
 
-  Future<void> _cancel(BuildContext context) async {
-    final cubit = context.read<AgendaCubit>();
-    final holder = ReservationFormats.holder(agenda.memberOf(reservation));
-    final when = '${CourtBlockFormats.day(reservation.date)}, '
-        '${ReservationFormats.ofReservation(reservation)}';
-    final confirmed = await ConfirmationDialog.show(
-      context,
-      ConfirmationDialog(
-        title: AppStrings.reservationCancelTitle(holder),
+  String get _shortHolder => ReservationFormats.shortHolderOf(
+        reservation,
+        agenda.memberOf(reservation),
+      );
+
+  String get _hours => ReservationFormats.ofReservation(reservation);
+
+  ConfirmationDialog _confirmation() {
+    final when = '${CourtBlockFormats.day(reservation.date)}, $_hours';
+    if (reservation.isOneOff) {
+      return ConfirmationDialog(
+        title: AppStrings.reservationCancelTitle(_shortHolder),
         message: AppStrings.reservationCancelMessage(courtName, when),
         confirmLabel: AppStrings.reservationCancelConfirm,
         dismissLabel: AppStrings.backAction,
         isDestructive: true,
-      ),
+      );
+    }
+
+    return ConfirmationDialog(
+      title: AppStrings.reservationSkipTitle(_shortHolder),
+      message: AppStrings.reservationSkipMessage(courtName, when),
+      confirmLabel: AppStrings.reservationSkipConfirm,
+      dismissLabel: AppStrings.backAction,
+      isDestructive: true,
     );
+  }
+
+  Future<void> _cancel(BuildContext context) async {
+    final cubit = context.read<AgendaCubit>();
+    final confirmed = await ConfirmationDialog.show(context, _confirmation());
     if (!confirmed) return;
 
     final failure = await cubit.cancel(reservation);
     if (!context.mounted) return;
 
+    final done = reservation.isOneOff
+        ? AppStrings.reservationCancelled
+        : AppStrings.reservationSkipped;
     showAppSnackBar(
       context,
-      failure?.userMessage ?? AppStrings.reservationCancelled,
+      failure?.userMessage ?? done,
       isError: failure != null,
     );
   }
@@ -340,18 +373,58 @@ class _ReservationTile extends StatelessWidget {
             children: [
               Expanded(
                 child: _ReservationDetails(
-                  hours: ReservationFormats.ofReservation(reservation),
-                  holder: ReservationFormats.holder(
+                  hours: _hours,
+                  holder: ReservationFormats.holderOf(
+                    reservation,
                     agenda.memberOf(reservation),
                   ),
                 ),
               ),
-              TextButton(
+              _CancelButton(
+                reservation: reservation,
+                semanticsLabel: reservation.isOneOff
+                    ? AppStrings.reservationCancelSemantics(
+                        _hours,
+                        _shortHolder,
+                      )
+                    : AppStrings.reservationSkipSemantics(
+                        _hours,
+                        _shortHolder,
+                      ),
                 onPressed: () => _cancel(context),
-                child: const Text(AppStrings.reservationCancel),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CancelButton extends StatelessWidget {
+  final Reservation reservation;
+  final String semanticsLabel;
+  final VoidCallback onPressed;
+
+  const _CancelButton({
+    required this.reservation,
+    required this.semanticsLabel,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      excludeSemantics: true,
+      label: semanticsLabel,
+      onTap: onPressed,
+      child: TextButton(
+        onPressed: onPressed,
+        child: Text(
+          reservation.isOneOff
+              ? AppStrings.reservationCancel
+              : AppStrings.reservationSkip,
         ),
       ),
     );

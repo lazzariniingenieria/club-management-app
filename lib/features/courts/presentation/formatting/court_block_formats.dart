@@ -1,4 +1,6 @@
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/errors/failure_messages.dart';
+import '../../../../core/errors/failures.dart';
 import '../../domain/entities/clock_time.dart';
 import '../../domain/entities/court_block.dart';
 import 'court_formats.dart';
@@ -6,31 +8,43 @@ import 'court_formats.dart';
 abstract final class CourtBlockFormats {
   static String day(DateTime value) {
     final weekday = AppStrings.weekdayAbbreviations[value.weekday - 1];
-    final dayOfMonth = _twoDigits(value.day);
-    final month = _twoDigits(value.month);
 
-    return '$weekday $dayOfMonth/$month/${value.year}';
+    return '$weekday ${date(value)}';
   }
+
+  static String date(DateTime value) =>
+      '${_twoDigits(value.day)}/${_twoDigits(value.month)}/${value.year}';
 
   static String time(DateTime value) =>
       CourtFormats.time(ClockTime(value.hour, value.minute));
 
-  static List<String> range(CourtBlock block) {
-    if (block.isWithinOneDay) {
+  static List<String> range(CourtBlock block) =>
+      rangeOf(block.startsAt, block.endsAt);
+
+  static List<String> rangeOf(DateTime startsAt, DateTime endsAt) {
+    final sameDay = startsAt.year == endsAt.year &&
+        startsAt.month == endsAt.month &&
+        startsAt.day == endsAt.day;
+    if (sameDay) {
       return [
         AppStrings.courtBlockSameDay(
-          _capitalized(day(block.startsAt)),
-          time(block.startsAt),
-          time(block.endsAt),
+          _capitalized(day(startsAt)),
+          time(startsAt),
+          time(endsAt),
         ),
       ];
     }
 
     return [
-      AppStrings.courtBlockFrom(day(block.startsAt), time(block.startsAt)),
-      AppStrings.courtBlockUntil(day(block.endsAt), time(block.endsAt)),
+      AppStrings.courtBlockFrom(day(startsAt), time(startsAt)),
+      AppStrings.courtBlockUntil(day(endsAt), time(endsAt)),
     ];
   }
+
+  static String creationFailure(Failure failure) =>
+      failure is ResponseTimeoutFailure
+          ? AppStrings.courtBlockUnconfirmed
+          : failure.userMessage;
 
   static String reason(CourtBlock block) =>
       block.reason ?? AppStrings.courtBlockNoReason;

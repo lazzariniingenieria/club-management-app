@@ -1,5 +1,7 @@
 import '../../../../core/errors/exceptions.dart';
 import '../../../courts/domain/entities/clock_time.dart';
+import '../../../courts/domain/entities/court_block_draft.dart';
+import '../../domain/entities/reservation.dart';
 import '../../domain/entities/reservation_draft.dart';
 import '../models/reservation_model.dart';
 import 'reservation_remote_data_source.dart';
@@ -20,8 +22,14 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
   static const int seededCourtId = 2;
   static const int seededMemberId = 2;
   static const ClockTime seededStart = ClockTime(19, 0);
+  static const int seededRecurringReservationId = 2;
+  static const int seededRecurringMemberId = 1;
+  static const int seededActivityReservationId = 3;
+  static const String seededActivity = 'Clases de tenis';
 
   static List<ReservationModel> _seeded(DateTime now) {
+    final inTwoDays = DateTime(now.year, now.month, now.day + 2);
+
     return [
       ReservationModel(
         id: seededReservationId,
@@ -30,6 +38,26 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
         date: DateTime(now.year, now.month, now.day + 1),
         startTime: seededStart,
         endTime: const ClockTime(20, 0),
+      ),
+      ReservationModel(
+        id: seededRecurringReservationId,
+        courtId: 1,
+        memberId: seededRecurringMemberId,
+        source: ReservationSource.recurring,
+        recurringSlotId: 1,
+        date: inTwoDays,
+        startTime: const ClockTime(18, 0),
+        endTime: const ClockTime(19, 0),
+      ),
+      ReservationModel(
+        id: seededActivityReservationId,
+        courtId: seededCourtId,
+        source: ReservationSource.activity,
+        recurringSlotId: 2,
+        description: seededActivity,
+        date: inTwoDays,
+        startTime: const ClockTime(17, 0),
+        endTime: const ClockTime(18, 0),
       ),
     ];
   }
@@ -44,23 +72,101 @@ class ReservationFakeDataSource implements ReservationRemoteDataSource {
     ];
   }
 
-  void cancelUpcomingOf(int courtId) {
-    for (final reservation in _upcomingOf(courtId)) {
-      _reservations.remove(reservation);
-      _cancelledIds.add(reservation.id);
+  List<DateTime> takenDates({
+    required int courtId,
+    required List<DateTime> dates,
+    required ClockTime start,
+    required ClockTime end,
+  }) {
+    return [
+      for (final date in dates)
+        if (_reservations.any(
+          (each) =>
+              each.courtId == courtId &&
+              _sameDay(each.date, date) &&
+              each.overlaps(start, end),
+        ))
+          date,
+    ];
+  }
+
+  void addOccurrences(ReservationModel template, List<DateTime> dates) {
+    for (final date in dates) {
+      _reservations.add(
+        ReservationModel(
+          id: _nextId(),
+          courtId: template.courtId,
+          memberId: template.memberId,
+          source: template.source,
+          recurringSlotId: template.recurringSlotId,
+          description: template.description,
+          date: date,
+          startTime: template.startTime,
+          endTime: template.endTime,
+        ),
+      );
     }
   }
 
-  List<ReservationModel> _upcomingOf(int courtId) {
+  @override
+  Future<List<ReservationModel>> fetchAffectedByBlock(
+    int courtId,
+    CourtBlockDraft block,
+  ) async {
+    await Future<void>.delayed(latency);
+
+    return affectedBy(courtId, block);
+  }
+
+  List<ReservationModel> affectedBy(int courtId, CourtBlockDraft block) {
     final now = _clock();
 
     return [
       for (final reservation in _reservations)
         if (reservation.courtId == courtId &&
-            _startOf(reservation).isAfter(now))
+            _startOf(reservation).isAfter(now) &&
+            block.overlaps(_startOf(reservation), _endOf(reservation)))
+          reservation,
+    ]..sort((a, b) => _startOf(a).compareTo(_startOf(b)));
+  }
+
+  void cancelAll(Iterable<int> reservationIds) {
+    final ids = reservationIds.toSet();
+    _reservations.removeWhere((reservation) => ids.contains(reservation.id));
+    _cancelledIds.addAll(ids);
+  }
+
+  void cancelUpcomingOfRecurringSlot(int recurringSlotId) => _cancelUpcoming(
+        (reservation) => reservation.recurringSlotId == recurringSlotId,
+      );
+
+  void cancelUpcomingOf(int courtId) =>
+      _cancelUpcoming((reservation) => reservation.courtId == courtId);
+
+  void cancelUpcomingOfMember(int memberId) =>
+      _cancelUpcoming((reservation) => reservation.memberId == memberId);
+
+  void _cancelUpcoming(bool Function(ReservationModel) matches) {
+    final now = _clock();
+    final upcoming = [
+      for (final reservation in _reservations)
+        if (matches(reservation) && _startOf(reservation).isAfter(now))
           reservation,
     ];
+
+    for (final reservation in upcoming) {
+      _reservations.remove(reservation);
+      _cancelledIds.add(reservation.id);
+    }
   }
+
+  static DateTime _endOf(ReservationModel reservation) => DateTime(
+        reservation.date.year,
+        reservation.date.month,
+        reservation.date.day,
+        reservation.endTime.hour,
+        reservation.endTime.minute,
+      );
 
   static DateTime _startOf(ReservationModel reservation) => DateTime(
         reservation.date.year,

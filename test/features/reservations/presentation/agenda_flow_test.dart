@@ -133,6 +133,29 @@ void main() {
     expect(find.text('19:00 a 20:00'), findsNothing);
   });
 
+  testWidgets('a fixed slot date is skipped, not cancelled', (tester) async {
+    await openTomorrow(tester);
+    await tester.tap(find.byTooltip(AppStrings.agendaNextDay));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(AppStrings.reservationActivityHolder(
+        ReservationFakeDataSource.seededActivity,
+      )),
+      findsOneWidget,
+    );
+    expect(find.textContaining('· Turno fijo'), findsOneWidget);
+    expect(find.text(AppStrings.reservationCancel), findsNothing);
+
+    await tester.tap(find.text(AppStrings.reservationSkip).first);
+    await tester.pumpAndSettle();
+    await tester.tap(inDialog(AppStrings.reservationSkipConfirm));
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppStrings.reservationSkipped), findsOneWidget);
+    expect(find.text(AppStrings.reservationSkip), findsOneWidget);
+  });
+
   testWidgets('reserves a court for a member and warns about the debt', (
     tester,
   ) async {

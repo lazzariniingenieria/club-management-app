@@ -109,6 +109,19 @@ import '../../features/reports/domain/usecases/load_club_metrics_use_case.dart';
 import '../../features/reports/presentation/cubit/club_metrics_cubit.dart';
 import '../../features/reports/presentation/cubit/payment_report_cubit.dart';
 import '../../features/reports/presentation/export/report_file_exporter.dart';
+import '../../features/courts/presentation/cubit/court_block_review_cubit.dart';
+import '../../features/courts/presentation/screens/court_block_review_args.dart';
+import '../../features/recurring_slots/data/datasources/recurring_slot_fake_data_source.dart';
+import '../../features/recurring_slots/data/datasources/recurring_slot_remote_data_source.dart';
+import '../../features/recurring_slots/data/repositories/recurring_slot_repository_impl.dart';
+import '../../features/recurring_slots/domain/repositories/recurring_slot_repository.dart';
+import '../../features/recurring_slots/domain/usecases/create_recurring_slot_use_case.dart';
+import '../../features/recurring_slots/domain/usecases/deactivate_recurring_slot_use_case.dart';
+import '../../features/recurring_slots/domain/usecases/load_recurring_slot_overview_use_case.dart';
+import '../../features/recurring_slots/domain/usecases/renew_recurring_slot_use_case.dart';
+import '../../features/recurring_slots/domain/usecases/watch_recurring_slot_changes_use_case.dart';
+import '../../features/recurring_slots/presentation/cubit/recurring_slot_submit_cubit.dart';
+import '../../features/recurring_slots/presentation/cubit/recurring_slots_cubit.dart';
 import '../../features/reservations/data/datasources/reservation_fake_data_source.dart';
 import '../../features/reservations/data/datasources/reservation_remote_data_source.dart';
 import '../../features/reservations/data/repositories/reservation_repository_impl.dart';
@@ -116,10 +129,13 @@ import '../../features/reservations/domain/repositories/reservation_repository.d
 import '../../features/reservations/domain/usecases/cancel_reservation_use_case.dart';
 import '../../features/reservations/domain/usecases/create_reservation_use_case.dart';
 import '../../features/reservations/domain/usecases/load_day_agenda_use_case.dart';
+import '../../features/reservations/domain/usecases/load_upcoming_reservations_use_case.dart';
+import '../../features/reservations/domain/usecases/preview_court_block_use_case.dart';
 import '../../features/reservations/domain/usecases/watch_reservation_changes_use_case.dart';
 import '../../features/reservations/presentation/cubit/agenda_cubit.dart';
 import '../../features/reservations/presentation/cubit/reservation_confirm_cubit.dart';
 import '../../features/reservations/presentation/cubit/reservation_form_cubit.dart';
+import '../../features/reservations/presentation/cubit/upcoming_reservations_cubit.dart';
 import '../config/app_environment.dart';
 import '../config/app_features.dart';
 import '../logging/app_logger.dart';
@@ -146,6 +162,7 @@ Future<void> init() async {
   _registerCourts();
   _registerCourtBlocks();
   _registerReservations();
+  _registerRecurringSlots();
   _registerReports();
   _registerPresentation();
 }
@@ -217,7 +234,7 @@ void _registerAdminDomain() {
 void _registerMemberDataSources() {
   sl.registerLazySingleton<MemberRemoteDataSource>(
     () => AppEnvironment.usesFakeDataSources
-        ? MemberFakeDataSource()
+        ? MemberFakeDataSource(onDeactivated: _cancelFakeReservationsOfMember)
         : MemberRemoteDataSourceImpl(sl(), sl()),
   );
 }
@@ -398,10 +415,17 @@ void _cancelFakeReservationsOf(int courtId) {
   }
 }
 
+void _cancelFakeReservationsOfMember(int memberId) {
+  final reservations = sl<ReservationRemoteDataSource>();
+  if (reservations is ReservationFakeDataSource) {
+    reservations.cancelUpcomingOfMember(memberId);
+  }
+}
+
 void _registerCourtBlocks() {
   sl.registerLazySingleton<CourtBlockRemoteDataSource>(
     () => AppEnvironment.usesFakeDataSources
-        ? CourtBlockFakeDataSource()
+        ? CourtBlockFakeDataSource(reservations: _fakeReservations())
         : CourtBlockRemoteDataSourceImpl(sl(), sl()),
   );
   sl.registerLazySingleton<CourtBlockRepository>(
@@ -420,7 +444,17 @@ void _registerCourtBlocks() {
       watchChanges: sl(),
     ),
   );
-  sl.registerFactory(() => CourtBlockFormCubit(sl()));
+  sl.registerFactory(
+    () => CourtBlockFormCubit(createBlock: sl(), previewBlock: sl()),
+  );
+  sl.registerFactoryParam<CourtBlockReviewCubit, CourtBlockReviewArgs, void>(
+    (args, _) => CourtBlockReviewCubit(
+      createBlock: sl(),
+      previewBlock: sl(),
+      impact: args.impact,
+      hasChanged: args.hasChanged,
+    ),
+  );
 }
 
 void _registerReservations() {
@@ -430,7 +464,14 @@ void _registerReservations() {
         : ReservationRemoteDataSourceImpl(sl(), sl()),
   );
   sl.registerLazySingleton<ReservationRepository>(
-    () => ReservationRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+    () => ReservationRepositoryImpl(
+      remoteDataSource: sl(),
+      logger: sl(),
+      relatedChanges: [
+        sl<RecurringSlotRepository>().recurringSlotChanges,
+        sl<CourtBlockRepository>().blockChanges,
+      ],
+    ),
   );
 
   sl.registerLazySingleton(
@@ -441,7 +482,17 @@ void _registerReservations() {
       members: sl(),
     ),
   );
+  sl.registerLazySingleton(
+    () => LoadUpcomingReservationsUseCase(
+      courts: sl(),
+      reservations: sl(),
+      members: sl(),
+    ),
+  );
   sl.registerLazySingleton(() => CreateReservationUseCase(sl()));
+  sl.registerLazySingleton(
+    () => PreviewCourtBlockUseCase(reservations: sl(), members: sl()),
+  );
   sl.registerLazySingleton(() => CancelReservationUseCase(sl()));
   sl.registerLazySingleton(() => WatchReservationChangesUseCase(sl()));
 
@@ -451,7 +502,6 @@ void _registerReservations() {
       loadAgenda: sl(),
       cancelReservation: sl(),
       watchReservations: sl(),
-      watchBlocks: sl(),
       watchCourts: sl(),
       watchRoster: sl(),
     ),
@@ -464,6 +514,59 @@ void _registerReservations() {
     ),
   );
   sl.registerFactory(() => ReservationConfirmCubit(sl()));
+  sl.registerFactory(
+    () => UpcomingReservationsCubit(
+      loadClub: sl(),
+      loadUpcoming: sl(),
+      watchReservations: sl(),
+      watchRoster: sl(),
+    ),
+  );
+}
+
+void _registerRecurringSlots() {
+  sl.registerLazySingleton<RecurringSlotRemoteDataSource>(
+    () => AppEnvironment.usesFakeDataSources
+        ? RecurringSlotFakeDataSource(reservations: _fakeReservations())
+        : RecurringSlotRemoteDataSourceImpl(sl(), sl()),
+  );
+  sl.registerLazySingleton<RecurringSlotRepository>(
+    () => RecurringSlotRepositoryImpl(remoteDataSource: sl(), logger: sl()),
+  );
+
+  sl.registerLazySingleton(
+    () => LoadRecurringSlotOverviewUseCase(
+      recurringSlots: sl(),
+      courts: sl(),
+      members: sl(),
+    ),
+  );
+  sl.registerLazySingleton(() => CreateRecurringSlotUseCase(sl()));
+  sl.registerLazySingleton(() => RenewRecurringSlotUseCase(sl()));
+  sl.registerLazySingleton(() => DeactivateRecurringSlotUseCase(sl()));
+  sl.registerLazySingleton(() => WatchRecurringSlotChangesUseCase(sl()));
+
+  sl.registerFactory(
+    () => RecurringSlotsCubit(
+      loadOverview: sl(),
+      watchRecurringSlots: sl(),
+      watchCourts: sl(),
+      watchRoster: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => RecurringSlotSubmitCubit(
+      create: sl(),
+      renew: sl(),
+      deactivate: sl(),
+    ),
+  );
+}
+
+ReservationFakeDataSource? _fakeReservations() {
+  final reservations = sl<ReservationRemoteDataSource>();
+
+  return reservations is ReservationFakeDataSource ? reservations : null;
 }
 
 void _registerReports() {

@@ -41,10 +41,29 @@ abstract final class ApiConstants {
   static String reservationCancellation(int reservationId) =>
       '$reservations/$reservationId/cancel';
 
+  static const String recurringSlots = '/recurring-slots';
+
+  static String recurringSlot(int recurringSlotId) =>
+      '$recurringSlots/$recurringSlotId';
+
+  static String recurringSlotRenewal(int recurringSlotId) =>
+      '${recurringSlot(recurringSlotId)}/renew';
+
+  static String recurringSlotDeactivation(int recurringSlotId) =>
+      '${recurringSlot(recurringSlotId)}/deactivate';
+
   static String courtBlocks(int courtId) => '${court(courtId)}/blocks';
 
   static String courtBlocksFrom(int courtId, String fromDay) =>
       '${courtBlocks(courtId)}?from=$fromDay';
+
+  static String courtBlockAffectedReservations(
+    int courtId, {
+    required String startsAt,
+    required String endsAt,
+  }) =>
+      '${courtBlocks(courtId)}/affected-reservations'
+      '?startsAt=$startsAt&endsAt=$endsAt';
 
   static String courtBlock(int courtId, int blockId) =>
       '${courtBlocks(courtId)}/$blockId';

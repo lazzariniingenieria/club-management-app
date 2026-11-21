@@ -4,7 +4,7 @@ Documento de referencia del frontend: **qué pantallas existen, cómo se navega,
 
 No define píxeles. Define estructura, flujos, estados y alcance por entrega.
 
-> **Estado al 2026-10-24.** La superficie del **administrador es el camino crítico**: se construye completa antes de la del socio. Entregada hasta E6 (PR #13); el Bloque 1 (E6.5, E7, E8, E10 y la parte informativa de E11) está en revisión en el PR #14 y cierra el resto del admin sin canchas. La paleta de §7 está confirmada en código (`AppColors`).
+> **Estado al 2026-11-16.** La superficie del **administrador es el camino crítico**: se construye completa antes de la del socio. Entregadas E1 a E11: con E9d (turnos fijos y bloquear sobre reservas, PR #25 a #27) la etapa 2 queda completa en `develop`; falta pasarla a `main`. La paleta de §7 está confirmada en código (`AppColors`).
 >
 > **El contrato de la API no se documenta acá**: vive en [backend_api.md](backend_api.md), verificado contra `develop`. Este archivo manda en pantallas, flujos y entregas; ese otro manda en endpoints, shapes, errores y reglas del servidor.
 
@@ -48,7 +48,7 @@ El **superAdmin comparte el shell del admin**: su único delta es la gestión de
 | :--- | :--- | :--- |
 | Splash / Bootstrap | `/` | ✅ Implementada — resuelve sesión persistida y redirige (§3.1.1) |
 | Login | `/login` | ✅ Implementada |
-| Primer ingreso | `/login/activate` | A construir, **y ya no es un auto-registro** (decisión del 2026-11-15): la cuenta del socio la crea un admin, que le da la contraseña inicial, igual que el super admin con los admins. Qué hace esta pantalla queda por definir junto con E11/E12 — la candidata es el cambio de contraseña del primer ingreso, que necesita un flag que la API no tiene ([backend_api.md](backend_api.md) §10). El CTA `AppStrings.loginFirstTimeUser` ya existe |
+| Primer ingreso | `/login/activate` | A construir, **y ya no es un auto-registro** (decisión del 2026-11-15): la cuenta del socio la crea un admin, que le da la contraseña inicial, igual que el super admin con los admins. Qué hace esta pantalla queda por definir junto con E12+ — la candidata es el cambio de contraseña del primer ingreso, que necesita un flag que la API no tiene ([backend_api.md](backend_api.md) §10). El CTA `AppStrings.loginFirstTimeUser` ya existe |
 | Recuperar contraseña | `/login/forgot` | ✅ Implementada — **pantalla informativa**, no formulario (§3.1.2) |
 
 #### 3.1.1 Splash — no es una pantalla instantánea
@@ -97,7 +97,8 @@ Rutas push, fuera de los tabs:
 | Reportes y métricas | `/admin/reports` | admin | Revisión 2026-10-31 |
 | Reporte de cuotas cobradas (PDF) | `/admin/reports/receipts` | admin | E10 |
 | Gestión de canchas | `/admin/courts` (+ `/new`, `/:courtId/edit`) | admin | E9a |
-| Bloqueos de una cancha | `/admin/courts/:courtId/blocks` (+ `/new`) | admin | E9b |
+| Bloqueos de una cancha | `/admin/courts/:courtId/blocks` (+ `/new`, `/new/review`) | admin | E9b, revisión en E9d |
+| Turnos fijos | `/admin/reservations/recurring` (+ `/new`, `/new/confirm`, `/detail`) | admin | E9d |
 | Gestión de administradores | `/admin/admins` (+ `/new`, `/:adminId/edit`) | **superAdmin** | E8 |
 
 **El listado de socios es un tab, no una pantalla aparte.** El diseño original lo tenía como ruta push en `/admin/members`, con un tab Pagos separado para las cuotas. Son la misma tarea: el admin abre la lista de socios *para cobrar*, y partirla en dos superficies obligaba a saltar entre ellas para resolver un solo trámite. Una pantalla menos, un tab que ahora hace algo, y el estado del listado lo preserva el `StatefulShellRoute` en lugar de reconstruirse en cada push.
@@ -115,7 +116,7 @@ Rutas push, fuera de los tabs:
 | `ActiveMembersCard` | "TOTAL DE SOCIOS" + contador de activos | Card navy sólida, texto blanco | → tab **Socios** con el chip **Todos** |
 | `OverdueMembersCard` | "SOCIOS EN MORA" + contador | Card azul claro, contador en rojo | → tab **Socios** con el chip **En mora** |
 | `ReportsAccessCard` | "REPORTES Y MÉTRICAS" + chevron | Card blanca con borde, ícono de barras | → Reportes y métricas (§4.7). Va fuera del bloque de contadores, así sigue a mano aunque el resumen no cargue |
-| `UpcomingSlotsCard` **(E9, sin construir)** | "PRÓXIMOS TURNOS" + cancha / horario | Card azul claro, horario en azul a la derecha | → agenda |
+| `UpcomingReservationsCard` (E9d, solo con `courtsEnabled`) | "PRÓXIMOS TURNOS" + los 3 próximos de hoy que no terminaron: socio o actividad, cancha y horario. Sin ninguno, "No hay más turnos hoy." | Card azul claro, horario en azul a la derecha. **Va al final, debajo de los accesos rápidos**: arriba empujaba *Nuevo socio* y *Registrar pago* fuera de la pantalla en un celular chico | → agenda |
 
 **Accesos Rápidos** — dos cards lado a lado, cada una una **acción**, no un destino que ya está en otro lado: *Nuevo socio* (navy) → alta de socio (`/admin/members/new`), *Registrar pago* (verde) → elegir socio → registro de pago (§4.2). Hasta E6 estuvo dibujada en gris.
 
@@ -418,6 +419,8 @@ En la edición, debajo del botón de guardar: **Restablecer contraseña** (hoja 
 
 Si el bloqueo pisa reservas existentes, la confirmación **debe listar las reservas afectadas** y decir qué pasa con ellas. Es el flujo con mayor potencial de daño de la app.
 
+Construido en E9d: al tocar *Bloquear*, la app pide qué reservas pisa. **Si no pisa ninguna, bloquea directo**, como antes. Si pisa alguna, abre **Revisá el bloqueo** (pantalla, no hoja: la lista puede ser larga): cancha, rango y motivo; el aviso en rojo "Se cancelan 3 reservas. Quitar el bloqueo después no las devuelve."; cada reserva con su fecha, horario y socio o actividad; y el botón *Bloquear y cancelar 3 reservas*. Si mientras tanto se sumó una reserva, el servidor rechaza el bloqueo y la pantalla se actualiza sola con la lista nueva y el aviso "Mientras revisabas cambiaron las reservas de ese horario". Volver atrás deja el formulario como estaba.
+
 ### 4.6 Reporte de pagos
 
 `Inicio → Reportes y métricas → Generar PDF de cuotas cobradas → meses en la grilla → Generar PDF → hoja con Compartir / Ver o imprimir`
@@ -473,7 +476,7 @@ Estructura de [app_router.dart](lib/core/router/app_router.dart), construida en 
 ```
 GoRouter
 ├── /                              → SplashScreen (resuelve sesión)
-├── /login                          (+ /activate, /forgot ← se suman en E11)
+├── /login                          (+ /forgot ← E11; /activate ← primer ingreso del socio, E12+)
 ├── /member                         → superficie del socio en preparación
 ├── StatefulShellRoute (admin + superAdmin)
 │   ├── branch: /admin              → Inicio
@@ -492,8 +495,9 @@ Una ruta con un `:familyGroupId` que no es un número vuelve a Socios, igual que
 │   ├── /admin/reports                               ← reportes y métricas
 │   │   └── receipts                                 ← PDF de cuotas cobradas (E10)
 │   ├── /admin/courts   (+ /new, /:courtId/edit)       ← gestión de canchas (E9a)
-│   ├── /admin/courts/:courtId/blocks  (+ /new)        ← bloqueos de la cancha (E9b)
+│   ├── /admin/courts/:courtId/blocks  (+ /new, /new/review)  ← bloqueos de la cancha (E9b; revisión E9d)
 │   ├── /admin/reservations/new  (+ /confirm)        ← nueva reserva (E9c)
+│   ├── /admin/reservations/recurring  (+ /new, /new/confirm, /detail)  ← turnos fijos (E9d)
 │   └── /admin/admins   (+ /new, /:adminId/edit)      ← solo superAdmin
 └── StatefulShellRoute (socio)      → E12+
     ├── branch: /home
@@ -576,16 +580,16 @@ La columna **Falta backend** dice si la entrega necesita algo que la API todaví
 | E4 | Pagos: padrón de socios, búsqueda, chips y selección para el reporte | — | ✅ Entregada |
 | E5 | Alta y edición de socio | No bloquea | ✅ Entregada — sin el scroll al socio recién creado (§4.1) |
 | E6 | Registrar un pago, cuotas del socio y anulación, sobre el listado de E4 | No bloquea | ✅ Entregada |
-| E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar, eliminar y pagar por todo el grupo | No bloquea: usa los PR #22 y #23 de la API, ya en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) |
-| E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | No bloquea: usa el PR #23 de la API, ya en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) |
-| E8 | ABM de administradores (superAdmin) | No bloquea | 🚧 En revisión (PR #14) |
+| E6.5 | Grupos familiares: armar, ver, sumar, quitar, renombrar, eliminar y pagar por todo el grupo | No bloquea: usa los PR #22 y #23 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #14) |
+| E7 | Perfil del admin + cambiar contraseña + logout + cuota de referencia | No bloquea: usa el PR #23 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #14) |
+| E8 | ABM de administradores (superAdmin) | No bloquea | ✅ Entregada (PR #14) |
 | E9a | Gestión de canchas: listar, crear, editar, dar de baja y reactivar | No bloquea: usa el PR #25 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #22) |
 | E9b | Bloqueos de cancha: listar, bloquear y quitar | No bloquea: usa el PR #26 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #23) |
 | E9c | Agenda del día y reservas puntuales: reservar y cancelar | No bloquea: usa el PR #27 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #24) |
-| E9 | Turnos fijos y bloqueo con reservas afectadas | **Bloqueada** | — |
-| E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | 🚧 En revisión (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
-| E11 | Recuperar contraseña (informativa) + primer ingreso | Primer ingreso: **Sí** | Recuperar contraseña 🚧 En revisión (PR #14); primer ingreso en el Bloque 2 |
-| E12+ | Superficie del socio completa | **Bloqueada** | — |
+| E9d | Turnos fijos y bloqueo con reservas afectadas | No bloquea: usa los PR #28 y #29 de la API, ya en `develop` y todavía no en `main` | ✅ Entregada (PR #25 a #27) |
+| E10 | Reporte de cuotas cobradas en PDF (lo genera el backend) | No bloquea: el endpoint está en `develop` y todavía no en `main` | ✅ Entregada (PR #14) — detrás de `FEE_RECEIPTS_ENABLED` hasta que el endpoint llegue a `main` |
+| E11 | Recuperar contraseña (informativa) | No bloquea | ✅ Entregada (PR #14). El primer ingreso del socio (`/login/activate`) no es parte de E11: va con E12+ |
+| E12+ | Superficie del socio completa, incluido el primer ingreso | **Bloqueada** | — |
 
 ### E1 — Migración de paleta y theming
 
@@ -724,7 +728,7 @@ Lo puntual que saca una cancha de uso: mantenimiento o un evento, aunque dure va
 - Las fechas se muestran como `lun 03/08/2026`: un bloqueo de un solo día es una línea ("Sáb 15/08/2026, de 09:00 a 12:00"); uno de varios días, dos ("Desde el…", "Hasta el…").
 - Fake con un bloqueo de mañana en la *Cancha de Pádel 1*, relativo al reloj, así siempre se ve en la lista.
 
-**Pendiente para cuando existan reservas** (flujo §4.5): un bloqueo que pisa reservas tiene que listarlas antes de confirmar. **Decidido el 2026-11-10 (comentario en club-management-api#26): el bloqueo pisa la reserva.** Al confirmar, las reservas listadas se cancelan en la misma operación, y solo esas; quitar el bloqueo después no las devuelve, y la confirmación tiene que decirlo. El contrato se documenta en `backend_api.md` cuando exista el endpoint.
+**Bloquear sobre reservas** (flujo §4.5, construido en E9d). **Decidido el 2026-11-10 (comentario en club-management-api#26): el bloqueo pisa la reserva.** Al confirmar, las reservas listadas se cancelan en la misma operación, y solo esas; quitar el bloqueo después no las devuelve, y la confirmación lo dice. El contrato está en [backend_api.md](backend_api.md) §5.
 
 **Terminado cuando**: el admin bloquea una cancha un día completo en un toque, o un rango de varios días con motivo; ve los bloqueos de hoy en adelante y quita uno con confirmación; un bloqueo que termina antes de empezar no se puede guardar; hay tests del mapeo, de las reglas, del fake, del formato y del flujo.
 
@@ -739,11 +743,43 @@ El flujo §4.4 sobre `/api/reservations` (PR #27 de la API). Los turnos fijos y 
 - La disponibilidad (`SlotRules`) se calcula en el dominio con las reservas y los bloqueos del día; la API vuelve a validar todo. La agenda se recarga sola con cualquier cambio de reservas o de bloqueos, y **reutiliza el padrón entre recargas**: lo vuelve a pedir solo al deslizar para refrescar o cuando cambia el padrón.
 - Fake con una reserva de mañana en la *Cancha de Tenis 1*, relativa al reloj, así se ve junto al bloqueo de la *Cancha de Pádel 1*.
 
-- **Dar de baja una cancha cancela sus reservas desde ahora** (decisión de producto). No suma texto a ninguna pantalla: el aviso va solo en el diálogo de confirmación que ya existía, con una frase fija ("Se cancelan las reservas que tenga desde ahora y no se va a poder reservar hasta que la reactives"). No se muestra cuántas son. La agenda se recarga sola cuando cambia una cancha.
+- **Dar de baja una cancha cancela sus reservas desde ahora** (decisión de producto). No suma texto a ninguna pantalla: el aviso va solo en el diálogo de confirmación que ya existía, con una frase fija ("Se cancelan las reservas que tenga desde ahora y se dan de baja sus turnos fijos. No se va a poder reservar hasta que la reactives"; la mención de los turnos fijos se sumó en E9d). No se muestra cuántas son. La agenda se recarga sola cuando cambia una cancha.
 
 **Pendiente**: el card "Próximos turnos" del Inicio (§3.2.1); bloquear sobre reservas existentes (§4.5).
 
 **Terminado cuando**: con `courtsEnabled` aparece el tab y sin el flag no; el admin ve la agenda de cualquier día, reserva para un socio en cuatro toques más la confirmación, ve el aviso de mora, no puede elegir un horario ocupado, bloqueado o pasado, y cancela una reserva con confirmación; hay tests de la disponibilidad, del armado de la agenda, del mapeo y del flujo.
+
+### E9d — Turnos fijos y bloqueo sobre reservas
+
+Lo que quedaba de E9. Usa los turnos fijos (PR #28 de la API) y la vista previa del bloqueo con la cancelación de lo que pisa (PR #29), los dos en `develop` desde el 2026-11-16 ([backend_api.md](backend_api.md) §5). El modelo es el del documento técnico V6 §04: un turno fijo es de un socio **o** de una actividad del club sin socio (clases, escuela), vale como mucho un año, y al crearlo se generan todas sus fechas como reservas en la misma operación; si una sola choca, no se crea ninguna.
+
+**Decidido el 2026-11-13:**
+
+- **En la agenda**, una fecha de turno fijo dice "Marcos Gómez · Turno fijo" y una de actividad "Clases de tenis · Actividad". El botón es *Saltear* en lugar de *Cancelar*, y el diálogo aclara que se cancela solo esa fecha y las demás semanas siguen igual.
+- **En Nueva reserva**, un horario ocupado por un turno fijo dice "18:00 · Turno fijo", y uno de actividad, "17:00 · Actividad".
+- **Dar de baja a un socio** lo avisa en el diálogo: se cancelan sus reservas desde ahora y sus turnos fijos, y reactivarlo no los recupera.
+- **Lista de turnos fijos**: se abre con *Turnos fijos* en la barra de la agenda. Chips *Vigentes* (por defecto), *Vencidos* y *Dados de baja*, agrupada por día de la semana. Tocar uno abre su detalle con *Renovar* y *Dar de baja*.
+- **Nuevo turno fijo**: *De un socio* o *Actividad del club* (con descripción), cancha, día de la semana, duración y horario. Los horarios son chips dentro del horario de la cancha, **sin marcar ocupados**: saberlo pediría la agenda de cada semana. Si alguna fecha choca, la API la rechaza y la confirmación lista cuáles. **Vigencia**: *Desde* arranca hoy; *Hasta* con atajos 3 meses · 6 meses (preelegido) · 1 año, o una fecha exacta.
+- **La confirmación es una pantalla** (*Revisá el turno fijo*): quién, cancha, "todos los martes, 18:00 a 19:00", la vigencia y cuántas fechas se reservan, el aviso de mora y, si la API rechaza, las fechas que chocan.
+- **Renovar** propone *Desde* el día siguiente al vencimiento (u hoy si ya venció) y los mismos atajos para *Hasta*.
+
+**Cómo quedó construido:**
+
+- La lista carga una sola vez todos los turnos (`GET /api/recurring-slots` sin `state`) junto con las canchas y el padrón, y los chips filtran en el cliente. Un turno vigente que vence en 30 días o menos lo avisa en rojo ("Vence en 12 días"); uno vencido dice "Venció el …".
+- El detalle muestra quién, cancha, cuándo, vigencia y estado, con *Renovar* y *Dar de baja*. Uno dado de baja no ofrece acciones: se crea otro.
+- **Un timeout no se da por fallo sin releer**, como en las reservas: al crear o renovar, si el turno ya figura en la lista, cuenta como hecho. Dar de baja uno que otro admin ya había dado de baja (`409`) cuenta como hecho.
+- Un `409` sin `details` (dos altas a la vez) muestra "Alguna fecha ya está ocupada" sin lista.
+- Crear, renovar o dar de baja recarga la agenda, Nueva reserva y "Próximos turnos": los cambios de turnos fijos llegan como cambios de reservas.
+
+- **Saltear una fecha** (un feriado) es cancelar esa reserva, como cualquier otra.
+- **No se edita**: para cambiar día, horario o cancha se da de baja y se crea otro.
+- **Renovar**: una acción sobre un turno vencido o por vencer crea uno igual con nueva vigencia; si una fecha nueva choca, avisa como al crear.
+- **Dar de baja un turno fijo** cancela sus fechas desde hoy; las pasadas quedan.
+- **Dar de baja un socio** cancela en la misma operación todas sus reservas desde ahora, sueltas y de turnos fijos, y la confirmación lo avisa.
+- **Un bloqueo gana también sobre turnos fijos y actividades**: cancela solo las fechas que pisa, el turno sigue las demás semanas, y la confirmación las lista junto con las reservas sueltas (§4.5).
+- **Socio en mora**: avisa y deja crear el turno fijo, igual que una reserva suelta.
+- **Duración**: 1 hora, 1 hora y media o 2 horas, las mismas que la reserva suelta.
+- **"Próximos turnos" del Inicio** (§3.2.1): las reservas confirmadas de hoy que todavía no terminaron, de todas las canchas y de cualquier origen, las primeras y *Ver agenda*. Sale de `GET /api/reservations?date=` del día, sin endpoint nuevo.
 
 ### E10 — Reporte de cuotas cobradas en PDF
 

@@ -307,4 +307,34 @@ void main() {
       expect(selectedTab(tester), 1);
     });
   });
+
+  testWidgets(
+      'on a small phone the quick access cards stay on screen above the '
+      'upcoming reservations', (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await bootApp(tester, signedInAs: UserRole.admin);
+
+    final navigationTop = tester.getTopLeft(find.byType(NavigationBar)).dy;
+    for (final label in [
+      AppStrings.adminHomeNewMemberAccess,
+      AppStrings.adminHomeRegisterPaymentAccess,
+    ]) {
+      final card = find.ancestor(
+        of: find.text(label),
+        matching: find.byType(QuickAccessCard),
+      );
+      expect(tester.getBottomLeft(card).dy, lessThanOrEqualTo(navigationTop));
+    }
+    final upcoming =
+        find.text(AppStrings.upcomingReservationsTitle.toUpperCase());
+    expect(
+      tester.getTopLeft(upcoming).dy,
+      greaterThan(
+        tester.getBottomLeft(find.byType(QuickAccessCard).first).dy,
+      ),
+    );
+  });
 }

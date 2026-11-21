@@ -11,6 +11,8 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/inline_error_card.dart';
 import '../../../../shared/widgets/skeleton_box.dart';
 import '../../../members/domain/entities/member_collection_filter.dart';
+import '../../../reservations/presentation/cubit/upcoming_reservations_cubit.dart';
+import '../../../reservations/presentation/widgets/upcoming_reservations_card.dart';
 import '../../domain/entities/admin_summary.dart';
 import '../cubit/admin_home_cubit.dart';
 import '../cubit/admin_home_state.dart';
@@ -24,8 +26,15 @@ class AdminHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<AdminHomeCubit>(
-      create: (_) => sl<AdminHomeCubit>()..load(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AdminHomeCubit>(
+          create: (_) => sl<AdminHomeCubit>()..load(),
+        ),
+        BlocProvider<UpcomingReservationsCubit>(
+          create: (_) => sl<UpcomingReservationsCubit>()..load(),
+        ),
+      ],
       child: const AdminScaffold(
         title: AppStrings.adminHomeTitle,
         showsRoleBadge: true,
@@ -64,9 +73,7 @@ class _ReloadOnReturnState extends State<_ReloadOnReturn> {
 
   void _onRouteChanged() {
     final homeIsShown = _isShowingHome();
-    if (homeIsShown && !_homeWasShown && mounted) {
-      context.read<AdminHomeCubit>().load();
-    }
+    if (homeIsShown && !_homeWasShown && mounted) _reloadHome(context);
     _homeWasShown = homeIsShown;
   }
 
@@ -80,13 +87,27 @@ class _ReloadOnReturnState extends State<_ReloadOnReturn> {
   Widget build(BuildContext context) => widget.child;
 }
 
+Future<void> _reloadHome(BuildContext context) async {
+  await Future.wait([
+    context.read<AdminHomeCubit>().load(),
+    context.read<UpcomingReservationsCubit>().load(),
+  ]);
+}
+
+Future<void> _refreshHome(BuildContext context) async {
+  await Future.wait([
+    context.read<AdminHomeCubit>().load(),
+    context.read<UpcomingReservationsCubit>().refresh(),
+  ]);
+}
+
 class _AdminHomeBody extends StatelessWidget {
   const _AdminHomeBody();
 
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: () => context.read<AdminHomeCubit>().load(),
+      onRefresh: () => _refreshHome(context),
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         physics: const AlwaysScrollableScrollPhysics(),
@@ -100,6 +121,7 @@ class _AdminHomeBody extends StatelessWidget {
           _SectionTitle(AppStrings.adminHomeQuickAccessTitle),
           SizedBox(height: AppSpacing.md),
           _QuickAccessRow(),
+          _UpcomingReservations(),
         ],
       ),
     );
@@ -113,6 +135,17 @@ class _ReportsAccess extends StatelessWidget {
   Widget build(BuildContext context) {
     return ReportsAccessCard(
       onTap: () => context.push(AppRoutes.adminReports),
+    );
+  }
+}
+
+class _UpcomingReservations extends StatelessWidget {
+  const _UpcomingReservations();
+
+  @override
+  Widget build(BuildContext context) {
+    return UpcomingReservationsCard(
+      onOpenAgenda: () => context.go(AppRoutes.adminReservations),
     );
   }
 }

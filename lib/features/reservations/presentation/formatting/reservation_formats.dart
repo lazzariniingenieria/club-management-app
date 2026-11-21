@@ -18,8 +18,29 @@ abstract final class ReservationFormats {
   static String ofReservation(Reservation reservation) =>
       hours(reservation.startTime, reservation.endTime);
 
+  static String dayAndHours(Reservation reservation) =>
+      AppStrings.reservationDayAndHours(
+        CourtBlockFormats.day(reservation.date),
+        ofReservation(reservation),
+      );
+
   static String holder(Member? member) =>
       member?.fullName ?? AppStrings.reservationActivity;
+
+  static String holderOf(Reservation reservation, Member? member) =>
+      switch (reservation.source) {
+        ReservationSource.member => holder(member),
+        ReservationSource.recurring =>
+          AppStrings.reservationRecurringHolder(holder(member)),
+        ReservationSource.activity => AppStrings.reservationActivityHolder(
+            reservation.description ?? AppStrings.reservationActivity,
+          ),
+      };
+
+  static String shortHolderOf(Reservation reservation, Member? member) =>
+      reservation.source == ReservationSource.activity
+          ? reservation.description ?? AppStrings.reservationActivity
+          : holder(member);
 
   static String memberWithDni(Member member) {
     final dni = MemberFormats.dni(member);
@@ -44,6 +65,10 @@ abstract final class ReservationFormats {
         AppStrings.slotUnavailable(time, AppStrings.slotPast),
       SlotUnavailability.reserved =>
         AppStrings.slotUnavailable(time, AppStrings.slotReserved),
+      SlotUnavailability.recurring =>
+        AppStrings.slotUnavailable(time, AppStrings.slotRecurring),
+      SlotUnavailability.activity =>
+        AppStrings.slotUnavailable(time, AppStrings.slotActivity),
       SlotUnavailability.blocked =>
         AppStrings.slotUnavailable(time, AppStrings.slotBlocked),
     };
